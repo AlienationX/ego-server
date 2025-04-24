@@ -1,0 +1,212 @@
+[
+    {
+        "model": "wallpaper.Classify",
+        "pk": 1,
+        "fields": {
+            "name": "可爱萌宠",
+            "sort": 1,
+            "picurl": "https://mp-0cb878b7-99ec-44ea-8246-12b123304b05.cdn.bspapp.com/xxmBizhi/20231010/1696900747351_2102.jpg",
+            "select": true,
+            "enable": true,
+            "_id": "6524a48f6523417a8a8b825d",
+            "created_at": "2025-04-04 08:59:26.168812+00:00",
+            "updated_at": "2025-04-04 08:59:26.168828+00:00"
+        }
+    },
+    {
+        "model": "wallpaper.Classify",
+        "pk": 2,
+        "fields": {
+            "name": "AI美图",
+            "sort": 2,
+            "picurl": "https://mp-0cb878b7-99ec-44ea-8246-12b123304b05.cdn.bspapp.com/xxmBizhi/20231010/1696902369329_5036.jpg",
+            "select": true,
+            "enable": true,
+            "_id": "6524ace7213929cbcee72e4d",
+            "created_at": "2025-04-04 08:59:26.203715+00:00",
+            "updated_at": "2025-04-04 08:59:26.203726+00:00"
+        }
+    },
+    {
+        "model": "wallpaper.Classify",
+        "pk": 3,
+        "fields": {
+            "name": "平铺卡通",
+            "sort": 2,
+            "picurl": "https://mp-0cb878b7-99ec-44ea-8246-12b123304b05.cdn.bspapp.com/xxmBizhi/20231010/1696901099086_3215.jpg",
+            "select": false,
+            "enable": true,
+            "_id": "65237596189f860b7614d971",
+            "created_at": "2025-04-04 08:59:26.248116+00:00",
+            "updated_at": "2025-04-04 08:59:26.248129+00:00"
+        }
+    },
+    {
+        "model": "wallpaper.Classify",
+        "pk": 4,
+        "fields": {
+            "name": "自然风光",
+            "sort": 4,
+            "picurl": "https://mp-0cb878b7-99ec-44ea-8246-12b123304b05.cdn.bspapp.com/xxmBizhi/20231010/1696901491940_1839.jpg",
+            "select": true,
+            "enable": true,
+            "_id": "6523757d466d417a37a40d75",
+            "created_at": "2025-04-04 08:59:26.285493+00:00",
+            "updated_at": "2025-04-04 08:59:26.285508+00:00"
+        }
+    },
+    {
+        "model": "wallpaper.Classify",
+        "pk": 5,
+        "fields": {
+            "name": "明星美女",
+            "sort": 5,
+            "picurl": "https://cdn.qingnian8.com/public/bizhiClassify/1698737067256_7406.jpg",
+            "select": true,
+            "enable": true,
+            "_id": "65237031189f860b7613acf4",
+            "created_at": "2025-04-04 08:59:26.324764+00:00",
+            "updated_at": "2025-04-04 08:59:26.324777+00:00"
+        }
+    },
+    {
+        "model": "wallpaper.Classify",
+        "pk": 6,
+        "fields": {
+            "name": "创意色彩",
+            "sort": 5,
+            "picurl": "https://mp-0cb878b7-99ec-44ea-8246-12b123304b05.cdn.bspapp.com/xxmBizhi/20231010/1696902573130_5976.jpg",
+            "select": true,
+            "enable": true,
+            "_id": "6524adaffe975f09c72ce896",
+            "created_at": "2025-04-04 08:59:26.505690+00:00",
+            "updated_at": "2025-04-04 08:59:26.505706+00:00"
+        }
+    },
+    {
+        "model": "wallpaper.Classify",
+        "pk": 7,
+        "fields": {
+            "name": "帅哥靓仔",
+            "sort": 6,
+            "picurl": "https://mp-0cb878b7-99ec-44ea-8246-12b123304b05.cdn.bspapp.com/xxmBizhi/20231010/1696903729761_0302.jpg",
+            "select": false,
+            "enable": true,
+            "_id": "6524af7ae0ec19c8d601a96d",
+            "created_at": "2025-04-04 08:59:26.544847+00:00",
+            "updated_at": "2025-04-04 08:59:26.544859+00:00"
+        }
+    },
+    {
+        "model": "wallpaper.Classify",
+        "pk": 8,
+        "fields": {
+            "select": true,
+            "name": "独特建筑",
+            "sort": 7,
+            "picurl": "https://cdn.qingnian8.com/public/bizhiClassify/1698726300325_8360.jpg",
+            "enable": true,
+            "_id": "652b59eb8b0da4ca08b7453e",
+            "created_at": "2025-04-04 08:59:26.580996+00:00",
+            "updated_at": "2025-04-04 08:59:26.581024+00:00"
+        }
+    },
+    {
+        "model": "wallpaper.Classify",
+        "pk": 9,
+        "fields": {
+            "select": false,
+            "name": "运动体育",
+            "sort": 8,
+            "picurl": "https://mp-0cb878b7-99ec-44ea-8246-12b123304b05.cdn.bspapp.com/xxmBizhi/20231015/1697342027807_5797.jpg",
+            "enable": true,
+            "_id": "652b6253e0ec19c8d6e281d5",
+            "created_at": "2025-04-04 08:59:26.758490+00:00",
+            "updated_at": "2025-04-04 08:59:26.758503+00:00"
+        }
+    },
+    {
+        "model": "wallpaper.Classify",
+        "pk": 10,
+        "fields": {
+            "select": false,
+            "name": "网红小姐姐",
+            "sort": 8,
+            "picurl": "https://mp-0cb878b7-99ec-44ea-8246-12b123304b05.cdn.bspapp.com/xxmBizhi/20240221/1708500433657_4682.jpg",
+            "enable": true,
+            "_id": "65d5969e8b0da4a4e4e3757d",
+            "created_at": "2025-04-04 08:59:26.797034+00:00",
+            "updated_at": "2025-04-04 08:59:26.797047+00:00"
+        }
+    },
+    {
+        "model": "wallpaper.Classify",
+        "pk": 11,
+        "fields": {
+            "select": true,
+            "name": "动漫二次元",
+            "sort": 9,
+            "picurl": "https://mp-0cb878b7-99ec-44ea-8246-12b123304b05.cdn.bspapp.com/xxmBizhi/20231106/1699281780066_9354.jpg",
+            "enable": true,
+            "_id": "652e519721821b97c60c07ab",
+            "created_at": "2025-04-04 08:59:26.839531+00:00",
+            "updated_at": "2025-04-04 08:59:26.839549+00:00"
+        }
+    },
+    {
+        "model": "wallpaper.Classify",
+        "pk": 12,
+        "fields": {
+            "select": false,
+            "name": "卡通插画",
+            "sort": 10,
+            "picurl": "https://cdn.qingnian8.com/public/bizhiClassify/1697528627203_0463.jpg",
+            "enable": true,
+            "_id": "652e3b39466d417a3717718f",
+            "created_at": "2025-04-04 08:59:26.879057+00:00",
+            "updated_at": "2025-04-04 08:59:26.879070+00:00"
+        }
+    },
+    {
+        "model": "wallpaper.Classify",
+        "pk": 13,
+        "fields": {
+            "select": true,
+            "name": "深色系",
+            "sort": 11,
+            "picurl": "https://cdn.qingnian8.com/public/bizhiClassify/1697794265198_9364.jpg",
+            "enable": true,
+            "_id": "653248dd55b3379a66824f95",
+            "created_at": "2025-04-04 08:59:27.079017+00:00",
+            "updated_at": "2025-04-04 08:59:27.079040+00:00"
+        }
+    },
+    {
+        "model": "wallpaper.Classify",
+        "pk": 14,
+        "fields": {
+            "select": false,
+            "name": "古韵佳人",
+            "sort": 12,
+            "picurl": "https://mp-0cb878b7-99ec-44ea-8246-12b123304b05.cdn.bspapp.com/xxmBizhi/20231023/1698029196280_8218.jpg",
+            "enable": true,
+            "_id": "6535de90466d417a37334633",
+            "created_at": "2025-04-04 08:59:27.256189+00:00",
+            "updated_at": "2025-04-04 08:59:27.256205+00:00"
+        }
+    },
+    {
+        "model": "wallpaper.Classify",
+        "pk": 15,
+        "fields": {
+            "select": true,
+            "name": "文字文案控",
+            "sort": 13,
+            "picurl": "https://mp-0cb878b7-99ec-44ea-8246-12b123304b05.cdn.bspapp.com/xxmBizhi/20240228/1709088579467_9054.jpg",
+            "enable": true,
+            "_id": "65de9f4af08210b07de0fd53",
+            "created_at": "2025-04-04 08:59:27.315715+00:00",
+            "updated_at": "2025-04-04 08:59:27.315739+00:00"
+        }
+    }
+]

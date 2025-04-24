@@ -1,0 +1,53 @@
+[
+    {
+        "model": "wallpaper.Banner",
+        "pk": 1,
+        "fields": {
+            "sort": 1,
+            "target": "self",
+            "picurl": "https://mp-0cb878b7-99ec-44ea-8246-12b123304b05.cdn.bspapp.com/xxmBizhi/banner/1699255179817_5858.jpg",
+            "url": "id=6524adaffe975f09c72ce896&name=创意色彩",
+            "created_at": "2025-04-04 08:59:25.838419+00:00",
+            "enable": true
+        }
+    },
+    {
+        "model": "wallpaper.Banner",
+        "pk": 2,
+        "fields": {
+            "sort": 3,
+            "target": "self",
+            "picurl": "https://mp-0cb878b7-99ec-44ea-8246-12b123304b05.cdn.bspapp.com/xxmBizhi/banner/1699255294420_3921.jpg",
+            "url": "id=6524a48f6523417a8a8b825d&name=可爱萌宠",
+            "appid": "",
+            "created_at": "2025-04-04 08:59:25.893223+00:00",
+            "enable": true
+        }
+    },
+    {
+        "model": "wallpaper.Banner",
+        "pk": 3,
+        "fields": {
+            "sort": 5,
+            "target": "miniProgram",
+            "picurl": "https://mp-0cb878b7-99ec-44ea-8246-12b123304b05.cdn.bspapp.com/xxmBizhi/banner/1699256636265_3184.jpg",
+            "url": "/pages/index/index",
+            "appid": "wxbd89d0ba67f6b6a4",
+            "created_at": "2025-04-04 08:59:25.940555+00:00",
+            "enable": true
+        }
+    },
+    {
+        "model": "wallpaper.Banner",
+        "pk": 4,
+        "fields": {
+            "sort": 8,
+            "target": "self",
+            "picurl": "https://mp-0cb878b7-99ec-44ea-8246-12b123304b05.cdn.bspapp.com/xxmBizhi/banner/1699343520445_0982.jpg",
+            "url": "id=6524ace7213929cbcee72e4d&name=AI美图",
+            "appid": "",
+            "created_at": "2025-04-04 08:59:25.979460+00:00",
+            "enable": true
+        }
+    }
+]

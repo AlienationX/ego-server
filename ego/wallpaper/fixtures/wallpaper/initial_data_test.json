@@ -1,0 +1,47 @@
+[
+  {
+    "model": "wallpaper.Classify",
+    "pk": 1,
+    "fields": {
+      "name": "可爱萌宠",
+      "sort": "1",
+      "picurl": "https://mp-0cb878b7-99ec-44ea-8246-12b123304b05.cdn.bspapp.com/xxmBizhi/20231010/1696900747351_2102.jpg",
+      "select": true,
+      "is_active": true
+    }
+  },
+  {
+    "model": "wallpaper.Classify",
+    "pk": 2,
+    "fields": {
+      "name": "AI美图",
+      "sort": "2",
+      "picurl": "https://mp-0cb878b7-99ec-44ea-8246-12b123304b05.cdn.bspapp.com/xxmBizhi/20231010/1696900747351_2102.jpg",
+      "select": true,
+      "is_active": true
+    }
+  },
+  {
+    "model": "wallpaper.Classify",
+    "pk": 3,
+    "fields": {
+      "name": "明星美女",
+      "sort": "3",
+      "picurl": "https://mp-0cb878b7-99ec-44ea-8246-12b123304b05.cdn.bspapp.com/xxmBizhi/20231010/1696900747351_2102.jpg",
+      "select": true,
+      "is_active": true
+    }
+  },
+  {
+    "model": "wallpaper.Notice",
+    "pk": 1,
+    "fields": {
+      "title": "欢迎关注咸虾米圈子公众号，获取UP主咸虾米最新动态。",
+      "content": "<div><p><img src=\"https://mp-0cb878b7-99ec-44ea-8246-12b123304b05.cdn.bspapp.com/cloudstorage/69e3dd04-1bc0-4aaa-809c-e37cbb587d58.jpg\" style=\"max-width:100%;\" contenteditable=\"false\"/></p><p>扫码关注“咸虾米圈子”微信公众号，分享最新的技术及动态。</p></div>",
+      "author": "admin",
+      "article_status": true,
+      "publish_date": "2025-03-28 16:55:12",
+      "view_count": 11
+    }
+  }
+]

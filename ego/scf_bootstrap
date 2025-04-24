@@ -1,0 +1,13 @@
+#!/bin/bash
+
+# 1. 将所有依赖包下载到项目当前目录，pip install -r requirements.txt -t .
+# 2. 创建scf_bootstrap启动文件 
+# 3. 必须授权 chmod 777 scf_bootstrap
+# 4. 打包全部上传到云函数即可
+
+# HTTP 直通函数由于是基于 docker 镜像运行，所以必须监听地址为 0.0.0.0，并且端口为 9000
+
+# /Users/tangzy/code/python/tencent_scf/.venv/bin/python3 manage.py runserver 0.0.0.0:9000
+
+export PATH=$PATH:/var/lang/python310/bin/python3
+SERVERLESS=1 /var/lang/python10/bin/python3 manage.py runserver 0.0.0.0:9000

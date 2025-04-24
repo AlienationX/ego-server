@@ -1,0 +1,39 @@
+{
+    "errCode": 0,
+    "errMsg": "查询成功",
+    "data": [
+        {
+            "_id": "654893ad652341d97ccbc9c7",
+            "sort": 1,
+            "target": "self",
+            "picurl": "https://mp-0cb878b7-99ec-44ea-8246-12b123304b05.cdn.bspapp.com/xxmBizhi/banner/1699255179817_5858.jpg",
+            "url": "id=6524adaffe975f09c72ce896&name=创意色彩"
+        },
+        {
+            "_id": "6548940e2139297f8ba3f89a",
+            "sort": 3,
+            "target": "self",
+            "picurl": "https://mp-0cb878b7-99ec-44ea-8246-12b123304b05.cdn.bspapp.com/xxmBizhi/banner/1699255294420_3921.jpg",
+            "url": "id=6524a48f6523417a8a8b825d&name=可爱萌宠",
+            "appid": ""
+        },
+        {
+            "_id": "6548994921821b2219093b10",
+            "sort": 5,
+            "target": "miniProgram",
+            "picurl": "https://mp-0cb878b7-99ec-44ea-8246-12b123304b05.cdn.bspapp.com/xxmBizhi/banner/1699256636265_3184.jpg",
+            "url": "/pages/index/index",
+            "appid": "wxbd89d0ba67f6b6a4"
+        },
+        {
+            "_id": "6549ed0ca09a9b1c28db604f",
+            "sort": 8,
+            "target": "self",
+            "picurl": "https://mp-0cb878b7-99ec-44ea-8246-12b123304b05.cdn.bspapp.com/xxmBizhi/banner/1699343520445_0982.jpg",
+            "url": "id=6524ace7213929cbcee72e4d&name=AI美图",
+            "appid": ""
+        }
+    ],
+    "author": "接口管理员：B站咸虾米",
+    "timeCost": 1
+}

@@ -1,0 +1,14 @@
+__pycache__
+
+.venv
+
+.DS_Store
+
+# 文件夹
+ego/.env
+ego/logs
+ego/static
+ego/wallpaper/scripts/pics
+
+# 
+pokemon-dataset-zh
