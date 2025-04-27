@@ -7,16 +7,26 @@
             "dateutil",
             "botocore",
             "s3transfer",
-            "concurrent",
-            ".git/*", 
-            ".idea/*", 
-            "*.pyc", 
-            "__pycache__/*"
+            "concurrent"
         ],
-        "profile_name": "default",
+        "exclude_glob": [
+            ".git", 
+            ".idea", 
+            "*.pyc", 
+            "__pycache__",
+            "package/",
+            "wallpaper/scripts/",
+            "ego-dev-*.zip"
+        ],
+        "profile_name": "zappa-profile",
         "project_name": "ego",
         "runtime": "python3.10",
-        "s3_bucket": "zappa-tvg8ew9xj"
+        "s3_bucket": "zappa-tvg8ew9xj",
+        "keep_warm": true,
+        "keep_warm_expression": "rate(5 minutes)",
+        "environment_variables": {
+            "DJANGO_SECRET_KEY": "your-secret-key"
+        }
     }
 }
 

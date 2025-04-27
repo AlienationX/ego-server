@@ -263,83 +263,112 @@ CORS_ALLOW_HEADERS = [
 
 # ######################## 日志配置
 
-# 创建日志路径
-Path(f"{BASE_DIR}/logs").mkdir(parents=True, exist_ok=True)
-# 日志相关配置
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    # 日志格式
-    'formatters': {
-        'verbose': {
-            'format': '{asctime} {levelname} [{module}] {message}',
-            'style': '{',
-        },
-        'request_format': {
-            'format': '{asctime} {message}',
-            'style': '{',
-        },
-    },
-    # 处理器（控制台、文件等）
-    'handlers': {
-        'console': {
-            'level': 'INFO',
-            'class': 'logging.StreamHandler',
-            'formatter': 'verbose'
-        },
-        'file': {
-            'level': 'INFO',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': 'logs/django.log',  # 日志文件路径
-            'maxBytes': 1024 * 1024 * 5,   # 文件大小限制（5MB）
-            'backupCount': 5,              # 保留日志文件数
-            'formatter': 'verbose',
-        },
-        'mail_admins': {
-            'level': 'ERROR',
-            'class': 'django.utils.log.AdminEmailHandler',
-            'include_html': True,
-        },
-        # StreamHandler：输出到控制台。
-        # RotatingFileHandler：按文件大小轮转日志文件。
-        # TimedRotatingFileHandler：按时间轮转日志文件。
-        # AdminEmailHandler：发送错误邮件给管理员（需配置 ADMINS）。
-        'request_file': {
-            'level': 'INFO',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': 'logs/request.log',  # 日志文件路径
-            'maxBytes': 1024 * 1024 * 5,   # 文件大小限制（5MB）
-            'backupCount': 5,              # 保留日志文件数
-            'formatter': 'request_format',
-        },
-        'wallpaper_file': {
-            'level': 'INFO',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': 'logs/wallpaper.log',  # 日志文件路径
-            'maxBytes': 1024 * 1024 * 5,   # 文件大小限制（5MB）
-            'backupCount': 5,              # 保留日志文件数
-            'formatter': 'verbose',
-        },
-    },
-    # 日志记录器（定义不同模块的日志行为）
-    'loggers': {
-        '': {  
-            # 根记录器，捕获所有日志。
-            'handlers': ['console', 'file', 'request_file'],
-            'level': 'INFO',
-        },
-        'django': {
-            # 处理django的默认日志，比如"GET /wallpaper/api/classify/?select=true HTTP/1.1" 200 2555
-            # 只用来打印和写入file文件
-            'handlers': ['console', 'file'],
-            'level': 'INFO',
-            'propagate': False,  # 是否传递给父记录器
-        },
-        'wallpaper': {
-            # wallpaper应用的日志
-            'handlers': ['console', 'wallpaper_file', 'mail_admins'],
-            'level': 'INFO',
-            'propagate': False,  # 是否传递给父记录器
-        },
-    },
-}
+# # 创建日志路径
+# Path(f"{BASE_DIR}/logs").mkdir(parents=True, exist_ok=True)
+# # 日志相关配置
+# LOGGING = {
+#     'version': 1,
+#     'disable_existing_loggers': False,
+#     # 日志格式
+#     'formatters': {
+#         'verbose': {
+#             'format': '{asctime} {levelname} [{module}] {message}',
+#             'style': '{',
+#         },
+#         'request_format': {
+#             'format': '{asctime} {message}',
+#             'style': '{',
+#         },
+#     },
+#     # 处理器（控制台、文件等）
+#     'handlers': {
+#         'console': {
+#             'level': 'INFO',
+#             'class': 'logging.StreamHandler',
+#             'formatter': 'verbose'
+#         },
+#         'file': {
+#             'level': 'INFO',
+#             'class': 'logging.handlers.RotatingFileHandler',
+#             'filename': 'logs/django.log',  # 日志文件路径
+#             'maxBytes': 1024 * 1024 * 5,   # 文件大小限制（5MB）
+#             'backupCount': 5,              # 保留日志文件数
+#             'formatter': 'verbose',
+#         },
+#         'mail_admins': {
+#             'level': 'ERROR',
+#             'class': 'django.utils.log.AdminEmailHandler',
+#             'include_html': True,
+#         },
+#         # StreamHandler：输出到控制台。
+#         # RotatingFileHandler：按文件大小轮转日志文件。
+#         # TimedRotatingFileHandler：按时间轮转日志文件。
+#         # AdminEmailHandler：发送错误邮件给管理员（需配置 ADMINS）。
+#         'request_file': {
+#             'level': 'INFO',
+#             'class': 'logging.handlers.RotatingFileHandler',
+#             'filename': 'logs/request.log',  # 日志文件路径
+#             'maxBytes': 1024 * 1024 * 5,   # 文件大小限制（5MB）
+#             'backupCount': 5,              # 保留日志文件数
+#             'formatter': 'request_format',
+#         },
+#         'wallpaper_file': {
+#             'level': 'INFO',
+#             'class': 'logging.handlers.RotatingFileHandler',
+#             'filename': 'logs/wallpaper.log',  # 日志文件路径
+#             'maxBytes': 1024 * 1024 * 5,   # 文件大小限制（5MB）
+#             'backupCount': 5,              # 保留日志文件数
+#             'formatter': 'verbose',
+#         },
+#     },
+#     # 日志记录器（定义不同模块的日志行为）
+#     'loggers': {
+#         '': {  
+#             # 根记录器，捕获所有日志。
+#             'handlers': ['console', 'file', 'request_file'],
+#             'level': 'INFO',
+#         },
+#         'django': {
+#             # 处理django的默认日志，比如"GET /wallpaper/api/classify/?select=true HTTP/1.1" 200 2555
+#             # 只用来打印和写入file文件
+#             'handlers': ['console', 'file'],
+#             'level': 'INFO',
+#             'propagate': False,  # 是否传递给父记录器
+#         },
+#         'wallpaper': {
+#             # wallpaper应用的日志
+#             'handlers': ['console', 'wallpaper_file', 'mail_admins'],
+#             'level': 'INFO',
+#             'propagate': False,  # 是否传递给父记录器
+#         },
+#     },
+# }
+
+# 云函数不能用文件记录日志，故取消记录日志，减少云服务的开销?
+# LOGGING = {
+#     'version': 1,
+#     'disable_existing_loggers': False,
+#     # 日志格式
+#     'formatters': {
+#         'verbose': {
+#             'format': '{asctime} {levelname} [{module}] {message}',
+#             'style': '{',
+#         }
+#     },
+#     # 处理器（控制台、文件等）
+#     'handlers': {
+#         'console': {
+#             'level': 'INFO',
+#             'class': 'logging.StreamHandler',
+#             'formatter': 'verbose'
+#         }
+#     },
+#     # 日志记录器（定义不同模块的日志行为）
+#     'loggers': {
+#         '': {  
+#             # 根记录器，捕获所有日志。
+#             'handlers': ['console'],
+#             'level': 'INFO',
+#         },
+#     },
+# }

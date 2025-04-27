@@ -10,4 +10,4 @@
 # /Users/tangzy/code/python/tencent_scf/.venv/bin/python3 manage.py runserver 0.0.0.0:9000
 
 export PATH=$PATH:/var/lang/python310/bin/python3
-SERVERLESS=1 /var/lang/python10/bin/python3 manage.py runserver 0.0.0.0:9000
+SERVERLESS=1 /var/lang/python310/bin/python3 manage.py runserver 0.0.0.0:9000
