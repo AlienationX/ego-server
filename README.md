@@ -37,6 +37,9 @@ pip install djangorestframework-simplejwt
 
 # 敏感信息使用环境变量管理
 pip install python-decouple
+
+# 中小型项目静态文件服务器，中间件
+pip install whitenoise
 ```
 
 ```shell

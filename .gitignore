@@ -6,9 +6,12 @@ __pycache__
 
 # 文件夹
 ego/.env
-ego/logs
-ego/static
-ego/wallpaper/scripts/pics
+ego/zappa_settings.json
+ego/logs/
+ego/static/
+ego/wallpaper/scripts/pics/
+ego/ego-dev*.zip
+ego/package/
 
 # 
 pokemon-dataset-zh
