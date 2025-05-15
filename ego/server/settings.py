@@ -13,12 +13,20 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 from pathlib import Path
 from datetime import timedelta 
 
-from decouple import config
-
 # import mysqlclient
 # mysqlclient如果安装不上，就使用pymysql
 import pymysql
 pymysql.install_as_MySQLdb()
+
+from collections import ChainMap
+from decouple import Config, RepositoryEnv
+import os
+
+# 读取环境变量，没有设置时，默认使用prod环境。本机设置为dev：export DJANGO_ENV=dev
+# vim ~/.bash_profile
+# export DJANGO_ENV=dev
+ENV = os.getenv('DJANGO_ENV', 'prod')  
+config = Config(ChainMap(RepositoryEnv(f".env.{ENV}"), RepositoryEnv(".env.base")))
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -108,7 +116,7 @@ DATABASES = {
         'PASSWORD': config('DB_PASSWORD'),
         'OPTIONS': {'charset': 'utf8mb4'}  # 支持 Emoji 和复杂字符
     },
-    # 'sqlite3': {
+    # 'default': {
     #     'ENGINE': 'django.db.backends.sqlite3',
     #     'NAME': BASE_DIR / 'db.sqlite3',
     # }

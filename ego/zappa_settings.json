@@ -18,7 +18,7 @@
             "wallpaper/scripts/",
             "ego-dev-*.zip"
         ],
-        "profile_name": "zappa-profile",
+        "profile_name": "zappa",
         "project_name": "ego",
         "runtime": "python3.10",
         "s3_bucket": "zappa-tvg8ew9xj",

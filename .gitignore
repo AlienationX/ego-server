@@ -5,7 +5,7 @@ __pycache__
 .DS_Store
 
 # 文件夹
-ego/.env
+ego/.env*
 ego/zappa_settings.json
 ego/logs/
 ego/static/
