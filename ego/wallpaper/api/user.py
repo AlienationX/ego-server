@@ -28,18 +28,28 @@ class ApiModelView(RetrieveModelMixin, GenericViewSet):
         url = "http://whois.pconline.com.cn/ipJson.jsp"
         ip = request.META.get('REMOTE_ADDR')
         params = {"ip": ip, "json": "true"}
-        response = requests.get(url, params=params)
-        data = response.json()
 
-        # print(data)
+        try:
+            response = requests.get(url, params=params)
+            
+            # if response.status_code == 200:
+            data = response.json()
 
-        return Response({
-            "id": -1,
-            "name": "unknown",
-            "IP": ip,
-            "address": {
-                # "country": "中国",
-                "province": data["pro"],
-                "city": data["city"],
-                "region": data["region"]
-            }})
+            # print(data)
+
+            return Response({
+                "id": -1,
+                "name": "unknown",
+                "IP": ip,
+                "address": {
+                    # "country": "中国",
+                    "province": data["pro"],
+                    "city": data["city"],
+                    "region": data["region"]
+                }})
+            
+        except Exception as e:
+            # 异常处理，比如表不存在，传入的sql存在问题等
+            # e.args / str(e) / repr(e)
+            print("ERROR MESSAGE", e)
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
