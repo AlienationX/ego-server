@@ -352,31 +352,31 @@ CORS_ALLOW_HEADERS = [
 #     },
 # }
 
-# 云函数不能用文件记录日志，故取消记录日志，减少云服务的开销?
-# LOGGING = {
-#     'version': 1,
-#     'disable_existing_loggers': False,
-#     # 日志格式
-#     'formatters': {
-#         'verbose': {
-#             'format': '{asctime} {levelname} [{module}] {message}',
-#             'style': '{',
-#         }
-#     },
-#     # 处理器（控制台、文件等）
-#     'handlers': {
-#         'console': {
-#             'level': 'INFO',
-#             'class': 'logging.StreamHandler',
-#             'formatter': 'verbose'
-#         }
-#     },
-#     # 日志记录器（定义不同模块的日志行为）
-#     'loggers': {
-#         '': {  
-#             # 根记录器，捕获所有日志。
-#             'handlers': ['console'],
-#             'level': 'INFO',
-#         },
-#     },
-# }
+# 云函数不能用文件记录日志
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    # 日志格式
+    'formatters': {
+        'verbose': {
+            'format': '{asctime} {levelname} [{module}:{lineno}] {message}',
+            'style': '{',
+        }
+    },
+    # 处理器（控制台、文件等）
+    'handlers': {
+        'console': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose'
+        }
+    },
+    # 日志记录器（定义不同模块的日志行为）
+    'loggers': {
+        '': {  
+            # 根记录器，捕获所有日志。
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
+    },
+}

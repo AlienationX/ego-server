@@ -12,12 +12,17 @@ from ..permissions import HasAccessKey
 
 import requests
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class ApiModelView(RetrieveModelMixin, GenericViewSet):
 
     queryset = Profile.objects.all()
     # serializer_class = ProfileSerializer
     # permission_classes = [HasAccessKey, IsAuthenticated]
+    permission_classes = []
     renderer_classes = [CustomJSONRenderer]
 
     def retrieve(self, request, *args, **kwargs):
@@ -29,27 +34,39 @@ class ApiModelView(RetrieveModelMixin, GenericViewSet):
         ip = request.META.get('REMOTE_ADDR')
         params = {"ip": ip, "json": "true"}
 
+        province = ""
+        city = ""
+        region = ""
+
         try:
-            response = requests.get(url, params=params)
+            logger.info(f"请求的IP地址: {ip}")
+            # ​​连接超时​​：3 秒内未建立连接则抛出 ConnectTimeout。
+            # ​​读取超时​​：连接建立后，5 秒内未收到数据则抛出 ReadTimeout。
+            response = requests.get(url, params=params, timeout=(3, 5))
             
-            # if response.status_code == 200:
+            response.raise_for_status()
+
             data = response.json()
+            province = data.get("pro", "")
+            city = data.get("city", "")
+            region = data.get("region", "")
 
-            # print(data)
-
-            return Response({
-                "id": -1,
-                "name": "unknown",
-                "IP": ip,
-                "address": {
-                    # "country": "中国",
-                    "province": data["pro"],
-                    "city": data["city"],
-                    "region": data["region"]
-                }})
-            
+        except requests.exceptions.RequestException as e:
+            logger.error(f"IP查询接口请求失败: {e}")
+            region = "unknown"
         except Exception as e:
-            # 异常处理，比如表不存在，传入的sql存在问题等
-            # e.args / str(e) / repr(e)
-            print("ERROR MESSAGE", e)
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            # 异常处理，url问题、请求超时等 e.args / str(e) / repr(e)
+            logger.error(f"系统异常: {e}")
+            region = "error"
+            # return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({
+            "id": -1,
+            "name": "unknown",
+            "IP": ip,
+            "address": {
+                "province": province,
+                "city": city,
+                "region": region
+            }
+        })
