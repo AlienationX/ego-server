@@ -25,7 +25,7 @@ class ClassifyAdmin(admin.ModelAdmin):
         if obj.picurl:
             return format_html(
                 '<img src="{}" style="height: 360px; width: auto; border-radius: 4px;" />',
-                obj.picurl
+                "https://wallpaper-kpze6c.s3.eu-north-1.amazonaws.com/" + obj.picurl
             )
         return "-"
     
@@ -40,7 +40,7 @@ class WallAdmin(admin.ModelAdmin):
         if obj.picurl:
             return format_html(
                 '<img src="{}" style="max-height: 60px; max-width: 60px;" />',
-                obj.picurl
+                "https://wallpaper-kpze6c.s3.eu-north-1.amazonaws.com/" + obj.picurl
             )
         return "-"
     

@@ -9,7 +9,9 @@ ego/.env*
 ego/zappa_settings.json
 ego/logs/
 ego/static/
-ego/wallpaper/scripts/pics/
+ego/utils/tmp.vue
+ego/wallpaper/scripts/images/
+ego/wallpaper/scripts/s3_wallpaper_bucket/
 ego/ego-dev*.zip
 ego/package/
 

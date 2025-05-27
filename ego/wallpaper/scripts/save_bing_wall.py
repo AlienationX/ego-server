@@ -4,7 +4,7 @@ import sys
 import os
 
 FILE_PATH = sys.path[0]
-BING_PATH = f"{FILE_PATH}/pics/classify_bing/"
+BING_PATH = f"{FILE_PATH}/images/pics/classify_bing/"
 DATA_FILE = f"{BING_PATH}/bing_daily_data.json"
 
 # bing_daily_data.json数据，以便查找匹配数据是否存在，不存在则追加
