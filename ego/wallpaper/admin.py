@@ -4,7 +4,7 @@ from django.utils.safestring import mark_safe
 
 
 # Register your models here.
-from .models import Classify, Wall, Notice, Rate, Profile, Banner, Access, Application
+from .models import Classify, Subject, Wall, Notice, Rate, Profile, Banner, Access, Application
 
 
 class ClassifyAdmin(admin.ModelAdmin):
@@ -28,12 +28,28 @@ class ClassifyAdmin(admin.ModelAdmin):
                 "https://wallpaper-kpze6c.s3.eu-north-1.amazonaws.com/" + obj.picurl
             )
         return "-"
-    
+
     image_preview.short_description = "当前图片"
+
+
+class SubjectAdmin(admin.ModelAdmin):
+    list_display = ('id', 'name', 'content', 'sort', 'select', 'enable', 'created_at', 'updated_at')  # 显示的字段
+    list_filter = ('select', 'enable')
+    search_fields = ('name', 'content')  # 添加搜索功能
 
 
 class WallAdmin(admin.ModelAdmin):
     list_display = ('id', 'display_image', 'classify_id', 'publisher', 'tabs', 'score', 'description')
+    list_filter = ('classify_id',)
+    search_fields = ('description', 'publisher', 'tabs')
+    filter_horizontal = ('subjects',)  # 优化多对多字段选择界面
+    date_hierarchy = 'created_at'   # 按创建日期分层筛选
+
+    def formfield_for_manytomany(self, db_field, request, **kwargs):
+        # 优化多对多字段的查询性能
+        if db_field.name == "subjects":
+            kwargs["queryset"] = Subject.objects.all()
+        return super().formfield_for_manytomany(db_field, request, **kwargs)
 
     # 定义图片展示方法
     def display_image(self, obj):
@@ -43,7 +59,7 @@ class WallAdmin(admin.ModelAdmin):
                 "https://wallpaper-kpze6c.s3.eu-north-1.amazonaws.com/" + obj.picurl
             )
         return "-"
-    
+
     display_image.short_description = "图片预览"  # 设置列标题
 
     # 在编辑页也显示图片预览, fields是编辑页面的字段
@@ -58,12 +74,13 @@ class WallAdmin(admin.ModelAdmin):
                 obj.picurl
             )
         return "-"
-    
+
     image_preview.short_description = "当前图片"
 
 
 class BannerAdmin(admin.ModelAdmin):
     list_display = ('id', 'url', 'target', 'enable')
+
 
 @admin.register(Notice)
 class NoticeAdmin(admin.ModelAdmin):
@@ -73,6 +90,7 @@ class NoticeAdmin(admin.ModelAdmin):
 
     readonly_fields = ('html_preview',)
     # 编辑页完整预览（带安全限制）
+
     def html_preview(self, obj):
         return format_html(
             '<div class="html-preview" style="border: 1px solid #ddd; padding: 10px; margin-top: 10px">{}</div>',
@@ -83,10 +101,11 @@ class NoticeAdmin(admin.ModelAdmin):
 
 
 admin.site.register(Classify, ClassifyAdmin)
+admin.site.register(Subject, SubjectAdmin)
 admin.site.register(Wall, WallAdmin)
 # admin.site.register(Notice, NoticeAdmin)
-admin.site.register(Rate)
 admin.site.register(Banner, BannerAdmin)
+admin.site.register(Rate)
 admin.site.register(Access)
 admin.site.register(Profile)
 admin.site.register(Application)

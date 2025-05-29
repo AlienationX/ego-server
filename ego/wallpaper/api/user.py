@@ -12,6 +12,7 @@ from ..permissions import HasAccessKey
 
 import requests
 
+import random
 import logging
 
 logger = logging.getLogger(__name__)
@@ -42,7 +43,7 @@ class ApiModelView(RetrieveModelMixin, GenericViewSet):
             logger.info(f"请求的IP地址: {ip}")
             # ​​连接超时​​：3 秒内未建立连接则抛出 ConnectTimeout。
             # ​​读取超时​​：连接建立后，5 秒内未收到数据则抛出 ReadTimeout。
-            response = requests.get(url, params=params, timeout=(3, 5))
+            response = requests.get(url, params=params, timeout=(2, 1))
             
             response.raise_for_status()
 
@@ -53,7 +54,8 @@ class ApiModelView(RetrieveModelMixin, GenericViewSet):
 
         except requests.exceptions.RequestException as e:
             logger.error(f"IP查询接口请求失败: {e}")
-            region = "unknown"
+            regions = ["地球", "月球", "太阳系", "银河系", "宇宙", "黑洞", "未知", "unknown"]
+            region = regions[random.randint(0, len(regions)-1)]
         except Exception as e:
             # 异常处理，url问题、请求超时等 e.args / str(e) / repr(e)
             logger.error(f"系统异常: {e}")

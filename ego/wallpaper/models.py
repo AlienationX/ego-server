@@ -45,7 +45,6 @@ class Classify(models.Model):
     created_at = models.DateTimeField(default=timezone.now, verbose_name="创建时间")  # auto_now_add=True auto_now=True
     # default 是给模型设置默认值，db_default 是给数据库设置默认值，推荐
     updated_at = models.DateTimeField(default=timezone.now, verbose_name="更新时间")
-    _id = models.CharField(max_length=60, verbose_name="分类id", blank=True, null=True)  # 闲虾米壁纸数据的classid
 
     def __str__(self):
         return self.name
@@ -53,6 +52,24 @@ class Classify(models.Model):
     class Meta:
         verbose_name = "分类"  # 点击列表处，该模型的标题显示的内容
         verbose_name_plural = "壁纸分类"  # admin列表处显示的是该字段，如果没有该字段会使用verbose_name并末尾增加个s
+
+
+class Subject(models.Model):
+    name = models.CharField(max_length=100, unique=True, verbose_name="专题名称", db_comment="db_comment中显示的名称: 分类名称")
+    content = models.TextField(verbose_name="专题内容", blank=True, null=True)
+    sort = models.IntegerField(verbose_name="排序")
+    picurl = models.CharField(max_length=255, verbose_name="图片地址")
+    select = models.BooleanField(default=False, verbose_name="是否首页推荐")
+    enable = models.BooleanField(default=True, verbose_name="是否启用")  # is_active
+    created_at = models.DateTimeField(default=timezone.now, verbose_name="创建时间")  # auto_now_add=True auto_now=True
+    updated_at = models.DateTimeField(default=timezone.now, verbose_name="更新时间")
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = "专题"
+        verbose_name_plural = "壁纸专题"
 
 
 class Wall(models.Model):
@@ -67,12 +84,11 @@ class Wall(models.Model):
     created_at = models.DateTimeField(default=timezone.now, verbose_name="创建时间")
     updated_at = models.DateTimeField(default=timezone.now, verbose_name="更新时间")
     classify = models.ForeignKey(Classify, on_delete=models.PROTECT, verbose_name="分类")  # 外键写表名即可，生成的字段默认会增加_id
-    _id = models.CharField(max_length=60, verbose_name="图片id", blank=True, null=True)  # 闲虾米壁纸数据的wallid
-    _classid = models.CharField(max_length=60, verbose_name="分类id", blank=True, null=True)  # 闲虾米壁纸数据的classid，遗留问题
+    subjects = models.ManyToManyField(Subject, related_name='walls', verbose_name="专题", blank=True)  # 多对多关系
 
     class Meta:
-        verbose_name = "壁纸信息"
-        verbose_name_plural = "壁纸详细信息"
+        verbose_name = "壁纸"
+        verbose_name_plural = "壁纸信息"
 
 
 class Notice(models.Model):
@@ -88,6 +104,7 @@ class Notice(models.Model):
         return f"{self.title} - {self.publish_date}"
 
     class Meta:
+        verbose_name = "公告"
         verbose_name_plural = "公告信息"
 
 
@@ -119,7 +136,8 @@ class Profile(models.Model):
     updated_at = models.DateTimeField(default=timezone.now, verbose_name="更新时间")
 
     class Meta:
-        verbose_name = "用户个人信息"
+        verbose_name = "个人信息"
+        verbose_name_plural = "用户个人信息s"
 
 
 class Rate(models.Model):
@@ -129,7 +147,9 @@ class Rate(models.Model):
     updated_at = models.DateTimeField(default=timezone.now, verbose_name="更新时间")
 
     class Meta:
+        verbose_name = "用户评分"
         verbose_name_plural = "用户评分"
+
 
 class PageView(models.Model):
     url = models.CharField(max_length=255, verbose_name="url地址")
