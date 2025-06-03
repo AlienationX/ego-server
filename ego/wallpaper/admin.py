@@ -39,8 +39,8 @@ class SubjectAdmin(admin.ModelAdmin):
 
 
 class WallAdmin(admin.ModelAdmin):
-    list_display = ('id', 'display_image', 'classify_id', 'publisher', 'tabs', 'score', 'description')
-    list_filter = ('classify_id',)
+    list_display = ('id', 'display_image', 'classify', 'publisher', 'tabs', 'score', 'description')
+    list_filter = ('classify',)
     search_fields = ('description', 'publisher', 'tabs')
     filter_horizontal = ('subjects',)  # 优化多对多字段选择界面
     date_hierarchy = 'created_at'   # 按创建日期分层筛选
@@ -71,7 +71,7 @@ class WallAdmin(admin.ModelAdmin):
         if obj.picurl:
             return format_html(
                 '<img src="{}" style="height: 640px; width: auto; border-radius: 4px;" />',
-                obj.picurl
+                "https://wallpaper-kpze6c.s3.eu-north-1.amazonaws.com/" + obj.picurl
             )
         return "-"
 

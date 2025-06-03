@@ -145,7 +145,7 @@ class ApiModelView(ListModelMixin, RetrieveModelMixin, GenericViewSet):
                 #     data = list(queryset.values())
                 #     cache.set(cache_key, data, timeout=5)  # 缓存5秒
 
-                data = cache.get_or_set(cache_key, lambda: list(queryset.order_by('?').values()), timeout=300)  # 缓存5分钟
+                data = cache.get_or_set(cache_key, lambda: list(queryset.order_by('?').values()), timeout=600)  # 缓存10分钟
 
             elif sortord == "score":
                 queryset = queryset.order_by('-score')
