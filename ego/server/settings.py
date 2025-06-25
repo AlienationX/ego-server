@@ -38,6 +38,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = config('SECRET')
 
+WECHAT_APPID = config('WECHAT_APPID')  # 微信小程序的AppID
+WECHAT_SECRET = config('WECHAT_SECRET')  # 微信小程序的AppSecret
+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=False, cast=bool)
 
@@ -213,11 +216,11 @@ REST_FRAMEWORK = {
 # ######################## jwt 用户认证配置
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),   # 访问令牌有效期
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),      # 刷新令牌有效期
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),   # access token 访问令牌有效期
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=3),      # refresh token 刷新令牌有效期
     'ROTATE_REFRESH_TOKENS': True,                    # 刷新时生成新 refresh token
     'BLACKLIST_AFTER_ROTATION': True,                 # 刷新后废弃旧 refresh token
-    'UPDATE_LAST_LOGIN': True,                       # 登录时是否更新最后登录时间
+    'UPDATE_LAST_LOGIN': True,                        # 登录时是否更新最后登录时间
     'ALGORITHM': 'HS256',                             # 加密算法
     'SIGNING_KEY': SECRET_KEY,                        # 签名密钥（从 settings 中获取）
     'AUTH_HEADER_TYPES': ('Bearer',),                 # 请求头格式（默认 Bearer）

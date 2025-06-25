@@ -11,6 +11,9 @@ from ..renderers import CustomJSONRenderer
 from ..paginations import CustomPageNumberPagination
 from ..permissions import HasAccessKey
 
+import logging
+
+logger = logging.getLogger(__name__)
 
 class ApiModelView(ViewSet):
 
@@ -21,5 +24,6 @@ class ApiModelView(ViewSet):
     def list(self, request, *args, **kwargs):
 
         queryParams = request.query_params
+        logger.info(f"Rewards received query parameters: {queryParams}")
 
         return Response(queryParams)

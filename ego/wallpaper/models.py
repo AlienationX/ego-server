@@ -1,4 +1,6 @@
 from django.db import models
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 from django.contrib.auth.models import User
 from django.utils import timezone
 # from django.db.models.functions import Now
@@ -83,7 +85,7 @@ class Wall(models.Model):
     is_active = models.BooleanField(default=True, verbose_name="是否启用")
     created_at = models.DateTimeField(default=timezone.now, verbose_name="创建时间")
     updated_at = models.DateTimeField(default=timezone.now, verbose_name="更新时间")
-    classify = models.ForeignKey(Classify, on_delete=models.PROTECT, verbose_name="分类")  # 外键写表名即可，生成的字段默认会增加_id
+    classify = models.ForeignKey(Classify, on_delete=models.PROTECT, verbose_name="分类")  # 外键写表名即可
     subjects = models.ManyToManyField(Subject, related_name='walls', verbose_name="专题", blank=True)  # 多对多关系
 
     class Meta:
@@ -126,18 +128,33 @@ class Banner(models.Model):
 
 
 class Profile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.PROTECT, related_name='profile')
-    name = models.CharField(max_length=60, verbose_name="用户名")
-    email = models.CharField(max_length=60, verbose_name="邮箱地址", blank=True, null=True)
-    phone = models.CharField(max_length=20, verbose_name="电话", blank=True, null=True)
-    source = models.CharField(max_length=60, verbose_name="来源")
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    nickname = models.CharField(max_length=60, verbose_name="用户昵称", blank=True, null=True)
+    avater = models.CharField(max_length=150, verbose_name="头像", blank=True, null=True)
+    phone_number = models.CharField(max_length=20, verbose_name="电话号码", blank=True, null=True)
+    source = models.CharField(max_length=60, verbose_name="来源", blank=True, null=True)
     ip = models.CharField(max_length=60, verbose_name="ip地址")
     region = models.CharField(max_length=60, verbose_name="行政区省市县", blank=True, null=True)
     updated_at = models.DateTimeField(default=timezone.now, verbose_name="更新时间")
+    wechat_openid = models.CharField(max_length=100, verbose_name="微信openid", blank=True, null=True)
+
+    def __str__(self):
+        return f'{self.user.username} 的个人资料'
 
     class Meta:
         verbose_name = "个人信息"
         verbose_name_plural = "用户个人信息s"
+
+# # 自动创建Profile对象
+# @receiver(post_save, sender=User)
+# def create_user_profile(sender, instance, created, **kwargs):
+#     if created:
+#         Profile.objects.create(user=instance)
+
+# @receiver(post_save, sender=User)
+# def save_user_profile(sender, instance, **kwargs):
+#     if hasattr(instance, 'profile'):
+#         instance.profile.save()
 
 
 class Rate(models.Model):
