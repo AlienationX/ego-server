@@ -31,8 +31,8 @@ class ApiModelView(ListModelMixin, RetrieveModelMixin, GenericViewSet):
         # 获取查询参数中的 class_id
         classify_id = self.request.query_params.get("classify_id")
 
-        # 获取所有数据
-        queryset = self.queryset
+        # 获取所有数据，且classify.enable为True的数据
+        queryset = self.queryset.filter(Q(classify__enable=True))
 
         # 如果 class_id 参数存在，则过滤查询集
         if classify_id:
@@ -41,12 +41,84 @@ class ApiModelView(ListModelMixin, RetrieveModelMixin, GenericViewSet):
         # 返回最终的查询集
         return queryset
 
+    def _get_sorted_data(self, queryset, keyword=None):
+        """
+        统一处理排序和缓存逻辑
+        """
+        sortord = self.request.query_params.get("sortord")
+        data = None
+
+        if sortord == "random":
+            # 随机排序，性能差且分页会出现重复数据。其实使用缓存结果即可解决这个问题
+            # queryset = queryset.order_by('?')
+
+            # annotate增加虚拟计算列，功能强大
+            # 随机排序，固定种子，保证固定时间内数据是有序的
+            # now = datetime.now()
+            # start_of_interval = now - timedelta(minutes=now.minute % 10)  # 使用每10分钟一个区间作为种子生成固定随机顺序
+            # seed = int(start_of_interval.strftime("%Y%m%d"))  # 种子到天即可，因为有缓存实效时间控制
+            # 1. mysql的随机函数是RAND，支持传入固定种子保持顺序不变
+            # queryset = queryset.annotate(random_order=Func(Value(seed), function='RAND')).order_by('random_order')
+            # 2. postgresql的随机函数是RANDOM，不支持出入种子，需结合setseed实现 setseed(seed)+RANDOM()
+            # queryset = queryset.annotate(random_order=Func(Value(seed), function='RANDOM')).order_by('random_order')  # 报错
+            # 3. 使用django的函数库Random，但是不支持固定种子，结果还是乱序和重复的
+            # from django.db.models.functions import Random
+            # queryset = queryset.annotate(random_order=Random() * Value(seed)).order_by('random_order')
+
+            # 4. 跨数据库的标准方式，使用缓存，强烈推荐
+            # import random
+            # from django.core.cache import cache
+
+            #     # 缓存当日结果
+            #     cache_key = f"daily_products_{datetime.today().strftime('%Y%m%d')}"
+            #     products = cache.get(cache_key)
+
+            #     if not products:
+            #         products = list(Product.objects.all())
+            #         random.seed(seed)  # 固定种子
+            #         random.shuffle(products)
+            #         cache.set(cache_key, products, timeout=86400)  # 缓存24小时
+            #     return products
+
+            # 最终方案，乱序加缓存
+            cache_key = f"walls_{keyword or 'blank'}_{self.request.query_params.get('classify_id','0')}"
+
+            # data = cache.get(cache_key)
+            # if not data:
+            #     data = list(queryset.order_by('?').values())
+            #     cache.set(cache_key, data, timeout=5)  # 缓存5秒
+
+            data = cache.get_or_set(cache_key, lambda: list(queryset.order_by('?').values()), timeout=600)  # 缓存10分钟
+
+        elif sortord == "score":
+            queryset = queryset.order_by('-score')
+        elif sortord == "date_asc":
+            queryset = queryset.order_by('updated_at')
+        elif sortord == "date_desc":
+            queryset = queryset.order_by('-updated_at')
+
+        if data is not None:
+            return data
+        else:
+            return list(queryset.values())
+
+    def list(self, request, *args, **kwargs):
+        """重写list方法，添加过滤和排序逻辑"""
+        queryset = self.get_queryset()
+        data = self._get_sorted_data(queryset)
+
+        if ApiModelView.pagination_class is not None:
+            paginator = self.pagination_class()
+            paginated_data = paginator.paginate_queryset(data, request)
+            return paginator.get_paginated_response(paginated_data)
+        return Response(data)
+
     @action(detail=False, methods=['get'])
     def random(self, request):
         # detail=True 表示这个动作是针对单个对象的，如果设置为 False，则表示这个动作是针对所有对象的。
 
         # 获取所有的对象，且classify.enable为True的数据
-        queryset = self.get_queryset().filter(Q(classify__enable=True))
+        queryset = self.get_queryset()
 
         # 方法 1：使用 order_by('?') 来随机排序，返回前 9 条数据
         random_queryset = queryset.order_by('?')[:9]
@@ -67,10 +139,6 @@ class ApiModelView(ListModelMixin, RetrieveModelMixin, GenericViewSet):
         if not keyword:
             # 如果kw为空则返回空结果
             return Response([])
-
-        # 获取所有数据
-        # queryset = Wall.objects.all()
-        queryset = self.get_queryset()
 
         # 使用 Q 对象进行过滤
         # models.XX.objects.filter( Q(id=10) )
@@ -97,66 +165,11 @@ class ApiModelView(ListModelMixin, RetrieveModelMixin, GenericViewSet):
 
         # 进行过滤，description 字段包含kw关键字，或者 tabs字段包含kw关键字
         # search_fields = ["description", "tabs", "classify.enable"]
-        queryset = queryset.filter(Q(classify__enable=True) & (Q(description__contains=keyword) | Q(tabs__contains=keyword)))
-        
-        data = []
 
-        # 进行排序
-        sortord = self.request.query_params.get("sortord")
-        if sortord:
-            if sortord == "random":
-                # 随机排序，性能差且分页会出现重复数据。其实使用缓存结果即可解决这个问题
-                # queryset = queryset.order_by('?')
+        # queryset = Wall.objects.all()
+        queryset = self.get_queryset().filter((Q(description__contains=keyword) | Q(tabs__contains=keyword)))
 
-                # annotate增加虚拟计算列，功能强大
-                # 随机排序，固定种子，保证固定时间内数据是有序的
-                # now = datetime.now()
-                # start_of_interval = now - timedelta(minutes=now.minute % 10)  # 使用每10分钟一个区间作为种子生成固定随机顺序
-                # seed = int(start_of_interval.strftime("%Y%m%d"))  # 种子到天即可，因为有缓存实效时间控制
-                # 1. mysql的随机函数是RAND，支持传入固定种子保持顺序不变
-                # queryset = queryset.annotate(random_order=Func(Value(seed), function='RAND')).order_by('random_order')  
-                # 2. postgresql的随机函数是RANDOM，不支持出入种子，需结合setseed实现 setseed(seed)+RANDOM()
-                # queryset = queryset.annotate(random_order=Func(Value(seed), function='RANDOM')).order_by('random_order')  # 报错
-                # 3. 使用django的函数库Random，但是不支持固定种子，结果还是乱序和重复的 
-                # from django.db.models.functions import Random
-                # queryset = queryset.annotate(random_order=Random() * Value(seed)).order_by('random_order')
-
-                # 4. 跨数据库的标准方式，使用缓存，强烈推荐
-                # import random
-                # from django.core.cache import cache
-
-                #     # 缓存当日结果
-                #     cache_key = f"daily_products_{datetime.today().strftime('%Y%m%d')}"
-                #     products = cache.get(cache_key)
-                    
-                #     if not products:
-                #         products = list(Product.objects.all())
-                #         random.seed(seed)  # 固定种子
-                #         random.shuffle(products)
-                #         cache.set(cache_key, products, timeout=86400)  # 缓存24小时
-                #     return products
-
-                # 最终方案，乱序加缓存
-                cache_key = f"walls_{keyword}"
-                
-                # data = cache.get(cache_key)
-                # if not data:
-                #     queryset = queryset.order_by('?')
-                #     data = list(queryset.values())
-                #     cache.set(cache_key, data, timeout=5)  # 缓存5秒
-
-                data = cache.get_or_set(cache_key, lambda: list(queryset.order_by('?').values()), timeout=600)  # 缓存10分钟
-
-            elif sortord == "score":
-                queryset = queryset.order_by('-score')
-            elif sortord == "date_asc":
-                queryset = queryset.order_by('updated_at')
-            elif sortord == "date_desc":
-                queryset = queryset.order_by('-updated_at')
-
-        # 没有走random排序，就使用现有的queryset
-        if not data:
-            data = list(queryset.values())
+        data = self._get_sorted_data(queryset, keyword=keyword)
 
         # 如果启用分页器，则返回分页信息
         if ApiModelView.pagination_class is not None:
@@ -165,7 +178,7 @@ class ApiModelView(ListModelMixin, RetrieveModelMixin, GenericViewSet):
             return paginator.get_paginated_response(paginated_data)
 
         return Response(data)
-    
+
         # 直接使用data返回，不再使用下面花里胡哨的东西
 
         # # DRF的ModelViewSet在默认的list、retrieve等方法中会自动处理分页，但对于自定义的action，开发者需要手动集成分页逻辑。

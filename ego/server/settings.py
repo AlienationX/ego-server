@@ -269,6 +269,7 @@ CORS_ALLOW_HEADERS = [
     # 'x-requested-with',
     
     'access-key',
+    'authorization',
     'token'
 ]
 

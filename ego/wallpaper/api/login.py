@@ -42,7 +42,6 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
 
         # 2. 用 code 换 openid
         openid = self._get_wechat_openid(code)
-        print("*"*50, openid)
         if not openid:
             return Response({'error': '微信登录失败 Invalid code'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -59,8 +58,7 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
         
             # TODO ip不同则替换更新，包括region字段
             if ip != user.profile.ip:
-                print(user.username)
-                print(user.profile.ip, user.profile.region)
+                print("*"*50 + f" username={user.username}, ip={user.profile.ip}, region={user.profile.region}")
         else:
             username = f'wechat_{openid}'
             # password = User.objects.make_random_password()
