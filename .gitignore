@@ -4,6 +4,8 @@ __pycache__
 
 .DS_Store
 
+*.zip
+
 # 文件夹
 ego/.env*
 ego/zappa_settings.json
