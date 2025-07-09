@@ -1,6 +1,7 @@
 import boto3
 import json
 import random
+from datetime import datetime
 from PIL import Image
 from pathlib import Path
 from loguru import logger
@@ -75,27 +76,53 @@ def generate_sql(file, s3_key):
         for entry in bing_daily_data if entry['date'] == target_date
     ]
 
-    classify_id = 30  # 必应壁纸分类ID
+    classify_id = 62  # 必应壁纸分类ID
+    subject_id = 'NULL'  # 必应壁纸主题ID
     picurl = s3_key
-    description = desc_bing_data[0] if desc_bing_data else ""
-    tabs = '必应,每日壁纸,风景,Bing,微软'
-    score = round(random.uniform(3.5, 5), 1)
-    publisher = "Bing"
+    description = desc_bing_data[0] if desc_bing_data else "和卡比兽一起睡觉吧！"
+    tabs = '宝可梦,卡比兽,睡觉,pokemon,kabigon,sleep'
+    score = round(random.uniform(4, 5), 1)
+    publisher = ""
 
-    sql = f"INSERT INTO wallpaper_wall (picurl, description, tabs, score, publisher, is_active, created_at, updated_at, classify_id, _id, _classid) VALUES ('{picurl}', '{description}', '{tabs}', {score}, '{publisher}', TRUE, NOW(), NOW(), {classify_id}, NULL, NULL);"
+    sql = f"INSERT INTO wallpaper_wall (picurl, description, tabs, score, publisher, is_active, created_at, updated_at, classify_id) VALUES ('{picurl}', '{description}', '{tabs}', {score}, '{publisher}', TRUE, NOW(), NOW(), {classify_id});"
     all_sql.append(sql)
 
 
 if __name__ == "__main__":
-    local_dir = Path(__file__).parent / 'images/pics/classify_bing'
+    folder_dir = 'pics/classify_pokemon_sleep/'
+    incremental_time = '2021-06-03 10:03'  # 增量上传时间
+    max_time = '1900-01-01'  # 最大时间戳
+    newest_file = ''   # 最新文件名
+
+    local_dir = Path(__file__).parent / 'images' / folder_dir
     files = get_files(local_dir)
     files.sort(key=lambda x: x.name.lower())  # 按文件名排序
     for file in files:
+        mod_timestamp = file.stat().st_mtime
+        mod_time = datetime.fromtimestamp(mod_timestamp).strftime('%Y-%m-%d %H:%M:%S')
+
+        if mod_time < incremental_time:
+            continue
+        else:
+            # print(f"Processing file: {file.name}, modified at {mod_time}")
+            if max_time < mod_time:
+                max_time = mod_time
+                newest_file = file.name
+
         # 生成缩略图
         generate_thumbs(file)
         # 上传到 S3
-        upload_files_to_s3(file, bucket_name, s3_prefix='pics/classify_bing/')
-    
-    with open(Path(__file__).parent / 's3_upload_new.sql', 'w') as f:
-        for sql in all_sql:
-            f.write(sql + '\n')
+        upload_files_to_s3(file, bucket_name, s3_prefix=folder_dir)
+
+    with open(Path(__file__).parent / 's3_upload_new.sql', 'a') as f:
+        if all_sql:
+            f.write(f"-- {datetime.now()}\n")
+            for sql in all_sql:
+                f.write(sql + '\n')
+            f.write(f"\n")
+
+    with open(Path(__file__).parent / 's3_upload_new.log', 'a') as f:
+        f.write(f"{datetime.now()}, {folder_dir}, {newest_file}, {max_time}\n",)
+
+    # 单独生成分类封面的缩略图
+    # generate_thumbs(Path(__file__).parent / 'images/pics' / 'classify_pokemon_sleep/0e3b294beb09239a0625d82a2e2c0561.jpg')

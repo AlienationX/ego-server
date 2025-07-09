@@ -1,8 +1,18 @@
+// 需要安装vscode的扩展 Black Formatter 和 isort , 都是Microsoft官方的
 {
-    "python.formatting.provider": "autopep8",
-    "python.formatting.autopep8Args": [
-        "--aggressive",
-        "--aggressive",
-        "--select=Q0"
-    ]
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.black-formatter",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "always"
+    },
+  },
+  "black-formatter.args": [
+    // "--skip-string-normalization",
+    "--line-length=160",
+  ],
+  "isort.args": [
+    "--profile",
+    "black"
+  ],
 }

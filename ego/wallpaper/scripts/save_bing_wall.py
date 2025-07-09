@@ -1,14 +1,13 @@
 import requests
 import json
 import sys
-import os
+from pathlib import Path
 
-FILE_PATH = sys.path[0]
-BING_PATH = f"{FILE_PATH}/images/pics/classify_bing/"
-DATA_FILE = f"{BING_PATH}/bing_daily_data.json"
+BING_PATH = Path(__file__).parent / "images/pics/classify_bing/"
+DATA_FILE = BING_PATH / "bing_daily_data.json"
 
 # bing_daily_data.json数据，以便查找匹配数据是否存在，不存在则追加
-if os.path.exists(DATA_FILE):
+if Path(DATA_FILE).exists():
     with open(DATA_FILE, "r") as f:
         bing_daily_data = json.load(f)
 else:
@@ -41,9 +40,15 @@ for image in data["images"]:
 
     # 下载图片
     image_data = requests.get(image_url).content
-    with open(f"{BING_PATH}/{file_name}.jpg", "wb") as f:
-        f.write(image_data)
-    print(f"Save {file_name}.jpg")
+
+    # 检查图片是否存在，如果存在则跳过
+    file = f"{BING_PATH}/{file_name}.jpg"
+    if Path(file).exists():
+        print(f"Already exist, skip {file_name}.jpg")
+    else:
+        with open(f"{BING_PATH}/{file_name}.jpg", "wb") as f:
+            f.write(image_data)
+        print(f"Save {file_name}.jpg")
 
     # 保存数据
     new_data = {

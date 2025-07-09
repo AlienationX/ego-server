@@ -6,6 +6,8 @@ from django.utils.safestring import mark_safe
 # Register your models here.
 from .models import Classify, Subject, Wall, Notice, Rate, Profile, Banner, Access, Application
 
+ROOT_PIC_URL = "https://wallpaper-kpze6c.s3.eu-north-1.amazonaws.com/"
+# ROOT_PIC_URL = "https://mp-36059119-7390-44c6-8190-cc3527d1e745.cdn.bspapp.com/wallpaper"
 
 class ClassifyAdmin(admin.ModelAdmin):
     # 控制字段显示顺序，及分块显示
@@ -25,7 +27,7 @@ class ClassifyAdmin(admin.ModelAdmin):
         if obj.picurl:
             return format_html(
                 '<img src="{}" style="height: 360px; width: auto; border-radius: 4px;" />',
-                "https://wallpaper-kpze6c.s3.eu-north-1.amazonaws.com/" + obj.picurl
+                ROOT_PIC_URL + obj.picurl
             )
         return "-"
 
@@ -39,7 +41,7 @@ class SubjectAdmin(admin.ModelAdmin):
 
 
 class WallAdmin(admin.ModelAdmin):
-    list_display = ('id', 'display_image', 'classify', 'publisher', 'tabs', 'score', 'description')
+    list_display = ('id', 'display_image', 'classify', 'display_subjects', 'publisher', 'tabs', 'score', 'description')
     list_filter = ('classify',)
     search_fields = ('description', 'publisher', 'tabs')
     filter_horizontal = ('subjects',)  # 优化多对多字段选择界面
@@ -51,15 +53,19 @@ class WallAdmin(admin.ModelAdmin):
             kwargs["queryset"] = Subject.objects.all()
         return super().formfield_for_manytomany(db_field, request, **kwargs)
 
+    def display_subjects(self, obj):
+        """将多对多字段转换为逗号分隔的字符串"""
+        return ", ".join([subject.name for subject in obj.subjects.all()])  # 假设多对多字段名为'subjects'
+    display_subjects.short_description = "专题"  # 设置表头名称
+
     # 定义图片展示方法
     def display_image(self, obj):
         if obj.picurl:
             return format_html(
                 '<img src="{}" style="max-height: 60px; max-width: 60px;" />',
-                "https://wallpaper-kpze6c.s3.eu-north-1.amazonaws.com/" + obj.picurl
+                ROOT_PIC_URL + obj.picurl
             )
         return "-"
-
     display_image.short_description = "图片预览"  # 设置列标题
 
     # 在编辑页也显示图片预览, fields是编辑页面的字段
@@ -71,10 +77,9 @@ class WallAdmin(admin.ModelAdmin):
         if obj.picurl:
             return format_html(
                 '<img src="{}" style="height: 640px; width: auto; border-radius: 4px;" />',
-                "https://wallpaper-kpze6c.s3.eu-north-1.amazonaws.com/" + obj.picurl
+                ROOT_PIC_URL + obj.picurl
             )
         return "-"
-
     image_preview.short_description = "当前图片"
 
 

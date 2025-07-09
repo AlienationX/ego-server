@@ -1,8 +1,10 @@
+from django.contrib.auth.models import User
 from django.db import models
+from django.db.models import F
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from django.contrib.auth.models import User
 from django.utils import timezone
+
 # from django.db.models.functions import Now
 
 
@@ -21,11 +23,13 @@ from django.utils import timezone
 
 # 关联关系（如 ForeignKey， OneToOneField， 或 ManyToManyField）
 
+
 class Application(models.Model):
     """
     wallpaper: 本我壁纸-ego
     pokemon: 宝可梦壁纸-pokemon
     """
+
     name = models.CharField(max_length=60, unique=True, verbose_name="应用名称")
     logo_url = models.CharField(max_length=255, verbose_name="logo图片url", blank=True, null=True)
     enable = models.BooleanField(default=True, verbose_name="状态")
@@ -81,12 +85,14 @@ class Wall(models.Model):
     # 这个字段其实可以设计成 ManyToManyField，其实就是列表存储，使用add方法添加
     tabs = models.CharField(max_length=200, verbose_name="标签", blank=True, null=True)
     score = models.DecimalField(max_digits=10, decimal_places=1, verbose_name="图片分数", blank=True, null=True)
-    publisher = models.CharField(max_length=60, default="unknown", verbose_name="发布者")
+    publisher = models.CharField(max_length=60, default="unknown", verbose_name="发布者", blank=True, null=True)
     is_active = models.BooleanField(default=True, verbose_name="是否启用")
     created_at = models.DateTimeField(default=timezone.now, verbose_name="创建时间")
     updated_at = models.DateTimeField(default=timezone.now, verbose_name="更新时间")
     classify = models.ForeignKey(Classify, on_delete=models.PROTECT, verbose_name="分类")  # 外键写表名即可
-    subjects = models.ManyToManyField(Subject, related_name='walls', verbose_name="专题", blank=True)  # 多对多关系
+
+    # 多对多关系，不会添加该字段，会增加一张存储对应关系的中间表wallpaper_wall_subjects，里面只有三个字段 id、wall_id、subject_id
+    subjects = models.ManyToManyField(Subject, related_name="walls", verbose_name="专题", blank=True)
 
     class Meta:
         verbose_name = "壁纸"
@@ -101,6 +107,11 @@ class Notice(models.Model):
     article_status = models.BooleanField(default=True, verbose_name="公告状态")
     publish_date = models.DateTimeField(default=timezone.now, verbose_name="发布时间")
     view_count = models.IntegerField(default=0, verbose_name="浏览量")
+
+    def increase_view_count(self):
+        # 原子自增，避免并发冲突，未使用
+        Notice.objects.filter(pk=self.pk).update(view_count=F("view_count") + 1)
+        self.refresh_from_db(fields=["view_count"])  # 刷新实例字段值
 
     def __str__(self):
         return f"{self.title} - {self.publish_date}"
@@ -128,7 +139,7 @@ class Banner(models.Model):
 
 
 class Profile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
     nickname = models.CharField(max_length=60, verbose_name="用户昵称", blank=True, null=True)
     avater = models.CharField(max_length=150, verbose_name="头像", blank=True, null=True)
     phone_number = models.CharField(max_length=20, verbose_name="电话号码", blank=True, null=True)
@@ -139,11 +150,12 @@ class Profile(models.Model):
     wechat_openid = models.CharField(max_length=100, verbose_name="微信openid", blank=True, null=True)
 
     def __str__(self):
-        return f'{self.user.username} 的个人资料'
+        return f"{self.user.username} 的个人资料"
 
     class Meta:
         verbose_name = "个人信息"
         verbose_name_plural = "用户个人信息s"
+
 
 # # 自动创建Profile对象
 # @receiver(post_save, sender=User)
@@ -178,10 +190,21 @@ class PageView(models.Model):
 
 
 class Access(models.Model):
-    ip = models.CharField(max_length=100, verbose_name="ip地址")
-    username = models.CharField(max_length=100, verbose_name="用户名")
-    source = models.CharField(max_length=100, verbose_name="来源")
-    access_time = models.DateTimeField(default=timezone.now, verbose_name="访问时间")
+    ip = models.CharField(max_length=100, verbose_name="ip地址")  #  models.GenericIPAddressField
+    address = models.CharField(max_length=255, verbose_name="访问地址", blank=True, null=True)
+    username = models.CharField(max_length=100, verbose_name="用户名", blank=True, null=True)
+    source = models.CharField(max_length=100, verbose_name="来源", blank=True, null=True)
+
+    # client = models.CharField(max_length=100, verbose_name="", blank=True, null=True)  # 客户端类型，如：web、android、ios、wechat、douyin、qq等
+    # provider = models.CharField(max_length=100, verbose_name="", blank=True, null=True)
+
+    # 如：app(android\ios)、web、mp-weixin、mp-douyin等，对应uniapp的多端 uniPlatform 或 platform
+    platform = models.CharField(max_length=100, verbose_name="平台", blank=True, null=True)
+    # 如：google、小米、oppo、vivo、apple等应用商店
+    channel = models.CharField(max_length=100, verbose_name="渠道", blank=True, null=True)
+
+    access_time = models.DateTimeField(auto_now_add=True, verbose_name="访问时间")
+    remark = models.CharField(max_length=2000, verbose_name="备注", blank=True, null=True)  # desciption
 
     class Meta:
-        verbose_name_plural = "请求访问信息"
+        verbose_name_plural = "访问日志"

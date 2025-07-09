@@ -1,7 +1,11 @@
-from rest_framework.serializers import ModelSerializer, CharField, PrimaryKeyRelatedField
 from django.contrib.auth.models import User
+from rest_framework.serializers import (
+    CharField,
+    ModelSerializer,
+    PrimaryKeyRelatedField,
+)
 
-from .models import Wall, Classify, Notice, Banner, Application, Profile
+from .models import Access, Application, Banner, Classify, Notice, Profile, Wall
 
 
 class ApplicationSerializer(ModelSerializer):
@@ -55,5 +59,16 @@ class UserSerializer(ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name',
-                  'date_joined', 'last_login', 'profile']  # 按需选择字段，profile是嵌套字段
+        fields = ["id", "username", "email", "first_name", "last_name", "date_joined", "last_login", "profile"]  # 按需选择字段，profile是嵌套字段
+
+
+class AccessSerializer(ModelSerializer):
+    class Meta:
+        model = Access
+        fields = "__all__"
+
+        # extra_kwargs = {
+        #     "ip": {"read_only": True, "required": False},  # 禁止前端传入IP字段  # 但是后端也不能写入ip
+        #     "platform": {"min_length": 3},  # 名称至少3个字符
+        #     # 'address': {'min_length': 5}  # 地址至少5个字符
+        # }
