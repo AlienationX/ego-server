@@ -20,8 +20,11 @@ from django.utils import timezone
 # 4.加载初始化数据，覆盖已有数据
 # python manage.py loaddata polls/initial_data
 
+# 设置 USE_TZ = True 数据库默认存储UTC时间，Django会自动转换成当前时区的时间
+# 设置 USE_TZ = False 数据库默认存储当前时区的时间，Django不会转换时间，不推荐
 
 # 关联关系（如 ForeignKey， OneToOneField， 或 ManyToManyField）
+# 默认时间（auto_now_add=True 是创建记录时自动设置当前时间，auto_now=True 是每次保存记录时自动更新为当前时间，default=timezone.now 是可以多次修改，3种互斥只能选择1种）
 
 
 class Application(models.Model):
@@ -48,9 +51,9 @@ class Classify(models.Model):
     picurl = models.CharField(max_length=255, verbose_name="图片地址")
     select = models.BooleanField(default=False, verbose_name="是否首页推荐")
     enable = models.BooleanField(default=True, verbose_name="是否启用")  # is_active
-    created_at = models.DateTimeField(default=timezone.now, verbose_name="创建时间")  # auto_now_add=True auto_now=True
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     # default 是给模型设置默认值，db_default 是给数据库设置默认值，推荐
-    updated_at = models.DateTimeField(default=timezone.now, verbose_name="更新时间")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
     def __str__(self):
         return self.name
@@ -67,8 +70,8 @@ class Subject(models.Model):
     picurl = models.CharField(max_length=255, verbose_name="图片地址")
     select = models.BooleanField(default=False, verbose_name="是否首页推荐")
     enable = models.BooleanField(default=True, verbose_name="是否启用")  # is_active
-    created_at = models.DateTimeField(default=timezone.now, verbose_name="创建时间")  # auto_now_add=True auto_now=True
-    updated_at = models.DateTimeField(default=timezone.now, verbose_name="更新时间")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
     def __str__(self):
         return self.name
@@ -87,8 +90,8 @@ class Wall(models.Model):
     score = models.DecimalField(max_digits=10, decimal_places=1, verbose_name="图片分数", blank=True, null=True)
     publisher = models.CharField(max_length=60, default="unknown", verbose_name="发布者", blank=True, null=True)
     is_active = models.BooleanField(default=True, verbose_name="是否启用")
-    created_at = models.DateTimeField(default=timezone.now, verbose_name="创建时间")
-    updated_at = models.DateTimeField(default=timezone.now, verbose_name="更新时间")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
     classify = models.ForeignKey(Classify, on_delete=models.PROTECT, verbose_name="分类")  # 外键写表名即可
 
     # 多对多关系，不会添加该字段，会增加一张存储对应关系的中间表wallpaper_wall_subjects，里面只有三个字段 id、wall_id、subject_id
@@ -128,7 +131,7 @@ class Banner(models.Model):
     target = models.CharField(max_length=60, verbose_name="跳转方式，默认：self，外站：miniProgram")
     appid = models.CharField(max_length=100, verbose_name="外部小程序的app-id", blank=True, null=True)
     enable = models.BooleanField(default=True, verbose_name="是否启用")  # is_active
-    created_at = models.DateTimeField(default=timezone.now, verbose_name="创建时间")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
 
     # def __str__(self):
     #     return f"{self.url}"
@@ -146,7 +149,7 @@ class Profile(models.Model):
     source = models.CharField(max_length=60, verbose_name="来源", blank=True, null=True)
     ip = models.CharField(max_length=60, verbose_name="ip地址")
     region = models.CharField(max_length=60, verbose_name="行政区省市县", blank=True, null=True)
-    updated_at = models.DateTimeField(default=timezone.now, verbose_name="更新时间")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
     wechat_openid = models.CharField(max_length=100, verbose_name="微信openid", blank=True, null=True)
 
     def __str__(self):
@@ -173,7 +176,7 @@ class Rate(models.Model):
     user = models.ForeignKey(User, on_delete=models.PROTECT, null=True, verbose_name="用户id")
     wall = models.ForeignKey(Wall, on_delete=models.DO_NOTHING, null=True, verbose_name="壁纸id")
     pic_score = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="壁纸分数")
-    updated_at = models.DateTimeField(default=timezone.now, verbose_name="更新时间")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
     class Meta:
         verbose_name = "用户评分"
@@ -202,6 +205,8 @@ class Access(models.Model):
     platform = models.CharField(max_length=100, verbose_name="平台", blank=True, null=True)
     # 如：google、小米、oppo、vivo、apple等应用商店
     channel = models.CharField(max_length=100, verbose_name="渠道", blank=True, null=True)
+    # device_id = models.CharField(max_length=100, verbose_name="设备id", blank=True, null=True)
+    # app_version = models.CharField(max_length=100, verbose_name="app版本号", blank=True, null=True)
 
     access_time = models.DateTimeField(auto_now_add=True, verbose_name="访问时间")
     remark = models.CharField(max_length=2000, verbose_name="备注", blank=True, null=True)  # desciption

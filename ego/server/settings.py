@@ -10,22 +10,24 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
+from datetime import timedelta
 from pathlib import Path
-from datetime import timedelta 
 
 # import mysqlclient
 # mysqlclient如果安装不上，就使用pymysql
 import pymysql
+
 pymysql.install_as_MySQLdb()
 
-from collections import ChainMap
-from decouple import Config, RepositoryEnv
 import os
+from collections import ChainMap
+
+from decouple import Config, RepositoryEnv
 
 # 读取环境变量，没有设置时，默认使用prod环境。本机设置为dev：export DJANGO_ENV=dev
 # vim ~/.bash_profile
 # export DJANGO_ENV=dev
-ENV = os.getenv('DJANGO_ENV', 'prod')  
+ENV = os.getenv("DJANGO_ENV", "prod")
 config = Config(ChainMap(RepositoryEnv(f".env.{ENV}"), RepositoryEnv(".env.base")))
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -36,13 +38,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config('SECRET')
+SECRET_KEY = config("SECRET")
 
-WECHAT_APPID = config('WECHAT_APPID')  # 微信小程序的AppID
-WECHAT_SECRET = config('WECHAT_SECRET')  # 微信小程序的AppSecret
+WECHAT_APPID = config("WECHAT_APPID")  # 微信小程序的AppID
+WECHAT_SECRET = config("WECHAT_SECRET")  # 微信小程序的AppSecret
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DEBUG', default=False, cast=bool)
+DEBUG = config("DEBUG", default=False, cast=bool)
 
 ALLOWED_HOSTS = []
 
@@ -50,74 +52,70 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-
-    'rest_framework',
-    'rest_framework_simplejwt',                  # jwt用户认证
-    'rest_framework_simplejwt.token_blacklist',  # jwt黑名单功能，必须添加此行，同时需要 makemigrations 和 migrate，生成2张token_blacklist相关表
-    'corsheaders',             # 处理跨域
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+    "rest_framework",
+    "rest_framework_simplejwt",  # jwt用户认证
+    "rest_framework_simplejwt.token_blacklist",  # jwt黑名单功能，必须添加此行，同时需要 makemigrations 和 migrate，生成2张token_blacklist相关表
+    "corsheaders",  # 处理跨域
     # 'drf_yasg',
     # 'drf_spectacular',         # 接口文档 swagger
     # 'drf_spectacular_sidecar', # 接口文档 swagger-ui
-
-    'pokemon_library',  # 注册图鉴应用
-    'pokemon_wallpaper',  #  注册壁纸应用
-    'wallpaper.apps.WallpaperConfig',  # 写成config样式，admin页面才会显示
-    'polls.apps.PollsConfig',
+    "pokemon_library",  # 注册图鉴应用
+    "pokemon_wallpaper",  #  注册壁纸应用
+    "wallpaper.apps.WallpaperConfig",  # 写成config样式，admin页面才会显示
+    "polls.apps.PollsConfig",
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',  # 跨域配置，必须放在最前
-
-    'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
+    "corsheaders.middleware.CorsMiddleware",  # 跨域配置，必须放在最前
+    "django.middleware.security.SecurityMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
     # 'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
-
-    'server.middleware.request_middleware.RequestLoggingMiddleware',  # 自定义中间件，需要获取request.user, 所以需要放到auth中间件之后
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "server.middleware.request_middleware.RequestLoggingMiddleware",  # 自定义中间件，需要获取request.user, 所以需要放到auth中间件之后
 ]
 
-ROOT_URLCONF = 'server.urls'
+ROOT_URLCONF = "server.urls"
 
 TEMPLATES = [
     {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.debug',
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.debug",
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
             ],
         },
     },
 ]
 
-WSGI_APPLICATION = 'server.wsgi.application'
+WSGI_APPLICATION = "server.wsgi.application"
 
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'HOST': config('DB_HOST'),
-        'PORT': config('DB_PORT'),
-        'NAME': config('DB_NAME'),
-        'USER': config('DB_USER'),
-        'PASSWORD': config('DB_PASSWORD'),
-        'OPTIONS': {'charset': 'utf8mb4'}  # 支持 Emoji 和复杂字符
+    "default": {
+        "ENGINE": "django.db.backends.mysql",
+        "HOST": config("DB_HOST"),
+        "PORT": config("DB_PORT"),
+        "NAME": config("DB_NAME"),
+        "USER": config("DB_USER"),
+        "PASSWORD": config("DB_PASSWORD"),
+        "OPTIONS": {"charset": "utf8mb4"},  # 支持 Emoji 和复杂字符
     },
     # 'default': {
     #     'ENGINE': 'django.db.backends.sqlite3',
@@ -131,16 +129,16 @@ DATABASES = {
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
 ]
 
@@ -148,20 +146,22 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = "en-us"
 
-# 默认UTC
-TIME_ZONE = 'Asia/Shanghai'
+# 默认UTC，设置为上海时间django会读取数据库数据自动转换成+08:00
+TIME_ZONE = "Asia/Shanghai"
 
+# 多语言设置
 USE_I18N = True
 
+# 使用UTC时间，数据库默认也存储的是UTC时间
 USE_TZ = True
 
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = "static/"
 # django的静态文件是统一管理，都会收集放到static路径下，所以没应用的static需要再增加应用名称来隔离，重点。
 # pokemon_library应用的图片访问地址是 http://127.0.0.1:8000/static/pokemon_library/images/0001-妙蛙种子.png
 # pokemon_wallpaper应用的图片访问地址是 http://127.0.0.1:8000/static/pokemon_wallpaper/images/WechatIMG34.jpg
@@ -171,8 +171,8 @@ STATIC_URL = 'static/'
 #     Path(BASE_DIR).joinpath('pokemon_wallpaper/static'),  # 指定静态文件目录
 # ]
 
-# 
-STATIC_ROOT = Path(BASE_DIR).joinpath('static')
+#
+STATIC_ROOT = Path(BASE_DIR).joinpath("static")
 
 # 以上直接访问即可，不需要配置urls。通过配置urls可以映射到应用的地址上
 # http://127.0.0.1:8000/static/pokemon_library/images/0001-妙蛙种子.png 映射到 http://127.0.0.1:8000/pokemon_library/static/images/0001-妙蛙种子.png
@@ -181,62 +181,56 @@ STATIC_ROOT = Path(BASE_DIR).joinpath('static')
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
 # ######################## 自定义没有权限自动跳转到该url
-LOGIN_URL = '/pokemon_wallpaper/login/'
+LOGIN_URL = "/pokemon_wallpaper/login/"
 
 # ######################## rest_framework 配置
 REST_FRAMEWORK = {
     # 'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     # 认证是有一种认证通过即可，没有一种通过否则报401错误
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-        'rest_framework.authentication.TokenAuthentication',  # 可选其他认证方式（如Token 和 Session认证）
-        'rest_framework.authentication.SessionAuthentication',
-        'rest_framework.authentication.BasicAuthentication',  # Basic 认证（可选）​​敏感信息隔离​​：Basic 认证仅限测试环境使用，生产环境推荐使用 JWT。
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "rest_framework.authentication.TokenAuthentication",  # 可选其他认证方式（如Token 和 Session认证）
+        "rest_framework.authentication.SessionAuthentication",
+        "rest_framework.authentication.BasicAuthentication",  # Basic 认证（可选）​​敏感信息隔离​​：Basic 认证仅限测试环境使用，生产环境推荐使用 JWT。
     ],
     # 权限是必须所有权限都通过才可以，否则报403错误
-    'DEFAULT_PERMISSION_CLASSES': [
-        'wallpaper.permissions.HasAccessKey',  # 所以接口必须增加Access-Key并进行验证
+    "DEFAULT_PERMISSION_CLASSES": [
+        "wallpaper.permissions.HasAccessKey",  # 所以接口必须增加Access-Key并进行验证
         # 'rest_framework.permissions.IsAuthenticated'  # 默认需要认证
     ],
     # 限流相关配置
-    'DEFAULT_THROTTLE_CLASSES': [
-        'rest_framework.throttling.AnonRateThrottle',  # 匿名用户
-        'rest_framework.throttling.UserRateThrottle'   # 认证用户
-    ],
-    'DEFAULT_THROTTLE_RATES': {
-        'anon': '30/minute',   # 匿名用户每分钟30次请求
-        'user': '100/minute'   # 认证用户没分钟100次请求
-    }
+    "DEFAULT_THROTTLE_CLASSES": ["rest_framework.throttling.AnonRateThrottle", "rest_framework.throttling.UserRateThrottle"],  # 匿名用户  # 认证用户
+    "DEFAULT_THROTTLE_RATES": {"anon": "30/minute", "user": "100/minute"},  # 匿名用户每分钟30次请求  # 认证用户没分钟100次请求
 }
 
 # ######################## jwt 用户认证配置
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),   # access token 访问令牌有效期
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=3),      # refresh token 刷新令牌有效期
-    'ROTATE_REFRESH_TOKENS': True,                    # 刷新时生成新 refresh token
-    'BLACKLIST_AFTER_ROTATION': True,                 # 刷新后废弃旧 refresh token
-    'UPDATE_LAST_LOGIN': True,                        # 登录时是否更新最后登录时间
-    'ALGORITHM': 'HS256',                             # 加密算法
-    'SIGNING_KEY': SECRET_KEY,                        # 签名密钥（从 settings 中获取）
-    'AUTH_HEADER_TYPES': ('Bearer',),                 # 请求头格式（默认 Bearer）
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),  # access token 访问令牌有效期
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=3),  # refresh token 刷新令牌有效期
+    "ROTATE_REFRESH_TOKENS": True,  # 刷新时生成新 refresh token
+    "BLACKLIST_AFTER_ROTATION": True,  # 刷新后废弃旧 refresh token
+    "UPDATE_LAST_LOGIN": True,  # 登录时是否更新最后登录时间
+    "ALGORITHM": "HS256",  # 加密算法
+    "SIGNING_KEY": SECRET_KEY,  # 签名密钥（从 settings 中获取）
+    "AUTH_HEADER_TYPES": ("Bearer",),  # 请求头格式（默认 Bearer）
 }
 
 # ######################## drf-spectacular 配置
 
 SPECTACULAR_SETTINGS = {
-    'TITLE': 'Wallpaper API',
-    'DESCRIPTION': 'Your project description',
-    'VERSION': '1.0.0',
-    'SERVE_INCLUDE_SCHEMA': False,
+    "TITLE": "Wallpaper API",
+    "DESCRIPTION": "Your project description",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
     # OTHER SETTINGS
-    'SWAGGER_UI_DIST': 'SIDECAR',  # shorthand to use the sidecar instead
-    'SWAGGER_UI_FAVICON_HREF': 'SIDECAR',
-    'REDOC_DIST': 'SIDECAR',
+    "SWAGGER_UI_DIST": "SIDECAR",  # shorthand to use the sidecar instead
+    "SWAGGER_UI_FAVICON_HREF": "SIDECAR",
+    "REDOC_DIST": "SIDECAR",
 }
 
 # ######################## 跨域配置
@@ -267,10 +261,9 @@ CORS_ALLOW_HEADERS = [
     # 'user-agent',
     # 'x-csrftoken',
     # 'x-requested-with',
-    
-    'access-key',
-    'authorization',
-    'token'
+    "access-key",
+    "authorization",
+    "token",
 ]
 
 # ######################## 日志配置
@@ -335,7 +328,7 @@ CORS_ALLOW_HEADERS = [
 #     },
 #     # 日志记录器（定义不同模块的日志行为）
 #     'loggers': {
-#         '': {  
+#         '': {
 #             # 根记录器，捕获所有日志。
 #             'handlers': ['console', 'file', 'request_file'],
 #             'level': 'INFO',
@@ -358,29 +351,23 @@ CORS_ALLOW_HEADERS = [
 
 # 云函数不能用文件记录日志
 LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
+    "version": 1,
+    "disable_existing_loggers": False,
     # 日志格式
-    'formatters': {
-        'verbose': {
-            'format': '{asctime} {levelname} [{module}:{lineno}] {message}',
-            'style': '{',
+    "formatters": {
+        "verbose": {
+            "format": "{asctime} {levelname} [{module}:{lineno}] {message}",
+            "style": "{",
         }
     },
     # 处理器（控制台、文件等）
-    'handlers': {
-        'console': {
-            'level': 'INFO',
-            'class': 'logging.StreamHandler',
-            'formatter': 'verbose'
-        }
-    },
+    "handlers": {"console": {"level": "INFO", "class": "logging.StreamHandler", "formatter": "verbose"}},
     # 日志记录器（定义不同模块的日志行为）
-    'loggers': {
-        '': {  
+    "loggers": {
+        "": {
             # 根记录器，捕获所有日志。
-            'handlers': ['console'],
-            'level': 'INFO',
+            "handlers": ["console"],
+            "level": "INFO",
         },
     },
 }
