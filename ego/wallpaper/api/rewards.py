@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 class ApiModelView(ViewSet):
 
-    permission_classes = [HasAccessKey]
+    permission_classes = []  # uni-ad设置的回调函数，不支持key或token的设置，暂时关闭
     # pagination_class = CustomPageNumberPagination
     renderer_classes = [CustomJSONRenderer]
 

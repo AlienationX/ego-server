@@ -264,6 +264,7 @@ CORS_ALLOW_HEADERS = [
     "access-key",
     "authorization",
     "token",
+    "content-type",
 ]
 
 # ######################## 日志配置

@@ -51,6 +51,7 @@ class Classify(models.Model):
     picurl = models.CharField(max_length=255, verbose_name="图片地址")
     select = models.BooleanField(default=False, verbose_name="是否首页推荐")
     enable = models.BooleanField(default=True, verbose_name="是否启用")  # is_active
+    is_locked = models.BooleanField(default=False, verbose_name="需要解锁")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     # default 是给模型设置默认值，db_default 是给数据库设置默认值，推荐
     updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
@@ -69,7 +70,8 @@ class Subject(models.Model):
     sort = models.IntegerField(verbose_name="排序")
     picurl = models.CharField(max_length=255, verbose_name="图片地址")
     select = models.BooleanField(default=False, verbose_name="是否首页推荐")
-    enable = models.BooleanField(default=True, verbose_name="是否启用")  # is_active
+    is_active = models.BooleanField(default=True, verbose_name="是否启用")
+    is_locked = models.BooleanField(default=False, verbose_name="是否需要解锁")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
@@ -90,6 +92,7 @@ class Wall(models.Model):
     score = models.DecimalField(max_digits=10, decimal_places=1, verbose_name="图片分数", blank=True, null=True)
     publisher = models.CharField(max_length=60, default="unknown", verbose_name="发布者", blank=True, null=True)
     is_active = models.BooleanField(default=True, verbose_name="是否启用")
+    is_locked = models.BooleanField(default=False, verbose_name="是否需要解锁")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
     classify = models.ForeignKey(Classify, on_delete=models.PROTECT, verbose_name="分类")  # 外键写表名即可
@@ -209,7 +212,13 @@ class Access(models.Model):
     # app_version = models.CharField(max_length=100, verbose_name="app版本号", blank=True, null=True)
 
     access_time = models.DateTimeField(auto_now_add=True, verbose_name="访问时间")
-    remark = models.CharField(max_length=2000, verbose_name="备注", blank=True, null=True)  # desciption
+    remark = models.JSONField(default=dict, verbose_name="备注", blank=True, null=True)  # desciption
+
+    def __str__(self):
+        # 使用strftime来格式化日期时间，截取前19个字符
+        formatted_time = self.access_time.strftime("%Y-%m-%d %H:%M:%S")
+        return f"{formatted_time} - {self.platform} - {self.ip}"
 
     class Meta:
+        verbose_name = "访问日志详情"
         verbose_name_plural = "访问日志"

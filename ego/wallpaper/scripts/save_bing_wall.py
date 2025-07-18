@@ -1,7 +1,8 @@
-import requests
 import json
 import sys
 from pathlib import Path
+
+import requests
 
 BING_PATH = Path(__file__).parent / "images/pics/classify_bing/"
 DATA_FILE = BING_PATH / "bing_daily_data.json"
@@ -19,12 +20,7 @@ else:
 # idx：起始索引（0表示当天，1表示前一天，最多7天前的数据）。
 # n：返回的图片数量（最大值为8）。
 # mkt：区域代码（例如 zh-CN 为中国，en-US 为美国，不同地区可能返回不同图片）(en-US设置无效，和ip有关)。
-params = {
-    "format": "js",
-    "idx": 0,
-    "n": 8,
-    "mkt": "zh_CN"
-}
+params = {"format": "js", "idx": 0, "n": 8, "mkt": "zh_CN"}
 api_url = "https://www.bing.com/HPImageArchive.aspx"
 response = requests.get(api_url, params=params)
 # data = json.loads(response.text)
@@ -51,12 +47,7 @@ for image in data["images"]:
         print(f"Save {file_name}.jpg")
 
     # 保存数据
-    new_data = {
-        "date": image["enddate"],
-        "title": image["title"],
-        "description": image["copyright"],
-        "url": image_url
-    }
+    new_data = {"date": image["enddate"], "title": image["title"], "description": image["copyright"], "url": image_url}
 
     # 判断日数据是否存在，不存在则追加
     if image["enddate"] not in [row["date"] for row in bing_daily_data]:
