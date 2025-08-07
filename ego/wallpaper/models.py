@@ -1,3 +1,5 @@
+from datetime import timezone as dt_timezone
+
 from django.contrib.auth.models import User
 from django.db import models
 from django.db.models import F
@@ -87,9 +89,6 @@ class Wall(models.Model):
     # small_picurl = models.CharField(max_length=255, verbose_name="图片缩略图地址")
     picurl = models.CharField(max_length=255, verbose_name="图片地址")
     description = models.CharField(max_length=255, verbose_name="描述", blank=True, null=True)
-    # 这个字段其实可以设计成 ManyToManyField，其实就是列表存储，使用add方法添加
-    tabs = models.CharField(max_length=200, verbose_name="标签", blank=True, null=True)
-    score = models.DecimalField(max_digits=10, decimal_places=1, verbose_name="图片分数", blank=True, null=True)
     publisher = models.CharField(max_length=60, default="unknown", verbose_name="发布者", blank=True, null=True)
     is_active = models.BooleanField(default=True, verbose_name="是否启用")
     is_locked = models.BooleanField(default=False, verbose_name="是否需要解锁")
@@ -97,8 +96,17 @@ class Wall(models.Model):
     updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
     classify = models.ForeignKey(Classify, on_delete=models.PROTECT, verbose_name="分类")  # 外键写表名即可
 
+    # 这个字段其实可以设计成 ManyToManyField，其实就是列表存储，使用add方法添加
+    tabs = models.CharField(max_length=200, verbose_name="标签", blank=True, null=True)
+    score = models.DecimalField(max_digits=10, decimal_places=1, verbose_name="图片分数", blank=True, null=True)
+    # views = models.IntegerField(default=0, verbose_name="浏览量")
+    # downloads = models.IntegerField(default=0, verbose_name="下载量")
+
     # 多对多关系，不会添加该字段，会增加一张存储对应关系的中间表wallpaper_wall_subjects，里面只有三个字段 id、wall_id、subject_id
     subjects = models.ManyToManyField(Subject, related_name="walls", verbose_name="专题", blank=True)
+
+    def __str__(self):
+        return self.description if self.description else f"壁纸-{self.pk}"
 
     class Meta:
         verbose_name = "壁纸"
@@ -215,8 +223,10 @@ class Access(models.Model):
     remark = models.JSONField(default=dict, verbose_name="备注", blank=True, null=True)  # desciption
 
     def __str__(self):
+        # 将access_time转换为本地时区的时间字符串，也就是settings.py中设置的TIME_ZONE对应的时区
+        local_tz = timezone.get_default_timezone()
         # 使用strftime来格式化日期时间，截取前19个字符
-        formatted_time = self.access_time.strftime("%Y-%m-%d %H:%M:%S")
+        formatted_time = self.access_time.astimezone(local_tz).strftime("%Y-%m-%d %H:%M:%S")
         return f"{formatted_time} - {self.platform} - {self.ip}"
 
     class Meta:

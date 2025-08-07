@@ -113,15 +113,17 @@ class AccessAdmin(admin.ModelAdmin):
     readonly_fields = ("access_time", "remark_json")
 
     def remark_json(self, obj):
-        data = obj.remark or {}
+        data_str = obj.remark
         try:
-            # 格式化缩进 + 语法高亮（需前端支持）
+            # data_str是json字符串，但是没有格式，需要转成dict再转成有格式的字符串进行展示
+            data = json.loads(data_str)
             formatted = json.dumps(data, indent=2, ensure_ascii=False)
             return mark_safe(f'<pre style="white-space: pre-wrap">{formatted}</pre>')
         except TypeError:
             return "Invalid JSON: " + obj.remark
 
     remark_json.short_description = "备注JSON"  # 表头显示名
+    # remark_json.allow_tags = True
 
 
 admin.site.register(Classify, ClassifyAdmin)

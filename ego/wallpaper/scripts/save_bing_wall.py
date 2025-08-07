@@ -1,5 +1,4 @@
 import json
-import sys
 from pathlib import Path
 
 import requests
@@ -26,8 +25,8 @@ response = requests.get(api_url, params=params)
 # data = json.loads(response.text)
 data = response.json()
 
-
-for image in data["images"]:
+# 反转列表，顺序下载确保最新的壁纸在最后处理
+for image in reversed(data["images"]):
     file_name = image["enddate"] + "-" + image["title"]
     # 解析并拼接图片URL
     image_url = "https://www.bing.com" + image["url"]

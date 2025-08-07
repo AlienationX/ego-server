@@ -47,6 +47,7 @@ WECHAT_SECRET = config("WECHAT_SECRET")  # 微信小程序的AppSecret
 DEBUG = config("DEBUG", default=False, cast=bool)
 
 ALLOWED_HOSTS = []
+# ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="*").split(",")  # 允许的主机名，默认是所有主机名
 
 
 # Application definition
