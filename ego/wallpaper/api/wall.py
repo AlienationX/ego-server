@@ -1,31 +1,30 @@
-from django.shortcuts import render
-from django.db.models import Q, Func, Value
-from django.core.cache import cache
-from rest_framework.viewsets import ModelViewSet, GenericViewSet
-from rest_framework.mixins import ListModelMixin, RetrieveModelMixin
-from rest_framework.decorators import action
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, AllowAny
-
-from datetime import datetime, timedelta
+import logging
 import random
+from datetime import datetime, timedelta
+
+from django.core.cache import cache
+from django.db.models import F, Func, Q, Value
+from django.shortcuts import render
+from rest_framework.decorators import action
+from rest_framework.mixins import ListModelMixin, RetrieveModelMixin
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.viewsets import GenericViewSet, ModelViewSet
 
 from ..models import Wall
-from ..serializers import WallSerializer
 from ..paginations import CustomPageNumberPagination
-from ..renderers import CustomJSONRenderer
 from ..permissions import HasAccessKey
-
-import logging
+from ..renderers import CustomJSONRenderer
+from ..serializers import WallSerializer
 
 logger = logging.getLogger(__name__)
 
 
 class ApiModelView(ListModelMixin, RetrieveModelMixin, GenericViewSet):
-    queryset = Wall.objects.select_related('classify').all()
+    queryset = Wall.objects.select_related("classify").all()
     serializer_class = WallSerializer
     pagination_class = CustomPageNumberPagination  # 使用自定义分页类
-    renderer_classes = [CustomJSONRenderer]        # 使用自定义渲染器，额外统一增加code和message字段。默认是JSONRenderer
+    renderer_classes = [CustomJSONRenderer]  # 使用自定义渲染器，额外统一增加code和message字段。默认是JSONRenderer
 
     def get_queryset(self):
         # 获取查询参数中的 class_id
@@ -88,14 +87,14 @@ class ApiModelView(ListModelMixin, RetrieveModelMixin, GenericViewSet):
             #     data = list(queryset.order_by('?').values())
             #     cache.set(cache_key, data, timeout=5)  # 缓存5秒
 
-            data = cache.get_or_set(cache_key, lambda: list(queryset.order_by('?').values()), timeout=600)  # 缓存10分钟
+            data = cache.get_or_set(cache_key, lambda: list(queryset.order_by("?").values()), timeout=600)  # 缓存10分钟
 
         elif sortord == "score":
-            queryset = queryset.order_by('-score')
+            queryset = queryset.order_by("-score")
         elif sortord == "date_asc":
-            queryset = queryset.order_by('updated_at')
+            queryset = queryset.order_by("updated_at")
         elif sortord == "date_desc":
-            queryset = queryset.order_by('-updated_at')
+            queryset = queryset.order_by("-updated_at")
 
         if data is not None:
             return data
@@ -113,7 +112,7 @@ class ApiModelView(ListModelMixin, RetrieveModelMixin, GenericViewSet):
             return paginator.get_paginated_response(paginated_data)
         return Response(data)
 
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=["get"])
     def random(self, request):
         # detail=True 表示这个动作是针对单个对象的，如果设置为 False，则表示这个动作是针对所有对象的。
 
@@ -121,7 +120,7 @@ class ApiModelView(ListModelMixin, RetrieveModelMixin, GenericViewSet):
         queryset = self.get_queryset()
 
         # 方法 1：使用 order_by('?') 来随机排序，返回前 9 条数据
-        random_queryset = queryset.order_by('?')[:9]
+        random_queryset = queryset.order_by("?")[:9]
 
         # 方法 2：或者使用 random.sample() 来从 queryset 中随机选择 10 条数据
         # import random
@@ -131,7 +130,7 @@ class ApiModelView(ListModelMixin, RetrieveModelMixin, GenericViewSet):
         serializer = self.get_serializer(random_queryset, many=True)
         return Response(serializer.data)
 
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=["get"])
     def search(self, request):
         # detail=True 表示这个动作是针对单个对象的，如果设置为 False，则表示这个动作是针对所有对象的。
 
@@ -192,3 +191,21 @@ class ApiModelView(ListModelMixin, RetrieveModelMixin, GenericViewSet):
         # # 数据序列化
         # serializer = self.get_serializer(queryset, many=True)
         # return Response(serializer.data)
+
+    # datail=True时，表示这个动作是针对单个对象。url会自动增加pk，例如wall/<pk>/increment_views/
+    # pk参数会自动传入increment_views和increment_downloads方法，必须有
+    @action(detail=True, methods=["post"])
+    def increment_views(self, request, pk=None):
+        instance = self.get_object()  # 获取单个对象
+        instance.views = F("views") + 1  # 使用 F() 避免竞争条件
+        instance.save(update_fields=["views"])
+        instance.refresh_from_db(fields=["views"])  # 刷新实例字段值
+        return Response({"id": instance.id, "views": instance.views})
+
+    @action(detail=True, methods=["post"])
+    def increment_downloads(self, request, pk=None):
+        instance = self.get_object()
+        instance.downloads = F("downloads") + 1
+        instance.save(update_fields=["downloads"])
+        instance.refresh_from_db(fields=["downloads"])
+        return Response({"id": instance.id, "downloads": instance.downloads})

@@ -108,7 +108,7 @@ class NoticeAdmin(admin.ModelAdmin):
 
 @admin.register(Access)
 class AccessAdmin(admin.ModelAdmin):
-    list_display = ("ip", "address", "platform", "access_time")
+    list_display = ("ip", "address", "platform", "channel", "access_time")
     fields = ["ip", "address", "username", "source", "platform", "channel", "access_time", "remark_json"]  # 可以控制顺序
     readonly_fields = ("access_time", "remark_json")
 

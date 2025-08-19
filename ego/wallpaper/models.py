@@ -49,6 +49,7 @@ class Application(models.Model):
 
 class Classify(models.Model):
     name = models.CharField(max_length=100, unique=True, verbose_name="分类名称", db_comment="db_comment中显示的名称: 分类名称")
+    name_en = models.CharField(max_length=100, unique=True, verbose_name="分类英文名称", blank=True, null=True)
     sort = models.IntegerField(verbose_name="排序")
     picurl = models.CharField(max_length=255, verbose_name="图片地址")
     select = models.BooleanField(default=False, verbose_name="是否首页推荐")
@@ -99,8 +100,8 @@ class Wall(models.Model):
     # 这个字段其实可以设计成 ManyToManyField，其实就是列表存储，使用add方法添加
     tabs = models.CharField(max_length=200, verbose_name="标签", blank=True, null=True)
     score = models.DecimalField(max_digits=10, decimal_places=1, verbose_name="图片分数", blank=True, null=True)
-    # views = models.IntegerField(default=0, verbose_name="浏览量")
-    # downloads = models.IntegerField(default=0, verbose_name="下载量")
+    views = models.IntegerField(default=0, verbose_name="浏览量")
+    downloads = models.IntegerField(default=0, verbose_name="下载量")
 
     # 多对多关系，不会添加该字段，会增加一张存储对应关系的中间表wallpaper_wall_subjects，里面只有三个字段 id、wall_id、subject_id
     subjects = models.ManyToManyField(Subject, related_name="walls", verbose_name="专题", blank=True)
@@ -206,8 +207,9 @@ class PageView(models.Model):
 class Access(models.Model):
     ip = models.CharField(max_length=100, verbose_name="ip地址")  #  models.GenericIPAddressField
     address = models.CharField(max_length=255, verbose_name="访问地址", blank=True, null=True)
+    # device_id = models.CharField(max_length=100, verbose_name="设备id", blank=True, null=True)
+    # app_version = models.CharField(max_length=100, verbose_name="app版本号", blank=True, null=True)
     username = models.CharField(max_length=100, verbose_name="用户名", blank=True, null=True)
-    source = models.CharField(max_length=100, verbose_name="来源", blank=True, null=True)
 
     # client = models.CharField(max_length=100, verbose_name="", blank=True, null=True)  # 客户端类型，如：web、android、ios、wechat、douyin、qq等
     # provider = models.CharField(max_length=100, verbose_name="", blank=True, null=True)
@@ -216,8 +218,6 @@ class Access(models.Model):
     platform = models.CharField(max_length=100, verbose_name="平台", blank=True, null=True)
     # 如：google、小米、oppo、vivo、apple等应用商店
     channel = models.CharField(max_length=100, verbose_name="渠道", blank=True, null=True)
-    # device_id = models.CharField(max_length=100, verbose_name="设备id", blank=True, null=True)
-    # app_version = models.CharField(max_length=100, verbose_name="app版本号", blank=True, null=True)
 
     access_time = models.DateTimeField(auto_now_add=True, verbose_name="访问时间")
     remark = models.JSONField(default=dict, verbose_name="备注", blank=True, null=True)  # desciption
