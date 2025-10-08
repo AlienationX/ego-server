@@ -12,6 +12,7 @@ ego/logs/
 ego/static/
 ego/utils/tmp.vue
 ego/wallpaper/scripts/images/
+ego/wallpaper/scripts/output/
 ego/wallpaper/scripts/s3_wallpaper_bucket/
 ego/ego-dev*.zip
 ego/package/

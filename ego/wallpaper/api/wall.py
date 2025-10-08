@@ -1,5 +1,6 @@
 import logging
 import random
+import re
 from datetime import datetime, timedelta
 
 from django.core.cache import cache
@@ -33,7 +34,7 @@ class ApiModelView(ListModelMixin, RetrieveModelMixin, GenericViewSet):
         # 获取所有数据，且classify.enable为True的数据
         queryset = self.queryset.filter(Q(classify__enable=True))
 
-        # 如果 class_id 参数存在，则过滤查询集
+        # 如果 classify_id 参数存在，则过滤查询集
         if classify_id:
             queryset = queryset.filter(classify_id=classify_id)
 
@@ -119,16 +120,50 @@ class ApiModelView(ListModelMixin, RetrieveModelMixin, GenericViewSet):
         # 获取所有的对象，且classify.enable为True的数据
         queryset = self.get_queryset()
 
-        # 方法 1：使用 order_by('?') 来随机排序，返回前 9 条数据
-        random_queryset = queryset.order_by("?")[:9]
+        # 方法 1：使用 order_by('?') 来随机排序，返回前 n 条数据
+        random_queryset = queryset.order_by("?")[:12]
 
-        # 方法 2：或者使用 random.sample() 来从 queryset 中随机选择 10 条数据
+        # 方法 2：或者使用 random.sample() 来从 queryset 中随机选择 n 条数据
         # import random
-        # random_queryset = random.sample(list(queryset), 10)  # 使用 list() 转换为列表进行随机选择
+        # random_queryset = random.sample(list(queryset), 12)  # 使用 list() 转换为列表进行随机选择
 
         # 将随机选择的数据序列化
         serializer = self.get_serializer(random_queryset, many=True)
         return Response(serializer.data)
+
+    @action(detail=False, methods=["get"])
+    def random_recommend(self, request):
+        # 获取所有的对象，且classify.enable为True的数据
+        queryset = self.get_queryset()
+
+        result_data = []
+        result_data.append(
+            {
+                "id": 0,
+                "name": "每日推荐",
+                "name_en": "Daily Recommend",
+                "data": self.get_serializer(queryset.order_by("?")[:12], many=True).data,
+            }
+        )
+
+        # 获取查询参数中的 classify_ids
+        classify_ids = self.request.query_params.get("classify_ids")
+        if classify_ids:
+            classify_ids = classify_ids.split(",")
+            queryset = queryset.filter(Q(classify_id__in=classify_ids))
+            for classify_id in classify_ids:
+                # 过滤该分类的数据并随机排序
+                classified_queryset = queryset.filter(classify_id=classify_id).order_by("?")[:12]  # 使用order_by("?")实现随机
+                result_data.append(
+                    {
+                        "id": classified_queryset.first().classify_id,
+                        "name": classified_queryset.first().classify.name,
+                        "name_en": classified_queryset.first().classify.name_en,
+                        "data": self.get_serializer(classified_queryset, many=True).data,
+                    }
+                )
+
+        return Response(result_data)
 
     @action(detail=False, methods=["get"])
     def search(self, request):

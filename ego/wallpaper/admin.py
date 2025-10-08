@@ -27,7 +27,7 @@ class ClassifyAdmin(admin.ModelAdmin):
     #     (None,               {'fields': ['question_text']}),
     #     ('Date information', {'fields': ['pub_date'], 'classes': ['collapse']}),
     # ]
-    list_display = ("id", "name", "sort", "select", "enable", "is_locked")  # 显示的字段
+    list_display = ("id", "name", "name_en", "sort", "select", "enable", "is_locked")  # 显示的字段
     list_filter = ["enable"]
 
     # 在编辑页也显示图片预览, fields是编辑页面展示的字段
