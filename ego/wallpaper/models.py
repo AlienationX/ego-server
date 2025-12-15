@@ -95,13 +95,16 @@ class Wall(models.Model):
     is_locked = models.BooleanField(default=False, verbose_name="是否需要解锁")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
+    remark = models.CharField(max_length=500, verbose_name="备注", blank=True, null=True)
+
+    # 1对1关系
     classify = models.ForeignKey(Classify, on_delete=models.PROTECT, verbose_name="分类")  # 外键写表名即可
 
     # 这个字段其实可以设计成 ManyToManyField，其实就是列表存储，使用add方法添加
     tabs = models.CharField(max_length=200, verbose_name="标签", blank=True, null=True)
     score = models.DecimalField(max_digits=10, decimal_places=1, verbose_name="图片分数", blank=True, null=True)
-    views = models.IntegerField(default=0, verbose_name="浏览量")
-    downloads = models.IntegerField(default=0, verbose_name="下载量")
+    views = models.IntegerField(default=0, db_default=0, verbose_name="浏览量")
+    downloads = models.IntegerField(default=0, db_default=0, verbose_name="下载量")
 
     # 多对多关系，不会添加该字段，会增加一张存储对应关系的中间表wallpaper_wall_subjects，里面只有三个字段 id、wall_id、subject_id
     subjects = models.ManyToManyField(Subject, related_name="walls", verbose_name="专题", blank=True)

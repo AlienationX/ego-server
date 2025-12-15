@@ -9,7 +9,7 @@
   },
   "black-formatter.args": [
     // "--skip-string-normalization",
-    "--line-length=160",
+    "--line-length=128",
   ],
   "isort.args": [
     "--profile",

@@ -20,12 +20,9 @@ with open(Path(__file__).parent / "images/pics/classify_bing/bing_daily_data.jso
 
 
 def get_files(local_dir):
-    """
-    获取指定目录下的所有图片文件
-    :param local_dir: 本地目录路径
-    :return: 图片文件列表
-    """
-    return [p for p in local_dir.rglob("*") if p.is_file() and p.suffix.lower() in {".jpg", ".png"} and not p.name.startswith(".")]
+    return [
+        p for p in local_dir.rglob("*") if p.is_file() and p.suffix.lower() in {".jpg", ".png"} and not p.name.startswith(".")
+    ]
 
 
 def generate_thumbs(file, max_size=(520, 520)):
@@ -68,7 +65,11 @@ def upload_files_to_s3(file, bucket_name, s3_prefix=""):
 
 def generate_sql(file, s3_key):
     target_date = file.name.split("-")[0]
-    desc_bing_data = [f"{entry['date']} - {entry['title']}: {entry['description']}" for entry in bing_daily_data if entry["date"] == target_date]
+    desc_bing_data = [
+        f"{entry['date']} - {entry['title']}: {entry['description']}"
+        for entry in bing_daily_data
+        if entry["date"] == target_date
+    ]
 
     ####################################### 发布者信息可以根据实际情况填写
     classify_id = 30  # 壁纸分类ID
@@ -86,7 +87,7 @@ def generate_sql(file, s3_key):
 
 if __name__ == "__main__":
     folder_dir = "pics/classify_bing/"
-    incremental_time = "2021-06-03 10:03"  # 增量上传时间
+    incremental_time = "2025-12-05 22:49:24"  # 增量上传时间
 
     max_time = ""  # 存储最大时间戳
     newest_file = ""  # 存储最新文件名
@@ -101,7 +102,7 @@ if __name__ == "__main__":
             continue
         else:
             # print(f"Processing file: {file.name}, modified at {mod_time}")
-            if max_time < mod_time:
+            if max_time <= mod_time:
                 max_time = mod_time
                 newest_file = file.name
 

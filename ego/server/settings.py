@@ -28,7 +28,7 @@ from decouple import Config, RepositoryEnv
 # vim ~/.bash_profile
 # export DJANGO_ENV=dev
 ENV = os.getenv("DJANGO_ENV", "prod")
-config = Config(ChainMap(RepositoryEnv(f".env.{ENV}"), RepositoryEnv(".env.base")))
+config = Config(ChainMap(RepositoryEnv(f".env.{ENV}"), RepositoryEnv(".env")))
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -204,7 +204,10 @@ REST_FRAMEWORK = {
         # 'rest_framework.permissions.IsAuthenticated'  # 默认需要认证
     ],
     # 限流相关配置
-    "DEFAULT_THROTTLE_CLASSES": ["rest_framework.throttling.AnonRateThrottle", "rest_framework.throttling.UserRateThrottle"],  # 匿名用户  # 认证用户
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+    ],  # 匿名用户  # 认证用户
     "DEFAULT_THROTTLE_RATES": {"anon": "30/minute", "user": "100/minute"},  # 匿名用户每分钟30次请求  # 认证用户没分钟100次请求
 }
 

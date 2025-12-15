@@ -137,14 +137,14 @@ class ApiModelView(ListModelMixin, RetrieveModelMixin, GenericViewSet):
         queryset = self.get_queryset()
 
         result_data = []
-        result_data.append(
-            {
-                "id": 0,
-                "name": "每日推荐",
-                "name_en": "Daily Recommend",
-                "data": self.get_serializer(queryset.order_by("?")[:12], many=True).data,
-            }
-        )
+        # result_data.append(
+        #     {
+        #         "id": 0,
+        #         "name": "每日推荐",
+        #         "name_en": "Daily Recommend",
+        #         "data": self.get_serializer(queryset.order_by("?")[:12], many=True).data,
+        #     }
+        # )
 
         # 获取查询参数中的 classify_ids
         classify_ids = self.request.query_params.get("classify_ids")
