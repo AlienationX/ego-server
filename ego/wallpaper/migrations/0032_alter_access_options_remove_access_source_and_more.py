@@ -14,7 +14,7 @@ class Migration(migrations.Migration):
             name="access",
             options={"verbose_name": "访问日志详情", "verbose_name_plural": "访问日志"},
         ),
-        migrations.AlterField(
+        migrations.AddField(
             model_name="classify",
             name="name_en",
             field=models.CharField(blank=True, max_length=100, null=True, unique=True, verbose_name="分类英文名称"),

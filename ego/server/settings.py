@@ -30,6 +30,9 @@ from decouple import Config, RepositoryEnv
 ENV = os.getenv("DJANGO_ENV", "prod")
 config = Config(ChainMap(RepositoryEnv(f".env.{ENV}"), RepositoryEnv(".env")))
 
+# 关键步骤：将 config 对象赋值给一个大写变量，以便暴露给 Django 的设置系统
+DECOUPLE_CONFIG = config  # 变量名必须大写
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -110,14 +113,23 @@ WSGI_APPLICATION = "server.wsgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.mysql",
-        "HOST": config("DB_HOST"),
-        "PORT": config("DB_PORT"),
-        "NAME": config("DB_NAME"),
-        "USER": config("DB_USER"),
-        "PASSWORD": config("DB_PASSWORD"),
-        "OPTIONS": {"charset": "utf8mb4"},  # 支持 Emoji 和复杂字符
+        "ENGINE": "django.db.backends.postgresql",
+        "HOST": config("PG_HOST"),
+        "PORT": config("PG_PORT"),
+        "NAME": config("PG_NAME"),
+        "USER": config("PG_USER"),
+        "PASSWORD": config("PG_PASSWORD"),
+        "OPTIONS": {"options": f"-c search_path={config('PG_SCHEMA')}"},  # 关键：设置默认搜索路径（即Schema）
     },
+    # "default": {
+    #     "ENGINE": "django.db.backends.mysql",
+    #     "HOST": config("AWS_MYSQL_HOST"),
+    #     "PORT": config("AWS_MYSQL_PORT"),
+    #     "NAME": config("AWS_MYSQL_NAME"),
+    #     "USER": config("AWS_MYSQL_USER"),
+    #     "PASSWORD": config("AWS_MYSQL_PASSWORD"),
+    #     "OPTIONS": {"charset": "utf8mb4"},  # 支持 Emoji 和复杂字符
+    # },
     # 'default': {
     #     'ENGINE': 'django.db.backends.sqlite3',
     #     'NAME': BASE_DIR / 'db.sqlite3',

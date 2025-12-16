@@ -56,7 +56,7 @@ class Command(BaseCommand):
             Wall.objects.get_or_create(
                 picurl=f"pics/classify_bing/{record['file_name']}",
                 defaults={
-                    "description": record["description"],
+                    "description": f"{record['date']} - {record['title']}: {record['description']}",
                     "tabs": "必应,每日壁纸,风景,Bing,微软",
                     "score": round(random.uniform(4, 5), 1),
                     "publisher": "Bing",
@@ -79,9 +79,11 @@ class Command(BaseCommand):
         # n：返回的图片数量（最大值为8）。
         # mkt：区域代码（例如 zh-CN 为中国，en-US 为美国，不同地区可能返回不同图片）(en-US设置无效，和ip有关)。
 
+        # params = {"format": "js", "idx": 0, "n": 8, "mkt": "zh_CN"}
         params = {"format": "js", "idx": 0, "n": 8, "mkt": "zh_CN"}
         api_url = "https://www.bing.com/HPImageArchive.aspx"
         response = requests.get(api_url, params=params)
+        response.raise_for_status()
         # data = json.loads(response.text)
         data = response.json()
 
@@ -106,15 +108,15 @@ class Command(BaseCommand):
                     f.write(image_data)
                 print(f"Save {file_name}.jpg")
 
-                # 保存数据
-                record = {
-                    "file_name": f"{file_name}.jpg",
-                    "date": image["enddate"],
-                    "title": image["title"],
-                    "description": image["copyright"],
-                    "image_url": image_url,
-                }
-                records.append(record)
+            # 保存数据
+            record = {
+                "file_name": f"{file_name}.jpg",
+                "date": image["enddate"],
+                "title": image["title"],
+                "description": image["copyright"],
+                "image_url": image_url,
+            }
+            records.append(record)
 
         print(records)
         return records
