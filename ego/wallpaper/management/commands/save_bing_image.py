@@ -4,7 +4,9 @@ from pathlib import Path
 
 import requests
 from django.core.management.base import BaseCommand
-from wallpaper.management.commands.utils import generate_thumbs, upload_files_to_s3
+from wallpaper.management.commands.upload_cos import upload_file_to_cos
+from wallpaper.management.commands.upload_s3 import upload_file_to_s3
+from wallpaper.management.commands.utils import generate_thumbs
 from wallpaper.models import Wall
 
 # python manage.py save_bing_image
@@ -30,7 +32,10 @@ class Command(BaseCommand):
             generate_thumbs(file_path)
 
             # 上传到 s3
-            upload_files_to_s3(file_path)
+            upload_file_to_s3(file_path, s3_prefix="pics/classify_bing/")
+
+            # 上传到 cos
+            upload_file_to_cos(file_path, cos_prefix="pics/classify_bing/")
 
             # step3：上传到数据库
 
@@ -53,7 +58,7 @@ class Command(BaseCommand):
             # Wall.objects.create(field1="xxx", field2="aaa")
 
             # 方式3: 不存在则插入数据
-            Wall.objects.get_or_create(
+            obj, created = Wall.objects.get_or_create(
                 picurl=f"pics/classify_bing/{record['file_name']}",
                 defaults={
                     "description": f"{record['date']} - {record['title']}: {record['description']}",
@@ -69,7 +74,8 @@ class Command(BaseCommand):
                 },
             )
 
-        self.stdout.write(self.style.SUCCESS(f"成功导入 {len(records)} 条数据"))
+            if created:
+                self.stdout.write(self.style.SUCCESS(f"成功导入 {record['file_name']}"))
 
     def _download_bing_image(self, local_bing_path):
         # 请求API数据: https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1&mkt=zh-CN
@@ -118,5 +124,5 @@ class Command(BaseCommand):
             }
             records.append(record)
 
-        print(records)
+        # print(records)
         return records

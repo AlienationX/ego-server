@@ -196,6 +196,21 @@ STATIC_ROOT = Path(BASE_DIR).joinpath("static")
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+# ######################## 缓存配置
+# pip install django-redis redislite
+# CACHES = {
+#     "default": {
+#         "BACKEND": "django_redis.cache.RedisCache",
+#         # 配置 LOCATION 为 redislite 数据库文件的路径
+#         # 例如，在项目根目录下创建一个 'redis.db' 文件
+#         "LOCATION": "redislite:///" + BASE_DIR / "redis.db",
+#         "OPTIONS": {
+#             "CLIENT_CLASS": "django_redis.client.DefaultClient",
+#             # 如果需要对数据进行序列化，可以配置序列化器
+#             "SERIALIZER": "django_redis.serializers.json.JSONSerializer",
+#         },
+#     }
+# }
 
 # ######################## 自定义没有权限自动跳转到该url
 LOGIN_URL = "/pokemon_wallpaper/login/"
