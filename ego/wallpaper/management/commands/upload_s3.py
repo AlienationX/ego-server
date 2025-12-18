@@ -23,11 +23,12 @@ def upload_file_to_s3(file, bucket_name=bucket_name, s3_prefix=""):
             filename = f.name
             s3_key = s3_prefix + filename
 
-            response = s3_client.head_object(Bucket=bucket_name, Key=s3_key)
-            print("s3 response ==>", response)
-            if response["ResponseMetadata"]["HTTPStatusCode"] == 200:
-                logger.warning(f"File {f} already exists in s3, skipping upload.")
-            else:
+            try:
+                # 检查文件是否已存在, 不存在报错 An error occurred (404) when calling the HeadObject operation: Not Found
+                response = s3_client.head_object(Bucket=bucket_name, Key=s3_key)
+                if response["ResponseMetadata"]["HTTPStatusCode"] == 200:
+                    logger.warning(f"File {f} already exists in s3, skipping upload.")
+            except Exception as e:
                 s3_client.upload_file(Bucket=bucket_name, Key=s3_key, Filename=f)
                 logger.info(f"Uploaded {f} -> s3://{bucket_name}/{s3_key}")
 
