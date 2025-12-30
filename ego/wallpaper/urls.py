@@ -1,15 +1,14 @@
-from django.urls import path, include
+from importlib import import_module
+from pathlib import Path
 
+from django.urls import include, path
 from rest_framework import routers
+
+from . import views
 
 # from drf_yasg.views import get_schema_view
 # from drf_yasg import openapi
 # from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
-
-from pathlib import Path
-from importlib import import_module
-
-from . import views
 
 
 # 设置API文档的schema视图
@@ -35,8 +34,8 @@ router = routers.DefaultRouter()
 
 def router_register(p: Path, folder="api"):
     name = p.stem
-    file = import_module(f'.{folder}.{name}', package=__package__)
-    module = getattr(file, 'ApiModelView', None)
+    file = import_module(f".{folder}.{name}", package=__package__)
+    module = getattr(file, "ApiModelView", None)
     # print(name, file, module)
     if module:
         router.register(name, module, basename=name)
@@ -52,14 +51,13 @@ for p in apis_path.iterdir():
     router_register(p)
 
 
-app_name = 'wallpaper'
+app_name = "wallpaper"
 urlpatterns = [
-    path('api/', include(router.urls)),
-
+    path("api/", include(router.urls)),
+    path("upload/", views.upload, name="upload"),
     # drf-yasg
     # path('yasg-swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     # path('yasg-redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
-
     # 在这里配置无效，只能在项目根目录的url中配置？
     # # drf-spectacular
     # path('schema/', SpectacularAPIView.as_view(), name='schema'),

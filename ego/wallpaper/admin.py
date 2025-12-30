@@ -27,30 +27,54 @@ class ClassifyAdmin(admin.ModelAdmin):
     #     (None,               {'fields': ['question_text']}),
     #     ('Date information', {'fields': ['pub_date'], 'classes': ['collapse']}),
     # ]
-    list_display = ("id", "name", "name_en", "sort", "select", "enable", "is_locked")  # 显示的字段
-    list_filter = ["enable"]
+    list_display = ("id", "name", "name_en", "sort", "select", "enable", "is_locked", "pic_path_prefix")  # 显示的字段
+    list_filter = ("enable",)
 
     # 在编辑页也显示图片预览, fields是编辑页面展示的字段
-    fields = tuple(list(list_display)[1:2] + ["picurl", "image_preview"] + list(list_display)[2:])
+    fields = tuple(
+        list(list_display)[1:2] + ["picurl", "image_preview"] + list(list_display)[2:] + ["created_at", "updated_at"]
+    )
     readonly_fields = ("image_preview", "created_at", "updated_at")
 
     def image_preview(self, obj):
         # return self.display_image(obj)
         if obj.picurl:
-            return format_html('<img src="{}" style="height: 360px; width: auto; border-radius: 4px;" />', ROOT_PIC_URL + obj.picurl)
+            return format_html(
+                '<img src="{}" style="height: 360px; width: auto; border-radius: 4px;" />', ROOT_PIC_URL + obj.picurl
+            )
         return "-"
 
     image_preview.short_description = "当前图片"
 
 
 class SubjectAdmin(admin.ModelAdmin):
-    list_display = ("id", "name", "content", "sort", "select", "is_active", "is_locked", "created_at", "updated_at")  # 显示的字段
+    list_display = (
+        "id",
+        "name",
+        "content",
+        "sort",
+        "select",
+        "is_active",
+        "is_locked",
+        "created_at",
+        "updated_at",
+    )  # 显示的字段
     list_filter = ("select", "is_active")
     search_fields = ("name", "content")  # 添加搜索功能
 
 
 class WallAdmin(admin.ModelAdmin):
-    list_display = ("id", "display_image", "classify", "display_subjects", "is_locked", "publisher", "tabs", "score", "description")
+    list_display = (
+        "id",
+        "display_image",
+        "classify",
+        "display_subjects",
+        "is_locked",
+        "publisher",
+        "tabs",
+        "score",
+        "description",
+    )
     list_filter = ("classify",)
     search_fields = ("description", "publisher", "tabs")
     filter_horizontal = ("subjects",)  # 优化多对多字段选择界面
@@ -83,7 +107,9 @@ class WallAdmin(admin.ModelAdmin):
     def image_preview(self, obj):
         # return self.display_image(obj)
         if obj.picurl:
-            return format_html('<img src="{}" style="height: 640px; width: auto; border-radius: 4px;" />', ROOT_PIC_URL + obj.picurl)
+            return format_html(
+                '<img src="{}" style="height: 640px; width: auto; border-radius: 4px;" />', ROOT_PIC_URL + obj.picurl
+            )
         return "-"
 
     image_preview.short_description = "当前图片"
@@ -101,7 +127,10 @@ class NoticeAdmin(admin.ModelAdmin):
     # 编辑页完整预览（带安全限制）
 
     def html_preview(self, obj):
-        return format_html('<div class="html-preview" style="border: 1px solid #ddd; padding: 10px; margin-top: 10px">{}</div>', mark_safe(obj.content))
+        return format_html(
+            '<div class="html-preview" style="border: 1px solid #ddd; padding: 10px; margin-top: 10px">{}</div>',
+            mark_safe(obj.content),
+        )
 
     html_preview.short_description = "HTML预览"
 
@@ -109,7 +138,7 @@ class NoticeAdmin(admin.ModelAdmin):
 @admin.register(Access)
 class AccessAdmin(admin.ModelAdmin):
     list_display = ("ip", "address", "platform", "channel", "access_time")
-    fields = ["ip", "address", "username", "source", "platform", "channel", "access_time", "remark_json"]  # 可以控制顺序
+    fields = ("ip", "address", "username", "source", "platform", "channel", "access_time", "remark_json")  # 可以控制顺序
     readonly_fields = ("access_time", "remark_json")
 
     def remark_json(self, obj):

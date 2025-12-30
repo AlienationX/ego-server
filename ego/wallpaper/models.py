@@ -52,6 +52,7 @@ class Classify(models.Model):
     name_en = models.CharField(max_length=100, unique=True, verbose_name="分类英文名称", blank=True, null=True)
     sort = models.IntegerField(verbose_name="排序")
     picurl = models.CharField(max_length=255, verbose_name="图片地址")
+    pic_path_prefix = models.CharField(max_length=255, verbose_name="图片所在路径", blank=True, null=True)
     select = models.BooleanField(default=False, verbose_name="是否首页推荐")
     enable = models.BooleanField(default=True, verbose_name="是否启用")  # is_active
     is_locked = models.BooleanField(default=False, verbose_name="需要解锁")
@@ -88,7 +89,7 @@ class Subject(models.Model):
 
 class Wall(models.Model):
     # small_picurl = models.CharField(max_length=255, verbose_name="图片缩略图地址")
-    picurl = models.CharField(max_length=255, verbose_name="图片地址")
+    picurl = models.CharField(max_length=255, unique=True, verbose_name="图片地址")
     description = models.CharField(max_length=255, verbose_name="描述", blank=True, null=True)
     publisher = models.CharField(max_length=60, default="unknown", verbose_name="发布者", blank=True, null=True)
     is_active = models.BooleanField(default=True, verbose_name="是否启用")

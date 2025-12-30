@@ -6,7 +6,7 @@ import requests
 from django.core.management.base import BaseCommand
 from wallpaper.management.commands.upload_cos import upload_file_to_cos
 from wallpaper.management.commands.upload_s3 import upload_file_to_s3
-from wallpaper.management.commands.utils import generate_thumbs
+from wallpaper.management.commands.utils import generate_thumbs, send_dingtalk
 from wallpaper.models import Wall
 
 # python manage.py save_bing_image
@@ -24,6 +24,7 @@ class Command(BaseCommand):
         # step1：下载 image 到本地
         local_bing_path = Path(__file__).parent.parent.parent / "scripts/images/pics/classify_bing/"
         records = self._download_bing_image(local_bing_path)
+        new_records = []
 
         for record in records:
             file_path = local_bing_path / record["file_name"]
@@ -75,7 +76,11 @@ class Command(BaseCommand):
             )
 
             if created:
+                new_records.append(record)
                 self.stdout.write(self.style.SUCCESS(f"成功导入 {record['file_name']}"))
+
+        self.stdout.write(self.style.SUCCESS(f"成功导入 {len(new_records)} 条数据"))
+        send_dingtalk(f"成功导入 {len(new_records)} 条必应壁纸数据")
 
     def _download_bing_image(self, local_bing_path):
         # 请求API数据: https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1&mkt=zh-CN
