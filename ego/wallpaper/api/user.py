@@ -11,7 +11,7 @@ from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ModelViewSet, ViewSet
 
-from ..models import Profile
+from ..models import Profile, UserWallMap
 from ..permissions import HasAccessKey
 from ..renderers import CustomJSONRenderer
 from ..serializers import ProfileSerializer, UserSerializer
@@ -42,6 +42,29 @@ class ApiModelView(RetrieveModelMixin, GenericViewSet):
         except Exception as e:
             logger.error(f"获取用户信息失败: {e}")
             return Response({"error": f"获取用户信息失败: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=["get"])
+    def collect(self, request, *args, **kwargs):
+        """用户收藏壁纸"""
+        user = request.user
+        walls = UserWallMap.objects.filter(user_id=user.id, is_collect=True)
+        print(walls)
+        serializer = self.get_serializer(walls, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=["get"])
+    def download(self, request, *args, **kwargs):
+        """用户下载壁纸"""
+        user = request.user
+        walls = UserWallMap.objects.filter(user_id=user.id, is_download=True)
+        print(walls)
+
+    @action(detail=False, methods=["get"])
+    def rate(self, request, *args, **kwargs):
+        """用户评分壁纸"""
+        user = request.user
+        walls = UserWallMap.objects.filter(user_id=user.id, pic_score__isnull=False)
+        print(walls)
 
     # def retrieve(self, request, *args, **kwargs):
     #     # 获取路径上的pk/id值

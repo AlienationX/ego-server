@@ -101,8 +101,13 @@ def resize_image(
     return output_file
 
 
-def send_dingtalk(msg, keyword="[通知]", secret=None, access_token=""):
+def send_dingtalk(msg, keyword="[通知]", secret="", access_token=""):
     """发送钉钉消息"""
+    if not secret:
+        secret = "SECcdc72b1e3470ecbc25b099883a29fea124a6b2ac4217b514cd51dee9a0ef0314"
+
+    if not access_token:
+        access_token = "d6796dfb449b3ffc382be1c1e9b6e8a9947b2f2d2915444bc4072e912460b2f0"
 
     webhook_url = f"https://oapi.dingtalk.com/robot/send?access_token={access_token}"
 
@@ -128,7 +133,7 @@ def send_dingtalk(msg, keyword="[通知]", secret=None, access_token=""):
     data = {
         # 消息类型参考：https://open.dingtalk.com/document/dingstart/custom-bot-send-message-type
         "msgtype": "text",  # 消息类型, 可选值有 text、link、markdown、actionCard、feedCard
-        "text": {"content": keyword + msg},
+        "text": {"content": f"{keyword} {msg}"},
         # "at": {
         #     "atMobiles": ["138xxxx8888"],  # 被@成员的手机号，可选
         #     "atUserIds": ["user123"],

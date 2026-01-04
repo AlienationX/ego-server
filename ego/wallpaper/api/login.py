@@ -29,7 +29,36 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
     permission_classes = []
     renderer_classes = [CustomJSONRenderer]
 
-    # def create(self, request, *args, **kwargs):
+    def create(self, request, *args, **kwargs):
+        """默认email登录"""
+        data = request.data.copy()
+        email = data.get("email")
+        password = data.get("password")
+
+        if not email or not password:
+            return Response({"error": "缺少email或password参数"}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = User.objects.filter(email=email).first()
+        # if not user:
+        #     return Response({"error": "用户不存在"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # if not user.check_password(password):
+        #     return Response({"error": "密码错误"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # if not user.is_active:
+        #     return Response({"error": "用户未激活"}, status=status.HTTP_400_BAD_REQUEST)
+        if not user or not user.check_password(password) or not user.is_active:
+            raise AuthenticationFailed("Invalid email or password")
+
+        refresh = RefreshToken.for_user(user)
+        return Response(
+            {
+                # 'success': True,
+                "access": str(refresh.access_token),
+                "refresh": str(refresh),
+                "user_id": user.id,
+            }
+        )
 
     @action(detail=False, methods=["post"])
     def wechat(self, request):
@@ -46,7 +75,7 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
         # 3. 查找用户，不存在则创建
         user = User.objects.select_related("profile").filter(profile__wechat_openid=openid).first()
 
-        ip = request.META.get("REMOTE_ADDR")
+        ip_address = request.META.get("REMOTE_ADDR")
         # region = self._get_region(ip)  # 获取IP地址对应的地区信息，aws外部接口调用存在问题，暂时注释
         region = ""
 
@@ -55,14 +84,18 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
                 raise AuthenticationFailed("User is not active")
 
             # TODO ip不同则替换更新，包括region字段
-            if ip != user.profile.ip:
-                print("*" * 50 + f" username={user.username}, ip={user.profile.ip}, region={user.profile.region}")
+            if ip_address != user.profile.ip_address:
+                print(
+                    "*" * 50 + f" username={user.username}, ip_address={user.profile.ip_address}, region={user.profile.region}"
+                )
         else:
             username = f"wechat_{openid}"
             # password = User.objects.make_random_password()
             source = "wechat"
             user = User.objects.create_user(username=username)  # 创建User表数据
-            Profile.objects.create(user=user, wechat_openid=openid, ip=ip, region=region, source=source)  # 创建Profile表数据
+            Profile.objects.create(
+                user=user, wechat_openid=openid, ip_address=ip_address, region=region, source=source
+            )  # 创建Profile表数据
 
         # 4. 生成JWT
         refresh = RefreshToken.for_user(user)
@@ -76,26 +109,27 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
             }
         )
 
-    @action(detail=False, methods=["get"])
-    def email(self, request):
-        pass
-
-    @action(detail=False, methods=["get"])
+    @action(detail=False, methods=["post"])
     def mobile(self, request):
         pass
 
-    @action(detail=False, methods=["get"])
+    @action(detail=False, methods=["post"])
     def google(self, request):
         pass
 
-    @action(detail=False, methods=["get"])
+    @action(detail=False, methods=["post"])
     def apple(self, request):
         pass
 
     def _get_wechat_openid(self, code):
         # 获取微信小程序的openid
         url = "https://api.weixin.qq.com/sns/jscode2session"
-        params = {"appid": settings.WECHAT_APPID, "secret": settings.WECHAT_SECRET, "js_code": code, "grant_type": "authorization_code"}
+        params = {
+            "appid": settings.WECHAT_APPID,
+            "secret": settings.WECHAT_SECRET,
+            "js_code": code,
+            "grant_type": "authorization_code",
+        }
 
         try:
             response = requests.get(url, params=params, timeout=5)

@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 class ApiModelView(ViewSet):
+    """激励视频奖励接口，接收前端传来的奖励相关参数，进行记录"""
 
     permission_classes = []  # uni-ad设置的回调函数，不支持key或token的设置，暂时关闭
     # pagination_class = CustomPageNumberPagination

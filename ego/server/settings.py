@@ -298,6 +298,17 @@ CORS_ALLOW_HEADERS = [
     "content-type",
 ]
 
+# ######################## 邮件配置
+
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "smtp.163.com"
+EMAIL_PORT = 465  # 常见值为 25（非加密）或 465（SSL加密），部分场景可能使用 587（TLS加密）
+EMAIL_HOST_USER = config("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD")
+EMAIL_USE_SSL = True if EMAIL_PORT == 465 else False
+EMAIL_USE_TLS = True if EMAIL_PORT == 587 else False
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
 # ######################## 日志配置
 
 # # 创建日志路径

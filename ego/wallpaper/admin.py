@@ -12,8 +12,8 @@ from .models import (
     Classify,
     Notice,
     Profile,
-    Rate,
     Subject,
+    UserWallMap,
     Wall,
 )
 
@@ -161,6 +161,6 @@ admin.site.register(Wall, WallAdmin)
 admin.site.register(Banner, BannerAdmin)
 # admin.site.register(Notice, NoticeAdmin)
 # admin.site.register(Access, AccessAdmin)
-admin.site.register(Rate)
+admin.site.register(UserWallMap)
 admin.site.register(Profile)
 admin.site.register(Application)

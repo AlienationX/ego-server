@@ -188,15 +188,17 @@ class Profile(models.Model):
 #         instance.profile.save()
 
 
-class Rate(models.Model):
+class UserWallMap(models.Model):
     user = models.ForeignKey(User, on_delete=models.PROTECT, null=True, verbose_name="用户id")
     wall = models.ForeignKey(Wall, on_delete=models.DO_NOTHING, null=True, verbose_name="壁纸id")
-    pic_score = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="壁纸分数")
+    is_collect = models.BooleanField(default=False, verbose_name="是否收藏")
+    is_download = models.BooleanField(default=False, verbose_name="是否下载")
+    pic_score = models.DecimalField(max_digits=10, decimal_places=1, verbose_name="壁纸评分", blank=True, null=True)
     updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
     class Meta:
-        verbose_name = "用户评分"
-        verbose_name_plural = "用户评分"
+        verbose_name = "用户壁纸关系信息"
+        verbose_name_plural = "用户壁纸关系"
 
 
 class PageView(models.Model):
@@ -236,3 +238,16 @@ class Access(models.Model):
     class Meta:
         verbose_name = "访问日志详情"
         verbose_name_plural = "访问日志"
+
+
+class Feedback(models.Model):
+    type = models.CharField(max_length=60, verbose_name="反馈类型")  # 如：bug反馈、功能建议、内容投诉、其他等
+    content = models.CharField(max_length=255, verbose_name="反馈内容")
+    contact = models.CharField(max_length=100, verbose_name="联系方式", blank=True, null=True)  # 联系方式，如邮箱、手机号等
+    is_deal = models.BooleanField(default=False, verbose_name="处理状态")  # 处理状态, 默认未处理
+    images = models.JSONField(max_length=255, verbose_name="图片地址", blank=True, null=True)  # 多张图片地址列表
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
+
+    class Meta:
+        verbose_name = "反馈信息"
+        verbose_name_plural = "反馈信息"

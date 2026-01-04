@@ -1,11 +1,23 @@
 from django.contrib.auth.models import User
 from rest_framework.serializers import (
     CharField,
+    EmailField,
     ModelSerializer,
     PrimaryKeyRelatedField,
+    ValidationError,
 )
 
-from .models import Access, Application, Banner, Classify, Notice, Profile, Wall
+from .models import (
+    Access,
+    Application,
+    Banner,
+    Classify,
+    Feedback,
+    Notice,
+    Profile,
+    UserWallMap,
+    Wall,
+)
 
 
 class ApplicationSerializer(ModelSerializer):
@@ -59,7 +71,51 @@ class UserSerializer(ModelSerializer):
 
     class Meta:
         model = User
-        fields = ["id", "username", "email", "first_name", "last_name", "date_joined", "last_login", "profile"]  # 按需选择字段，profile是嵌套字段
+        fields = [
+            "id",
+            "username",
+            "email",
+            "first_name",
+            "last_name",
+            "date_joined",
+            "last_login",
+            "profile",
+        ]  # 按需选择字段，profile是嵌套字段
+
+
+class UserProfileSerializer(ModelSerializer):
+    """用于创建或更新用户及其关联的Profile"""
+
+    class Meta:
+        model = User
+        fields = ["username", "email", "password", "phone_number"]
+        extra_kwargs = {"password": {"write_only": True}}
+
+    def validate(self, attrs):
+        # 至少需要邮箱或手机号之一
+        email = attrs.get("email")
+        phone_number = attrs.get("phone_number")
+
+        if not email and not phone_number:
+            raise ValidationError("邮箱或手机号至少需要提供一个")
+
+        return attrs
+
+    def create(self, validated_data):
+        # 提取Profile相关数据
+        phone_number = validated_data.pop("phone_number", None)
+        password = validated_data.pop("password")
+
+        # 创建User对象
+        user = User(**validated_data)
+        user.set_password(password)
+        user.save()
+
+        # 创建或更新Profile对象
+        if phone_number:
+            Profile.objects.update_or_create(user=user, defaults={"phone_number": phone_number})
+
+        return user
 
 
 class AccessSerializer(ModelSerializer):
@@ -72,3 +128,15 @@ class AccessSerializer(ModelSerializer):
         #     "platform": {"min_length": 3},  # 名称至少3个字符
         #     # 'address': {'min_length': 5}  # 地址至少5个字符
         # }
+
+
+class FeedbackSerializer(ModelSerializer):
+    class Meta:
+        model = Feedback
+        fields = "__all__"
+
+
+class UserWallMapSerializer(ModelSerializer):
+    class Meta:
+        model = UserWallMap
+        fields = "__all__"
