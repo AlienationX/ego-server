@@ -30,3 +30,7 @@ dev = [
     "ruff>=0.14.8",
     "zappa>=0.61.2",
 ]
+
+[tool.ruff]
+# 设置全局选项
+line-length = 128 # 行长度限制
