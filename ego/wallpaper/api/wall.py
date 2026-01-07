@@ -48,6 +48,7 @@ class ApiModelView(ListModelMixin, RetrieveModelMixin, GenericViewSet):
         sortord = self.request.query_params.get("sortord")
         data = None
 
+        queryset = queryset.annotate(classify_name=F("classify__name"))
         if sortord == "random":
             # 随机排序，性能差且分页会出现重复数据。其实使用缓存结果即可解决这个问题
             # queryset = queryset.order_by('?')
@@ -88,7 +89,12 @@ class ApiModelView(ListModelMixin, RetrieveModelMixin, GenericViewSet):
             #     data = list(queryset.order_by('?').values())
             #     cache.set(cache_key, data, timeout=5)  # 缓存5秒
 
-            data = cache.get_or_set(cache_key, lambda: list(queryset.order_by("?").values()), timeout=600)  # 缓存10分钟
+            # 使用list(queryset.order_by('?').values())会丢失序列化器的处理逻辑
+            data = cache.get_or_set(cache_key, lambda: list(queryset.order_by("?").values()), timeout=600)
+            # 极慢，不推荐
+            # data = cache.get_or_set(
+            #     cache_key, lambda: self.get_serializer(queryset.order_by("?"), many=True).data, timeout=600
+            # )  # 缓存10分钟
 
         elif sortord == "score":
             queryset = queryset.order_by("-score")
@@ -101,6 +107,7 @@ class ApiModelView(ListModelMixin, RetrieveModelMixin, GenericViewSet):
             return data
         else:
             return list(queryset.values())
+            # return self.get_serializer(queryset, many=True).data  # 极慢，不推荐
 
     def list(self, request, *args, **kwargs):
         """重写list方法，添加过滤和排序逻辑"""

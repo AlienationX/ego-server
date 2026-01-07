@@ -188,7 +188,7 @@ class Profile(models.Model):
 #         instance.profile.save()
 
 
-class UserWallMap(models.Model):
+class Actions(models.Model):
     user = models.ForeignKey(User, on_delete=models.PROTECT, null=True, verbose_name="用户id")
     wall = models.ForeignKey(Wall, on_delete=models.DO_NOTHING, null=True, verbose_name="壁纸id")
     is_collect = models.BooleanField(default=False, verbose_name="是否收藏")
@@ -199,6 +199,7 @@ class UserWallMap(models.Model):
     class Meta:
         verbose_name = "用户壁纸关系信息"
         verbose_name_plural = "用户壁纸关系"
+        # table_name = "wallpaper_actions"
 
 
 class PageView(models.Model):

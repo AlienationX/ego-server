@@ -9,13 +9,13 @@ from rest_framework.serializers import (
 
 from .models import (
     Access,
+    Actions,
     Application,
     Banner,
     Classify,
     Feedback,
     Notice,
     Profile,
-    UserWallMap,
     Wall,
 )
 
@@ -38,8 +38,8 @@ class WallSerializer(ModelSerializer):
 
     class Meta:
         model = Wall
-        # fields = "__all__"
-        exclude = ["classify"]
+        fields = "__all__"
+        # exclude = ["classify", "subjects"]
 
 
 class NoticeSerializer(ModelSerializer):
@@ -136,7 +136,16 @@ class FeedbackSerializer(ModelSerializer):
         fields = "__all__"
 
 
-class UserWallMapSerializer(ModelSerializer):
+class ActionsSerializer(ModelSerializer):
+    # 同时返回外键 id 和嵌套对象，保持与 WallSerializer 的风格一致
+    user_id = PrimaryKeyRelatedField(source="user", read_only=True)
+    wall_id = PrimaryKeyRelatedField(source="wall", read_only=True)
+
+    # 嵌套序列化器用于返回更多信息（只读）
+    # user = UserSerializer(read_only=True)
+    # wall = WallSerializer(read_only=True)
+
     class Meta:
-        model = UserWallMap
+        model = Actions
         fields = "__all__"
+        exclude = ["user", "wall"]

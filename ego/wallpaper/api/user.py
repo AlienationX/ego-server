@@ -11,10 +11,10 @@ from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ModelViewSet, ViewSet
 
-from ..models import Profile, UserWallMap
+from ..models import Actions, Profile
 from ..permissions import HasAccessKey
 from ..renderers import CustomJSONRenderer
-from ..serializers import ProfileSerializer, UserSerializer
+from ..serializers import ProfileSerializer, UserSerializer, WallSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -38,33 +38,65 @@ class ApiModelView(RetrieveModelMixin, GenericViewSet):
 
         try:
             serializer = UserSerializer(user)
-            return Response(serializer.data)
+            # return Response(serializer.data)  # 直接返回序列化数据
+
+            # 将序列化后的数据复制为可变 dict 并添加统计字段
+            data = dict(serializer.data)
+            user_id = user.id
+            collect_count = Actions.objects.filter(user_id=user_id, is_collect=True).count()
+            download_count = Actions.objects.filter(user_id=user_id, is_download=True).count()
+            rate_count = Actions.objects.filter(user_id=user_id, pic_score__isnull=False).count()
+            data["count"] = {
+                "collect_count": collect_count,
+                "download_count": download_count,
+                "rate_count": rate_count,
+            }
+            return Response(data)
         except Exception as e:
             logger.error(f"获取用户信息失败: {e}")
             return Response({"error": f"获取用户信息失败: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=False, methods=["get"])
-    def collect(self, request, *args, **kwargs):
+    def my_collect(self, request, *args, **kwargs):
         """用户收藏壁纸"""
         user = request.user
-        walls = UserWallMap.objects.filter(user_id=user.id, is_collect=True)
-        print(walls)
-        serializer = self.get_serializer(walls, many=True)
+        # 使用 select_related 避免 N+1 查询
+        actions = Actions.objects.filter(user_id=user.id, is_collect=True).select_related("wall")
+
+        # 提取关联的壁纸对象
+        walls = [action.wall for action in actions if action.wall]
+
+        # 使用 WallSerializer 序列化壁纸数据
+        serializer = WallSerializer(walls, many=True)
         return Response(serializer.data)
 
     @action(detail=False, methods=["get"])
-    def download(self, request, *args, **kwargs):
+    def my_download(self, request, *args, **kwargs):
         """用户下载壁纸"""
         user = request.user
-        walls = UserWallMap.objects.filter(user_id=user.id, is_download=True)
-        print(walls)
+        # 使用 select_related 避免 N+1 查询
+        actions = Actions.objects.filter(user_id=user.id, is_download=True).select_related("wall")
+
+        # 提取关联的壁纸对象
+        walls = [action.wall for action in actions if action.wall]
+
+        # 使用 WallSerializer 序列化壁纸数据
+        serializer = WallSerializer(walls, many=True)
+        return Response(serializer.data)
 
     @action(detail=False, methods=["get"])
-    def rate(self, request, *args, **kwargs):
+    def my_rate(self, request, *args, **kwargs):
         """用户评分壁纸"""
         user = request.user
-        walls = UserWallMap.objects.filter(user_id=user.id, pic_score__isnull=False)
-        print(walls)
+        # 使用 select_related 避免 N+1 查询
+        actions = Actions.objects.filter(user_id=user.id, pic_score__isnull=False).select_related("wall")
+
+        # 提取关联的壁纸对象
+        walls = [action.wall for action in actions if action.wall]
+
+        # 使用 WallSerializer 序列化壁纸数据
+        serializer = WallSerializer(walls, many=True)
+        return Response(serializer.data)
 
     # def retrieve(self, request, *args, **kwargs):
     #     # 获取路径上的pk/id值

@@ -7,13 +7,13 @@ from django.utils.safestring import mark_safe
 # Register your models here.
 from .models import (
     Access,
+    Actions,
     Application,
     Banner,
     Classify,
     Notice,
     Profile,
     Subject,
-    UserWallMap,
     Wall,
 )
 
@@ -161,6 +161,6 @@ admin.site.register(Wall, WallAdmin)
 admin.site.register(Banner, BannerAdmin)
 # admin.site.register(Notice, NoticeAdmin)
 # admin.site.register(Access, AccessAdmin)
-admin.site.register(UserWallMap)
+admin.site.register(Actions)
 admin.site.register(Profile)
 admin.site.register(Application)

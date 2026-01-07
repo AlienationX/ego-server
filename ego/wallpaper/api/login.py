@@ -86,7 +86,7 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
             # TODO ip不同则替换更新，包括region字段
             if ip_address != user.profile.ip_address:
                 print(
-                    "*" * 50 + f" username={user.username}, ip_address={user.profile.ip_address}, region={user.profile.region}"
+                    "*" * 20 + f" username={user.username}, ip_address={user.profile.ip_address}, region={user.profile.region}"
                 )
         else:
             username = f"wechat_{openid}"
