@@ -148,4 +148,4 @@ class ActionsSerializer(ModelSerializer):
     class Meta:
         model = Actions
         fields = "__all__"
-        exclude = ["user", "wall"]
+        # exclude = ["user", "wall"]

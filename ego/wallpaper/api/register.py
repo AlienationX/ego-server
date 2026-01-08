@@ -2,7 +2,6 @@ import logging
 import random
 from datetime import datetime
 
-import requests
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.cache import cache
@@ -11,14 +10,10 @@ from django.template.loader import render_to_string
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.mixins import CreateModelMixin
-from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ModelViewSet, ViewSet
-from rest_framework_simplejwt.exceptions import AuthenticationFailed
-from rest_framework_simplejwt.tokens import RefreshToken
 from utils.tools import ip_to_region
 
-from ..models import Profile
 from ..permissions import HasAccessKey
 from ..renderers import CustomJSONRenderer
 from ..serializers import UserProfileSerializer, UserSerializer
@@ -31,7 +26,7 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
     queryset = User.objects.select_related("profile").all()
     serializer_class = UserProfileSerializer
     # permission_classes = [HasAccessKey, IsAuthenticated]
-    permission_classes = []
+    permission_classes = [HasAccessKey]
     renderer_classes = [CustomJSONRenderer]
 
     def create(self, request, *args, **kwargs):
