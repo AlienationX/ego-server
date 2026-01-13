@@ -21,5 +21,9 @@ from rest_framework.viewsets import GenericViewSet, ModelViewSet
 logger = logging.getLogger(__name__)
 
 
+def index(request):
+    return render(request, "wallpaper/index.html")
+
+
 def upload(request):
     return render(request, "wallpaper/upload.html")

@@ -241,7 +241,7 @@ REST_FRAMEWORK = {
 # ######################## jwt 用户认证配置
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),  # access token 访问令牌有效期
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),  # access token 访问令牌有效期
     "REFRESH_TOKEN_LIFETIME": timedelta(days=3),  # refresh token 刷新令牌有效期
     "ROTATE_REFRESH_TOKENS": True,  # 刷新时生成新 refresh token
     "BLACKLIST_AFTER_ROTATION": True,  # 刷新后废弃旧 refresh token

@@ -54,6 +54,7 @@ for p in apis_path.iterdir():
 app_name = "wallpaper"
 urlpatterns = [
     path("api/", include(router.urls)),
+    path("", views.index, name="index"),
     path("upload/", views.upload, name="upload"),
     # drf-yasg
     # path('yasg-swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),

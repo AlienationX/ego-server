@@ -1,1 +1,97 @@
-upload wallpaper ...
+{% extends 'wallpaper/base.html' %}
+{% block title %}首页{% endblock %}
+
+{% block content %}
+  <div class="card bg-base-100 shadow mb-6">
+    <div class="card-body">
+      <p class="text-sm text-gray-500">功能：支持多文件上传、显示为卡片列表，点击“生成分类”生成（伪）分类/描述/标签，支持手动修改并提交。</p>
+
+      <!-- 上传表单 -->
+      <form id="upload-form" method="post" action="/wallpaper/upload/" enctype="multipart/form-data" class="mt-4" hx-post="/wallpaper/upload/" hx-encoding="multipart/form-data" hx-target="#upload-list" hx-swap="innerHTML">
+        {% csrf_token %}
+        <div class="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+          <input name="images" id="images" type="file" multiple accept="image/*" class="file-input file-input-bordered file-input-sm w-full sm:w-auto" hx-trigger="change" />
+
+          <div class="flex gap-2">
+            <button type="submit" class="btn btn-sm btn-primary">上传</button>
+            <button type="button" class="btn btn-sm" hx-post="/wallpaper/metadata/generate_all/" hx-target="#upload-list" hx-swap="innerHTML">生成全部分类（伪）</button>
+          </div>
+
+          <div class="ml-auto text-right text-sm text-gray-500 mt-2 sm:mt-0">上传后，服务器应返回包含卡片的 HTML 片段替换下方列表。</div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 上传后展示区（HTMX 替换目标） -->
+  <div id="upload-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+
+    <!-- 示例卡片（响应式）：小屏幕堆叠、大屏幕左图右表单 -->
+    <div class="card bg-base-100 shadow-sm flex flex-col sm:flex-row items-start">
+      <figure class="w-full sm:w-auto">
+        <img src="https://placehold.co/480x320?text=示例壁纸" alt="示例" class="w-full sm:w-48 h-40 sm:h-32 object-cover rounded-t-lg sm:rounded-l-lg" />
+      </figure>
+      <div class="card-body w-full">
+        <form class="card-form w-full">
+          <input type="hidden" name="image_id" value="example-1" />
+
+          <div class="flex flex-col gap-4 items-left">
+            <div>
+              <label class="label"><span class="label-text">分类</span></label>
+              <select name="category" class="select select-bordered select-sm w-full">
+                <option value="">请选择</option>
+                <option value="landscape">风景</option>
+                <option value="city">城市</option>
+                <option value="people">人物</option>
+                <option value="abstract">抽象</option>
+              </select>
+            </div>
+
+            <div class="">
+              <label class="label"><span class="label-text">描述（单行）</span></label>
+              <input name="description" type="text" placeholder="示例单行描述" class="input input-bordered input-sm w-full" />
+            </div>
+          </div>
+
+          <div class="mt-2">
+            <label class="label"><span class="label-text">标签</span></label>
+            <div class="flex flex-wrap gap-2">
+              <span class="badge badge-outline">landscape</span>
+              <span class="badge badge-outline">sunset</span>
+              <span class="badge badge-outline">4k</span>
+            </div>
+            <input name="tags" type="text" placeholder="修改标签，逗号分隔" class="input input-bordered input-sm mt-2" />
+          </div>
+
+          <div class="card-message text-sm text-gray-500 mt-1"></div>
+        </form>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 批量提交 -->
+  <div class="mt-6">
+    <form id="batch-save-form" method="post" action="/api/wallpaper/batch_save/" hx-post="/api/wallpaper/batch_save/" hx-include="#upload-list input, #upload-list textarea, #upload-list select, #upload-list [name=csrfmiddlewaretoken]" hx-target="#global-msg" hx-swap="innerHTML">
+      {% csrf_token %}
+      <div class="flex gap-2">
+        <button type="submit" class="btn btn-sm btn-primary">提交全部</button>
+        <button type="button" class="btn btn-sm btn-ghost" hx-get="/wallpaper/example_card/" hx-target="#upload-list" hx-swap="beforeend">添加示例卡</button>
+        <div id="global-msg" class="ml-4 self-center text-sm text-gray-500"></div>
+      </div>
+    </form>
+  </div>
+
+  <div class="mt-8 text-xs text-gray-500">
+    <p>说明：</p>
+    <ul class="list-disc ml-5">
+      <li>上传接口：POST /wallpaper/upload/，服务器应处理文件并返回渲染好的卡片 HTML（替换 #upload-list）。</li>
+      <li>生成分类（单张）：POST /wallpaper/metadata/generate/，接收 image_id（或 filename），返回替换卡片的 HTML 片段（可用伪数据填充）。</li>
+      <li>生成全部：POST /wallpaper/metadata/generate_all/，服务器可遍历所有待处理图片并返回新的 #upload-list HTML。</li>
+      <li>单张保存：POST /api/wallpaper/save/&lt;image_id&gt;/，hx-include 会提交该卡片的输入域。</li>
+      <li>批量保存：POST /api/wallpaper/batch_save/，hx-include 会将所有卡片内的字段提交。</li>
+      <li>HTMX 会把表单替换目标区域替换为服务器返回的 HTML，请在服务器端返回合适的片段。</li>
+    </ul>
+  </div>
+
+{% endblock %}
