@@ -1,0 +1,47 @@
+{% comment %}Fragment rendered by `upload` view for HTMX: replaces #upload-list innerHTML{% endcomment %}
+
+{% for item in items %}
+  <div class="card bg-base-100 shadow-sm flex flex-col sm:flex-row items-start">
+    <figure class="w-full sm:w-auto">
+      <img src="{{ item.picurl }}" alt="{{ item.filename }}" class="w-full sm:w-48 h-40 sm:h-32 object-cover rounded-t-lg sm:rounded-l-lg" />
+    </figure>
+
+    <div class="card-body w-full">
+      <form class="card-form w-full">
+        <input type="hidden" name="image_id" value="{{ item.id }}" />
+
+        <div class="flex flex-col gap-4 items-left">
+          <div>
+            <label class="label"><span class="label-text">分类</span></label>
+            <select name="category" class="select select-bordered select-sm w-full">
+              <option value="">请选择</option>
+              <option value="landscape">风景</option>
+              <option value="city">城市</option>
+              <option value="people">人物</option>
+              <option value="abstract">抽象</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="label"><span class="label-text">描述（单行）</span></label>
+            <input name="description" type="text" value="{{ item.description }}" placeholder="描述" class="input input-bordered input-sm w-full" />
+          </div>
+        </div>
+
+        <div class="mt-2">
+          <label class="label"><span class="label-text">标签</span></label>
+          <div class="flex flex-wrap gap-2">
+            {% if item.tags %}
+              {% for t in item.tags.split(',') %}
+                <span class="badge badge-soft badge-secondary badge-sm">{{ t }}</span>
+              {% endfor %}
+            {% endif %}
+          </div>
+          <input name="tags" type="text" value="{{ item.tags }}" placeholder="修改标签，逗号分隔" class="input input-bordered input-sm mt-2" />
+        </div>
+
+        <div class="card-message text-sm text-gray-500 mt-1">文件: {{ item.filename }}</div>
+      </form>
+    </div>
+  </div>
+{% endfor %}
