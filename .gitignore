@@ -18,5 +18,8 @@ ego/ego-dev*.zip
 ego/package/
 ego/utils/output*
 
-# 
+# 前端编译 tailwindcss 71M
+ego/wallpaper/static/css/tailwindcss
+
+# 宝可梦图鉴数据
 pokemon-dataset-zh

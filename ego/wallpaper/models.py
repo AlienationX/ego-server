@@ -201,8 +201,8 @@ class Actions(models.Model):
     updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
     class Meta:
-        verbose_name = "用户壁纸关系信息"
-        verbose_name_plural = "用户壁纸关系"
+        verbose_name = "用户行为信息"
+        verbose_name_plural = "用户行为"
         # table_name = "wallpaper_actions"
 
 
