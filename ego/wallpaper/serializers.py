@@ -143,7 +143,7 @@ class ActionsSerializer(ModelSerializer):
 
     # 嵌套序列化器用于返回更多信息（只读）
     # user = UserSerializer(read_only=True)
-    # wall = WallSerializer(read_only=True)
+    wall = WallSerializer(read_only=True)
 
     class Meta:
         model = Actions

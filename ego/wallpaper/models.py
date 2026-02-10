@@ -160,10 +160,13 @@ class Banner(models.Model):
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
     nickname = models.CharField(max_length=60, verbose_name="用户昵称", blank=True, null=True)
+    description = models.CharField(max_length=255, verbose_name="个人简介", blank=True, null=True)
     avater = models.CharField(max_length=150, verbose_name="头像", blank=True, null=True)
     phone_number = models.CharField(max_length=20, verbose_name="电话号码", blank=True, null=True)
+    is_vip = models.BooleanField(default=False, verbose_name="是否vip")
+    energy = models.IntegerField(default=0, verbose_name="用户能量值")
     source = models.CharField(max_length=60, verbose_name="来源", blank=True, null=True)
-    ip = models.CharField(max_length=60, verbose_name="ip地址")
+    ip = models.CharField(max_length=60, verbose_name="ip地址", blank=True, null=True)
     region = models.CharField(max_length=60, verbose_name="行政区省市县", blank=True, null=True)
     updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
     wechat_openid = models.CharField(max_length=100, verbose_name="微信openid", blank=True, null=True)
@@ -182,9 +185,10 @@ class Profile(models.Model):
 #     if created:
 #         Profile.objects.create(user=instance)
 
+
 # @receiver(post_save, sender=User)
 # def save_user_profile(sender, instance, **kwargs):
-#     if hasattr(instance, 'profile'):
+#     if hasattr(instance, "profile"):
 #         instance.profile.save()
 
 

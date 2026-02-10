@@ -12,6 +12,7 @@ from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ModelViewSet, ViewSet
 
 from ..models import Actions, Profile
+from ..paginations import CustomPageNumberPagination
 from ..permissions import HasAccessKey
 from ..renderers import CustomJSONRenderer
 from ..serializers import ProfileSerializer, UserSerializer, WallSerializer
@@ -24,8 +25,7 @@ class ApiModelView(RetrieveModelMixin, GenericViewSet):
     queryset = User.objects.select_related("profile").all()
     serializer_class = UserSerializer
     # authentication_classes = [JSONWebTokenAuthentication]  # JWT 认证, 已在settings中全局配置
-    # permission_classes = [HasAccessKey, IsAuthenticated]
-    permission_classes = [HasAccessKey]
+    permission_classes = [HasAccessKey, IsAuthenticated]
     renderer_classes = [CustomJSONRenderer]
 
     @action(detail=False, methods=["get"])
@@ -56,47 +56,27 @@ class ApiModelView(RetrieveModelMixin, GenericViewSet):
             logger.error(f"获取用户信息失败: {e}")
             return Response({"error": f"获取用户信息失败: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    @action(detail=False, methods=["get"])
-    def my_collect(self, request, *args, **kwargs):
-        """用户收藏壁纸"""
+    @action(detail=False, methods=["post"])
+    def update_me(self, request):
+        # JWT通过，会将user放入到request.user中，没有登录默认返回是AnonymousUser
         user = request.user
-        # 使用 select_related 避免 N+1 查询
-        actions = Actions.objects.filter(user_id=user.id, is_collect=True).select_related("wall")
 
-        # 提取关联的壁纸对象
-        walls = [action.wall for action in actions if action.wall]
+        obj, created = Profile.objects.get_or_create(user_id=user.id)
 
-        # 使用 WallSerializer 序列化壁纸数据
-        serializer = WallSerializer(walls, many=True)
-        return Response(serializer.data)
+        # partial=True 表示只更新部分字段，其他字段保持不变
+        serializer = ProfileSerializer(obj, data=request.data, partial=True)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(detail=False, methods=["get"])
-    def my_download(self, request, *args, **kwargs):
-        """用户下载壁纸"""
-        user = request.user
-        # 使用 select_related 避免 N+1 查询
-        actions = Actions.objects.filter(user_id=user.id, is_download=True).select_related("wall")
+        serializer.save()
 
-        # 提取关联的壁纸对象
-        walls = [action.wall for action in actions if action.wall]
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
-        # 使用 WallSerializer 序列化壁纸数据
-        serializer = WallSerializer(walls, many=True)
-        return Response(serializer.data)
-
-    @action(detail=False, methods=["get"])
-    def my_rate(self, request, *args, **kwargs):
-        """用户评分壁纸"""
-        user = request.user
-        # 使用 select_related 避免 N+1 查询
-        actions = Actions.objects.filter(user_id=user.id, pic_score__isnull=False).select_related("wall")
-
-        # 提取关联的壁纸对象
-        walls = [action.wall for action in actions if action.wall]
-
-        # 使用 WallSerializer 序列化壁纸数据
-        serializer = WallSerializer(walls, many=True)
-        return Response(serializer.data)
+    # @action(detail=False, methods=["post"])
+    # def energy(self, request):
+    #     # JWT通过，会将user放入到request.user中，没有登录默认返回是AnonymousUser
+    #     user = request.user
+    #     return Response(data)
 
     # def retrieve(self, request, *args, **kwargs):
     #     # 获取路径上的pk/id值

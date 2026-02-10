@@ -5,26 +5,68 @@ from django.db import connection, transaction
 from django.db.models import Avg, F
 from rest_framework import status
 from rest_framework.decorators import action
-from rest_framework.mixins import CreateModelMixin, UpdateModelMixin
+from rest_framework.mixins import CreateModelMixin, ListModelMixin, UpdateModelMixin
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ModelViewSet, ViewSet
 
 from ..models import Actions, Wall
+from ..paginations import CustomPageNumberPagination
 from ..permissions import HasAccessKey
 from ..renderers import CustomJSONRenderer
-from ..serializers import ActionsSerializer
+from ..serializers import ActionsSerializer, WallSerializer
 
 logger = logging.getLogger(__name__)
 
 
-class ApiModelView(CreateModelMixin, UpdateModelMixin, GenericViewSet):
+class ApiModelView(CreateModelMixin, ListModelMixin, UpdateModelMixin, GenericViewSet):
 
     queryset = Actions.objects.all()
     serializer_class = ActionsSerializer
     # authentication_classes = [JSONWebTokenAuthentication]  # JWT 认证, 已在settings中全局配置
     permission_classes = [HasAccessKey, IsAuthenticated]
+    pagination_class = CustomPageNumberPagination  # 使用自定义分页类
     renderer_classes = [CustomJSONRenderer]
+
+    def list(self, request, *args, **kwargs):
+        """获取用户对壁纸的操作记录列表，支持过滤和分页。"""
+        user = request.user
+        action_type = self.request.query_params.get("action_type")  # collect, download, rate
+
+        # 使用 select_related 避免 N+1 查询
+        if action_type == "collect":
+            actions = self.queryset.filter(user_id=user.id, is_collect=True)
+        elif action_type == "download":
+            actions = Actions.objects.filter(user_id=user.id, is_download=True)
+        elif action_type == "rate":
+            actions = Actions.objects.filter(user_id=user.id, pic_score__isnull=False)
+        else:
+            return Response({"error": "action_type参数错误"}, status=status.HTTP_400_BAD_REQUEST)
+
+        data = self._paginated_walls_response(actions.order_by("-updated_at"))
+        if ApiModelView.pagination_class is not None:
+            paginator = self.pagination_class()
+            paginated_data = paginator.paginate_queryset(data, request)
+            return paginator.get_paginated_response(paginated_data)
+        return Response(data)
+
+    def _paginated_walls_response(self, actions):
+        """对 Actions queryset 分页并返回当前页的 wall 列表的分页响应"""
+        # 序列化 actions 数据
+        serialized_actions = self.serializer_class(actions, many=True).data
+
+        # 处理数据，提取 wall 并添加 my_score 字段
+        data = []
+        for action in serialized_actions:
+            if action.get("wall"):
+                wall_data = action["wall"].copy()  # 复制 wall 数据以避免修改原始数据
+                wall_data.pop("created_at")
+                wall_data.pop("updated_at")
+                wall_data["my_score"] = action.get("pic_score")
+                wall_data["action_updated_at"] = action.get("updated_at")
+                data.append(wall_data)
+
+        return data
 
     def create(self, request, *args, **kwargs):
         """用户对壁纸的操作，如收藏、下载、评分等。通过 user_id 和 wall_id 进行查找，存在则更新记录，否则创建新记录。"""
