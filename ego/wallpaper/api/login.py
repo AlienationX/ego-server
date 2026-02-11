@@ -3,10 +3,10 @@ import logging
 import requests
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.mixins import CreateModelMixin
-from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ModelViewSet, ViewSet
 from rest_framework_simplejwt.exceptions import AuthenticationFailed
@@ -47,8 +47,13 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
 
         # if not user.is_active:
         #     return Response({"error": "用户未激活"}, status=status.HTTP_400_BAD_REQUEST)
+
         if not user or not user.check_password(password) or not user.is_active:
             raise AuthenticationFailed("Invalid email or password")
+
+        # 更新最后登录时间
+        user.last_login = timezone.now()
+        user.save(update_fields=["last_login"])
 
         refresh = RefreshToken.for_user(user)
         return Response(
@@ -85,16 +90,14 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
 
             # TODO ip不同则替换更新，包括region字段
             if ip_address != user.profile.ip_address:
-                print(
-                    "*" * 20 + f" username={user.username}, ip_address={user.profile.ip_address}, region={user.profile.region}"
-                )
+                logger.debug(f" username={user.username}, ip_address={user.profile.ip_address}, region={user.profile.region}")
         else:
             username = f"wechat_{openid}"
             # password = User.objects.make_random_password()
             source = "wechat"
             user = User.objects.create_user(username=username)  # 创建User表数据
             Profile.objects.create(
-                user=user, wechat_openid=openid, ip_address=ip_address, region=region, source=source
+                user=user, wechat_openid=openid, ip_address=ip_address, region=region, channel="wechat", source=source
             )  # 创建Profile表数据
 
         # 4. 生成JWT

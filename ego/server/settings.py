@@ -186,6 +186,8 @@ STATIC_URL = "static/"
 
 #
 STATIC_ROOT = Path(BASE_DIR).joinpath("static")
+# MEDIA_ROOT = Path(BASE_DIR).joinpath("media")
+MEDIA_ROOT = Path(BASE_DIR).joinpath("wallpaper", "scripts", "images")
 
 # 以上直接访问即可，不需要配置urls。通过配置urls可以映射到应用的地址上
 # http://127.0.0.1:8000/static/pokemon_library/images/0001-妙蛙种子.png 映射到 http://127.0.0.1:8000/pokemon_library/static/images/0001-妙蛙种子.png
@@ -404,13 +406,13 @@ LOGGING = {
         }
     },
     # 处理器（控制台、文件等）
-    "handlers": {"console": {"level": "INFO", "class": "logging.StreamHandler", "formatter": "verbose"}},
+    "handlers": {"console": {"level": config("LOG_LEVEL"), "class": "logging.StreamHandler", "formatter": "verbose"}},
     # 日志记录器（定义不同模块的日志行为）
     "loggers": {
         "": {
             # 根记录器，捕获所有日志。
             "handlers": ["console"],
-            "level": "INFO",
+            "level": config("LOG_LEVEL"),
         },
     },
 }

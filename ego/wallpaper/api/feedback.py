@@ -18,3 +18,5 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
     pagination_class = None  # 不使用分页器，直接返回所有数据
     renderer_classes = [CustomJSONRenderer]
     # permission_classes = []  # 这里可以根据需要设置权限类
+
+    # TODO 增加图片上传处理逻辑
