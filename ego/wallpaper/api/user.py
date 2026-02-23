@@ -10,7 +10,7 @@ from PIL import Image
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.mixins import RetrieveModelMixin
-from rest_framework.parsers import MultiPartParser
+from rest_framework.parsers import JSONParser, MultiPartParser
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ModelViewSet, ViewSet
@@ -32,7 +32,7 @@ class ApiModelView(RetrieveModelMixin, GenericViewSet):
     # authentication_classes = [JSONWebTokenAuthentication]  # JWT 认证, 已在settings中全局配置
     permission_classes = [HasAccessKey, IsAuthenticated]
     renderer_classes = [CustomJSONRenderer]
-    parser_classes = [MultiPartParser]  # 重要：允许处理文件上传
+    parser_classes = [MultiPartParser, JSONParser]  # 重要：允许处理文件上传, 以及 JSON 格式的数据
 
     @action(detail=False, methods=["get"])
     def me(self, request):

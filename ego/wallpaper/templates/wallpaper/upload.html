@@ -26,67 +26,60 @@
 </div>
 
 <!-- 上传后展示区（HTMX 替换目标） -->
-<div id="upload-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+<div id="upload-list-wrap" class="hidden">
+  <div id="upload-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
 
-  <div>
-    <!-- 示例卡片（响应式）：小屏幕堆叠、大屏幕左图右表单 -->
-    <div class="card bg-base-100 shadow-sm flex flex-col sm:flex-row items-start">
-      <figure class="w-full sm:w-auto">
-        <img src="https://placehold.co/480x320?text=示例壁纸" alt="示例"
-          class="w-full sm:w-48 h-40 sm:h-32 object-cover rounded-t-lg sm:rounded-l-lg" />
-      </figure>
-      <div class="card-body w-full">
-        <form class="card-form w-full">
-          <input type="hidden" name="image_id" value="example-1" />
-
-          <div class="flex flex-col gap-4 items-left">
-            <div>
-              <label class="label"><span class="label-text">分类</span></label>
-              <select name="category" class="select select-bordered select-sm w-full">
-                <option value="">请选择</option>
-                <option value="landscape">风景</option>
-                <option value="city">城市</option>
-                <option value="people">人物</option>
-                <option value="abstract">抽象</option>
-              </select>
-            </div>
-
-            <div class="">
-              <label class="label"><span class="label-text">描述（单行）</span></label>
-              <input name="description" type="text" placeholder="示例单行描述" class="input input-bordered input-sm w-full" />
-            </div>
-          </div>
-
-          <div class="mt-2">
-            <label class="label"><span class="label-text">标签</span></label>
-            <div class="flex flex-wrap gap-2">
-              <span class="badge badge-soft badge-secondary badge-sm">landscape</span>
-              <span class="badge badge-soft badge-secondary badge-sm">sunset</span>
-              <span class="badge badge-soft badge-secondary badge-sm">4k</span>
-            </div>
-            <input name="tags" type="text" placeholder="修改标签，逗号分隔" class="input input-bordered input-sm mt-2" />
-          </div>
-
-          <div class="card-message text-sm text-gray-500 mt-1"></div>
-        </form>
+  <!-- 批量提交 -->
+  <div class="mt-6">
+    <form id="batch-save-form" method="post" action="/api/wallpaper/batch_save/" hx-post="/api/wallpaper/batch_save/"
+      hx-include="#upload-list input, #upload-list textarea, #upload-list select, #upload-list [name=csrfmiddlewaretoken]"
+      hx-target="#global-msg" hx-swap="innerHTML">
+      {% csrf_token %}
+      <div class="flex gap-2">
+        <button type="submit" class="btn btn-sm btn-primary">提交全部</button>
+        <button type="button" class="btn btn-sm btn-ghost">添加示例卡</button>
       </div>
-    </div>
-
-    <!-- 批量提交 -->
-    <div class="mt-6">
-      <form id="batch-save-form" method="post" action="/api/wallpaper/batch_save/" hx-post="/api/wallpaper/batch_save/"
-        hx-include="#upload-list input, #upload-list textarea, #upload-list select, #upload-list [name=csrfmiddlewaretoken]"
-        hx-target="#global-msg" hx-swap="innerHTML">
-        {% csrf_token %}
-        <div class="flex gap-2">
-          <button type="submit" class="btn btn-sm btn-primary">提交全部</button>
-          <button type="button" class="btn btn-sm btn-ghost">添加示例卡</button>
-        </div>
-      </form>
-    </div>
-
+    </form>
   </div>
 </div>
+
+<template id="upload-card-template">
+  <div class="card bg-base-100 shadow-sm flex flex-col sm:flex-row items-start">
+    <figure class="w-full sm:w-auto">
+      <img alt="预览图" class="w-full sm:w-48 h-40 sm:h-32 object-cover rounded-t-lg sm:rounded-l-lg" />
+    </figure>
+    <div class="card-body w-full">
+      <form class="card-form w-full">
+        <input type="hidden" name="image_id" value="" />
+
+        <div class="flex flex-col gap-4 items-left">
+          <div>
+            <label class="label"><span class="label-text">分类</span></label>
+            <select name="category" class="select select-bordered select-sm w-full">
+              <option value="">请选择</option>
+              <option value="landscape">风景</option>
+              <option value="city">城市</option>
+              <option value="people">人物</option>
+              <option value="abstract">抽象</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="label"><span class="label-text">描述（单行）</span></label>
+            <input name="description" type="text" placeholder="请填写描述" class="input input-bordered input-sm w-full" />
+          </div>
+        </div>
+
+        <div class="mt-2">
+          <label class="label"><span class="label-text">标签</span></label>
+          <input name="tags" type="text" placeholder="修改标签，逗号分隔" class="input input-bordered input-sm mt-2 w-full" />
+        </div>
+
+        <div class="card-message text-sm text-gray-500 mt-1"></div>
+      </form>
+    </div>
+  </div>
+</template>
 
 
 
@@ -100,6 +93,58 @@
     <li>批量保存：POST /api/wallpaper/batch_save/，hx-include 会将所有卡片内的字段提交。</li>
     <li>HTMX 会把表单替换目标区域替换为服务器返回的 HTML，请在服务器端返回合适的片段。</li>
   </ul>
+  <script>
+    (function () {
+      const imagesInput = document.getElementById("images");
+      const uploadListWrap = document.getElementById("upload-list-wrap");
+      const uploadList = document.getElementById("upload-list");
+      const cardTemplate = document.getElementById("upload-card-template");
+
+      if (!imagesInput || !uploadListWrap || !uploadList || !cardTemplate) return;
+
+      function resetUploadList() {
+        uploadList.innerHTML = "";
+        uploadListWrap.classList.add("hidden");
+      }
+
+      function renderPreviewCards(files) {
+        if (!files || files.length === 0) {
+          resetUploadList();
+          return;
+        }
+
+        uploadList.innerHTML = "";
+
+        Array.from(files).forEach((file) => {
+          const cardNode = cardTemplate.content.firstElementChild.cloneNode(true);
+          const img = cardNode.querySelector("img");
+          const imageId = cardNode.querySelector('input[name="image_id"]');
+          const descInput = cardNode.querySelector('input[name="description"]');
+
+          if (img) {
+            img.src = URL.createObjectURL(file);
+            img.alt = file.name;
+          }
+          if (imageId) imageId.value = file.name;
+          if (descInput) descInput.placeholder = "描述：" + file.name;
+
+          uploadList.appendChild(cardNode);
+        });
+
+        uploadListWrap.classList.remove("hidden");
+      }
+
+      imagesInput.addEventListener("change", function (event) {
+        renderPreviewCards(event.target.files);
+      });
+
+      document.body.addEventListener("htmx:afterSwap", function (event) {
+        if (event.target && event.target.id === "upload-list") {
+          uploadListWrap.classList.remove("hidden");
+        }
+      });
+    })();
+  </script>
 </div>
 
 {% endblock %}

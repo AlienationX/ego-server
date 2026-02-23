@@ -49,7 +49,7 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
         #     return Response({"error": "用户未激活"}, status=status.HTTP_400_BAD_REQUEST)
 
         if not user or not user.check_password(password) or not user.is_active:
-            raise AuthenticationFailed("Invalid email or password")
+            raise AuthenticationFailed("Invalid Email or Password")
 
         # 更新最后登录时间
         user.last_login = timezone.now()

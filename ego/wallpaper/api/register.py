@@ -1,5 +1,6 @@
 import logging
 import random
+import string
 from datetime import datetime
 
 from django.conf import settings
@@ -54,8 +55,13 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
                 else:
                     data["username"] = f"user_{datetime.now().strftime('%Y%m%d%H%M%S')}"
 
-            data["ip"] = request.META.get("REMOTE_ADDR", "")
-            data["region"] = ip_to_region(data["ip"])
+            profile = {}
+            profile["ip"] = request.META.get("REMOTE_ADDR", "")
+            profile["region"] = ip_to_region(profile["ip"])
+            profile["phone_number"] = phone_number
+            profile["nickname"] = self._generate_nickname()
+
+            data["profile"] = profile
 
             serializer = self.get_serializer(data=data)
             serializer.is_valid(raise_exception=True)
@@ -74,7 +80,14 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
             )
 
         except Exception as e:
+            logger.exception("INTERNAL_SERVER_ERROR")
             return Response({"error": "注册失败", "detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def _generate_nickname(self, length=8):
+        """生成一个指定长度的随机用户名，包含大小写字母和数字"""
+        characters = string.ascii_letters + string.digits  # 大小写字母和数字
+        username = "".join(random.choices(characters, k=length))
+        return username
 
     @action(detail=False, methods=["post"])
     def send_email_verification_code(self, request, *args, **kwargs):

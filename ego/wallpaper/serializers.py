@@ -55,6 +55,8 @@ class BannerSerializer(ModelSerializer):
 
 
 class ProfileSerializer(ModelSerializer):
+    user = PrimaryKeyRelatedField(read_only=True)
+
     class Meta:
         model = Profile
         fields = "__all__"
@@ -86,15 +88,18 @@ class UserSerializer(ModelSerializer):
 class UserProfileSerializer(ModelSerializer):
     """用于创建或更新用户及其关联的Profile"""
 
+    profile = ProfileSerializer(required=False)
+
     class Meta:
         model = User
-        fields = ["username", "email", "password", "phone_number"]
+        fields = ["username", "email", "password", "profile"]
         extra_kwargs = {"password": {"write_only": True}}
 
     def validate(self, attrs):
         # 至少需要邮箱或手机号之一
         email = attrs.get("email")
-        phone_number = attrs.get("phone_number")
+        profile = attrs.get("profile") or {}
+        phone_number = profile.get("phone_number")
 
         if not email and not phone_number:
             raise ValidationError("邮箱或手机号至少需要提供一个")
@@ -103,7 +108,8 @@ class UserProfileSerializer(ModelSerializer):
 
     def create(self, validated_data):
         # 提取Profile相关数据
-        phone_number = validated_data.pop("phone_number", None)
+        profile_data = validated_data.pop("profile", {})
+        # 提取密码
         password = validated_data.pop("password")
 
         # 创建User对象
@@ -111,9 +117,8 @@ class UserProfileSerializer(ModelSerializer):
         user.set_password(password)
         user.save()
 
-        # 创建或更新Profile对象
-        if phone_number:
-            Profile.objects.update_or_create(user=user, defaults={"phone_number": phone_number})
+        # 无论是否传手机号，都确保存在Profile记录
+        Profile.objects.update_or_create(user=user, defaults=profile_data)
 
         return user
 
