@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from django.conf import settings
 from loguru import logger
 from qcloud_cos import CosConfig, CosS3Client
@@ -21,7 +23,7 @@ cos_client = CosS3Client(cos_config)
 bucket_name = "wp-1328701250"
 
 
-def upload_file_to_cos(file, bucket_name=bucket_name, cos_prefix=""):
+def upload_file_to_cos(file: Path, bucket_name=bucket_name, cos_prefix=""):
     # response = client.upload_file(
     #     Bucket=bucket_name, Key="exampleobject", LocalFilePath="local.txt", EnableMD5=False, progress_callback=None
     # )

@@ -1,0 +1,131 @@
+<div id="upload-cards">
+  {% if items %}
+  <form id="cards-form" class="flex flex-col mb-6 gap-6" method="post">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {% csrf_token %} {% for item in items %}
+      <div class="card bg-base-100 shadow-md hover:shadow-lg transition-shadow min-w-0">
+        <div class="card-body flex flex-col sm:flex-row gap-0 p-0 min-w-0">
+          <figure class="w-full sm:w-2/5 flex-shrink-0">
+            <img src="{{ item.picurl_tmp }}" alt="{{ item.filename }}"
+              class="w-full h-48 sm:h-full object-cover rounded-t-lg sm:rounded-l-lg sm:rounded-tr-none" />
+          </figure>
+
+          <div class="card-body p-4 gap-3 flex-1 min-w-0 overflow-hidden">
+            <input type="hidden" name="filename" value="{{ item.filename }}" />
+            <input type="hidden" name="classify_id" value="{{ item.classify_id }}" />
+            <input type="hidden" name="picurl" value="{{ item.picurl }}" />
+            <input type="hidden" name="pic_path_prefix" value="{{ item.pic_path_prefix }}" />
+            <input type="hidden" name="save_path_tmp" value="{{ item.save_path_tmp }}" />
+
+            <!-- <div class="form-control w-full">
+              <label class="label py-1">
+                <span class="label-text text-xs font-medium">文件名</span>
+              </label>
+              <div class="text-xs text-base-content/50 mt-auto overflow-hidden whitespace-nowrap text-ellipsis">
+                {{ item.filename }}
+              </div>
+            </div> -->
+
+            <!-- <div class="form-control w-full flex items-center gap-2">
+              <label class="label py-1 flex-shrink-0">
+                <span class="label-text text-xs font-medium">尺寸:</span>
+              </label>
+              <div class="text-xs text-base-content/50 flex-1 overflow-hidden whitespace-nowrap text-ellipsis">
+                {{ item.size }}
+              </div>
+            </div> -->
+
+            <div class="grid grid-cols-2 gap-3">
+              <div class="form-control w-full">
+                <label class="label py-1">
+                  <span class="label-text text-xs font-medium">发布者</span>
+                </label>
+                <input name="publisher" type="text" value="{{ item.publisher }}" placeholder="发布者" 
+                  class="input input-bordered input-sm w-full" />
+              </div>
+              
+              <div class="form-control w-full">
+                <label class="label py-1">
+                  <span class="label-text text-xs font-medium">评分</span>
+                </label>
+                <input name="score" type="number" value="{{ item.score }}" placeholder="评分" min="0" max="5" step="0.1"
+                  class="input input-bordered input-sm w-full" />
+              </div>
+            </div>
+
+            <div class="form-control w-full">
+              <label class="label py-1">
+                <span class="label-text text-xs font-medium">分类</span>
+              </label>
+              <select name="classify_name" class="select select-bordered select-sm w-full">
+                <option disabled>请选择分类</option>
+                {% for classify_name in classifies %}
+                <option value="{{ classify_name }}" {% if classify_name == item.classify_name %}selected{% endif %}>{{ classify_name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="form-control w-full">
+              <label class="label py-1">
+                <span class="label-text text-xs font-medium">描述</span>
+                <span class="text-xs text-base-content/50 flex-1 overflow-hidden whitespace-nowrap text-ellipsis">
+                  {{ item.size }}
+                </span>
+              </label>
+              <input name="description" type="text" value="{{ item.description }}" placeholder="请输入描述"
+                class="input input-bordered input-sm w-full" />
+            </div>
+
+            <div class="form-control w-full">
+              <label class="label py-1">
+                <span class="label-text text-xs font-medium">标签</span>
+              </label>
+              <div class="flex flex-wrap gap-1 mb-2">
+                {% for t in item.tabs_list %}
+                <span class="badge badge-soft badge-secondary badge-sm">{{ t }}</span>
+                {% endfor %}
+              </div>
+              <input name="tabs" type="text" value="{{ item.tabs }}" placeholder="标签，逗号分隔"
+                class="input input-bordered input-sm w-full" />
+            </div>
+
+            <div class="form-control w-full">
+              <label class="label py-1 flex items-center justify-between">
+                <span class="label-text text-xs font-medium">是否需要解锁</span>
+                <input type="checkbox" name="is_locked_{{ forloop.counter0 }}" {% if item.is_locked %}checked{% endif %} class="toggle toggle-xs toggle-primary" />
+              </label>
+            </div>
+
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- 提交事件 -->
+    <div class="flex flex-wrap gap-3 justify-start">
+      <input type="hidden" name="action" value="save">
+      <button 
+        type="button" class="btn btn-sm btn-primary"
+        hx-post="{% url 'wallpaper:upload' %}"
+        hx-include="#cards-form"
+        hx-vals="{ 'action': 'save' }"
+        hx-target="#upload-cards"
+        hx-swap="innerHTML"
+      >提交全部</button>
+      <button type="button" class="btn btn-sm btn-secondary">生成全部分类</button>
+      <button type="button" class="btn btn-sm btn-ghost">添加示例卡</button>
+    </div>
+  </form>
+  {% endif %}
+  
+  {% if msg %}
+  <div class="mb-6 alert {{ alert_type }}">
+    <span>{{ msg }}</span>
+    <!-- <div>
+      <button class="btn btn-sm">Deny</button>
+      <button class="btn btn-sm btn-primary">Accept</button>
+    </div> -->
+  </div>
+  {% endif %}
+</div>

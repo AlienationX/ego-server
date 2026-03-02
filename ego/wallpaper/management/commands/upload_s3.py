@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import boto3
 from django.conf import settings
 from loguru import logger
@@ -12,7 +14,7 @@ s3_client = boto3.client(
 bucket_name = "wallpaper-kpze6c"
 
 
-def upload_file_to_s3(file, bucket_name=bucket_name, s3_prefix=""):
+def upload_file_to_s3(file: Path, bucket_name=bucket_name, s3_prefix=""):
     try:
         files = [file, file.with_name(f"{file.stem}_small.webp")]
         for f in files:
@@ -28,7 +30,7 @@ def upload_file_to_s3(file, bucket_name=bucket_name, s3_prefix=""):
                 response = s3_client.head_object(Bucket=bucket_name, Key=s3_key)
                 if response["ResponseMetadata"]["HTTPStatusCode"] == 200:
                     logger.warning(f"File {f} already exists in s3, skipping upload.")
-            except Exception as e:
+            except Exception:
                 s3_client.upload_file(Bucket=bucket_name, Key=s3_key, Filename=f)
                 logger.info(f"Uploaded {f} -> s3://{bucket_name}/{s3_key}")
 

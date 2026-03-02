@@ -48,20 +48,20 @@ class Command(BaseCommand):
             # 利用 llm 生成图片相关信息
             info = self._generate_info(record["file_path"])
             record.update(info)
-            record["picurl"] = f"{record["pic_path_prefix"]}/{record['file_name']}"
+            record["picurl"] = f"{record['pic_path_prefix']}/{record['file_name']}"
             print(record)
 
             # 重置图片尺寸
-            resize_file = resize_image(record["file_path"], f"{ouput_dir}/{record["picurl"]}")
+            resize_path = resize_image(Path(record["file_path"]), Path(f"{ouput_dir}/{record['picurl']}"))
 
             # 生成缩略图
-            generate_thumbs(Path(resize_file))
+            generate_thumbs(resize_path)
 
             # # 上传到 s3
-            upload_file_to_s3(resize_file, s3_prefix=f"{record["pic_path_prefix"]}/")
+            upload_file_to_s3(resize_path, s3_prefix=f"{record['pic_path_prefix']}/")
 
             # 上传到 cos
-            upload_file_to_cos(resize_file, cos_prefix=f"{record["pic_path_prefix"]}/")
+            upload_file_to_cos(resize_path, cos_prefix=f"{record['pic_path_prefix']}/")
 
             # 上传到数据库
             # self._upload_to_db()
@@ -98,12 +98,12 @@ class Command(BaseCommand):
         prompt = f"""根据图片内容，回答以下问题：
         1. 用自然柔和的语言，生成图片描述，30字以内
         2. 生成2到5个中文标签（tag），用英文逗号分隔，逗号之间不要有空格
-        3. 在以下分类中选择最合适的一个作为图片分类：{', '.join(classcfy_name)}
+        3. 在以下分类中选择最合适的一个作为图片分类：{", ".join(classcfy_name)}
         请将回答内容以json格式返回，key分别为：description, tabs, classify_name
         """
 
         url = "https://open.bigmodel.cn/api/paas/v4/chat/completions"
-        headers = {"Authorization": f"Bearer {settings.DECOUPLE_CONFIG("ZHIPU_API_KEY")}", "Content-Type": "application/json"}
+        headers = {"Authorization": f"Bearer {settings.DECOUPLE_CONFIG('ZHIPU_API_KEY')}", "Content-Type": "application/json"}
         data = {
             "model": "glm-4.6v",  # glm-4.6v-flash、glm-4.6v 付费
             "messages": [

@@ -33,8 +33,8 @@ def remove_watermark():
 
 
 def resize_image(
-    input_file: str,
-    output_file: str,
+    input_path: Path,
+    output_path: Path,
     target_width=1284,  # 目标宽度
     target_height=2778,  # 目标高度
     min_width=1080,  # 最小宽度约束
@@ -50,10 +50,10 @@ def resize_image(
     :param min_height: 最小高度约束
     """
     # 打开原始图片
-    original_image = Image.open(input_file)
+    original_image = Image.open(input_path)
     original_width, original_height = original_image.size
 
-    logger.info(f"{input_file} 原始尺寸: {original_width} x {original_height}")
+    logger.info(f"{input_path} 原始尺寸: {original_width} x {original_height}")
 
     # 方案1：以目标宽度为准进行等比缩放
     new_width_1 = target_width
@@ -72,15 +72,15 @@ def resize_image(
         # 两种方案都满足时，选择方案1（以宽度为准）
         new_width = new_width_1
         new_height = new_height_1
-        logger.info(f"{input_file} 选择方案1：以目标宽度为准缩放 {target_width}")
+        logger.info(f"{input_path} 选择方案1：以目标宽度为准缩放 {target_width}")
     elif scheme1_valid:
         new_width = new_width_1
         new_height = new_height_1
-        logger.info(f"{input_file} 选择方案1：以目标宽度为准缩放 {target_width}")
+        logger.info(f"{input_path} 选择方案1：以目标宽度为准缩放 {target_width}")
     elif scheme2_valid:
         new_width = new_width_2
         new_height = new_height_2
-        logger.info(f"{input_file} 选择方案2：以目标高度为准缩放 {target_height}")
+        logger.info(f"{input_path} 选择方案2：以目标高度为准缩放 {target_height}")
     else:
         # 两种方案都不满足时，强制缩放至最小尺寸
         ratio_w = min_width / original_width
@@ -88,17 +88,17 @@ def resize_image(
         scale = max(ratio_w, ratio_h)  # 取较大比例确保两个维度都达到最小值
         new_width = int(original_width * scale)
         new_height = int(original_height * scale)
-        logger.info(f"{input_file} 选择方案3：强制缩放至最小尺寸 {min_width} x {min_height}")
+        logger.info(f"{input_path} 选择方案3：强制缩放至最小尺寸 {min_width} x {min_height}")
 
-    logger.info(f"{input_file} 最终尺寸: {new_width} x {new_height}")
+    logger.info(f"{input_path} 最终尺寸: {new_width} x {new_height}")
 
     # 执行缩放并保存
-    Path(output_file).parent.mkdir(parents=True, exist_ok=True)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
 
     resized_image = original_image.resize((new_width, new_height), Image.LANCZOS)
-    resized_image.save(output_file, quality=95)
-    logger.info(f"{input_file} 图片已保存至: {output_file}")
-    return output_file
+    resized_image.save(output_path, quality=95)
+    logger.info(f"{input_path} 图片已保存至: {output_path}")
+    return output_path
 
 
 def send_dingtalk(msg, keyword="[通知]", secret="", access_token=""):

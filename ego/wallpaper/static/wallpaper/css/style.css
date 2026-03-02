@@ -1,0 +1,33 @@
+/* 全局css文件 */
+
+/* 暗黑模式下的通用图标样式设为亮色（排除彩色图标） */
+[data-theme="dark"] img[src*="/icons/"]:not(.icon-primary):not(.icon-success):not(.icon-warning):not(.icon-danger) {
+    filter: invert(100%) brightness(200%);
+}
+
+/* 暗黑模式下的logo图标样式 */
+/* [data-theme="dark"] footer img[src*="/logo.svg"] {
+    filter: brightness(1.5) contrast(1.1);
+} */
+
+/* img svg 图标设置颜色 */
+.icon-primary {
+    filter: invert(33%) sepia(96%) saturate(2331%) hue-rotate(221deg) brightness(99%) contrast(101%);
+}
+
+.icon-success {
+    filter: invert(56%) sepia(79%) saturate(390%) hue-rotate(84deg) brightness(94%) contrast(92%);
+}
+
+.icon-warning {
+    filter: invert(68%) sepia(95%) saturate(1063%) hue-rotate(345deg) brightness(101%) contrast(102%);
+}
+
+.icon-danger {
+    filter: invert(34%) sepia(96%) saturate(1672%) hue-rotate(337deg) brightness(94%) contrast(106%);
+}
+
+/* 带颜色的按钮图标设置为亮色 */
+.icon-mask {
+    filter: invert(100%) brightness(200%);
+}

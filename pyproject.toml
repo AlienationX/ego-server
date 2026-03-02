@@ -34,4 +34,5 @@ dev = [
 
 [tool.ruff]
 # 设置全局选项
-line-length = 128 # 行长度限制
+line-length = 128  # 行长度限制
+unfixable = ["F401"]  # 默认检查但不自动修复未使用的导入 F401

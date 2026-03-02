@@ -66,6 +66,7 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",  # jwt用户认证
     "rest_framework_simplejwt.token_blacklist",  # jwt黑名单功能，必须添加此行，同时需要 makemigrations 和 migrate，生成2张token_blacklist相关表
     "corsheaders",  # 处理跨域
+    "django_htmx",  # HTMX 支持
     # 'drf_yasg',
     # 'drf_spectacular',         # 接口文档 swagger
     # 'drf_spectacular_sidecar', # 接口文档 swagger-ui
@@ -84,6 +85,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "django_htmx.middleware.HtmxMiddleware",  # HTMX 中间件
     "server.middleware.request_middleware.RequestLoggingMiddleware",  # 自定义中间件，需要获取request.user, 所以需要放到auth中间件之后
 ]
 

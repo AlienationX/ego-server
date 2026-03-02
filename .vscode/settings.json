@@ -1,18 +1,13 @@
-// 需要安装vscode的扩展 Black Formatter 和 isort , 都是Microsoft官方的
 {
-  "[python]": {
-    "editor.defaultFormatter": "ms-python.black-formatter",
-    "editor.formatOnSave": true,
-    "editor.codeActionsOnSave": {
-      "source.organizeImports": "always"
+    "[python]": {
+        "editor.defaultFormatter": "charliermarsh.ruff",
+        "editor.codeActionsOnSave": {
+            "source.fixAll": "always",
+            "source.organizeImports": "explicit"
+        },
+        "editor.formatOnSave": true,
     },
-  },
-  "black-formatter.args": [
-    // "--skip-string-normalization",
-    "--line-length=128",
-  ],
-  "isort.args": [
-    "--profile",
-    "black"
-  ],
+    "python.analysis.supportAllPythonDocuments": true,
+    "python.terminal.shellIntegration.enabled": true,
+    "ruff.configuration": "pyproject.toml",
 }
