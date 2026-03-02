@@ -32,29 +32,22 @@ config = Config(ChainMap(RepositoryEnv(f".env.{ENV}"), RepositoryEnv(".env")))
 
 # 关键步骤：将 config 对象赋值给一个大写变量，以便暴露给 Django 的设置系统
 DECOUPLE_CONFIG = config  # 变量名必须大写
+# 暴露自定义的环境变量，以便在代码中使用
+WECHAT_APPID = config("WECHAT_APPID")  # 微信小程序的AppID
+WECHAT_SECRET = config("WECHAT_SECRET")  # 微信小程序的AppSecret
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
-
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config("SECRET")
-
-WECHAT_APPID = config("WECHAT_APPID")  # 微信小程序的AppID
-WECHAT_SECRET = config("WECHAT_SECRET")  # 微信小程序的AppSecret
+SECRET_KEY = config("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config("DEBUG", default=False, cast=bool)
 
-ALLOWED_HOSTS = []
-# ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="*").split(",")  # 允许的主机名，默认是所有主机名
-
+ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="").split(",")  # debug模式，默认会增加localhost、127等本机
 
 # Application definition
-
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -188,6 +181,7 @@ STATIC_URL = "static/"
 
 #
 STATIC_ROOT = Path(BASE_DIR).joinpath("static")
+
 # MEDIA_ROOT = Path(BASE_DIR).joinpath("media")
 MEDIA_ROOT = Path(BASE_DIR).joinpath("wallpaper", "scripts", "images")
 

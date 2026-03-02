@@ -40,6 +40,7 @@ pip install python-decouple
 
 # 中小型项目静态文件服务器，中间件
 pip install whitenoise
+python manage.py collectstatic
 
 # json字段可视化显示和编辑
 pip install django-json-widget
