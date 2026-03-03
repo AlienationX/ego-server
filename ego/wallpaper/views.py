@@ -58,7 +58,7 @@ def upload(request):
 
                 # 1. 保存文件到服务器临时目录
                 new_filename = uploaded_file.name.replace(" ", "_").replace("/", "_")
-                picurl_tmp = f"upload_tmp11/{new_filename}"
+                picurl_tmp = f"upload_tmp/{new_filename}"
                 save_path_tmp = f"{settings.MEDIA_ROOT}/{picurl_tmp}"
                 try:
                     with open(save_path_tmp, "wb+") as f:
