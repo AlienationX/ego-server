@@ -87,9 +87,7 @@ def upload(request):
                 info["filename"] = new_filename
                 info["size"] = f"{original_width} x {original_height}"
                 info["save_path_tmp"] = save_path_tmp
-                # nginx_url = "https://api.wp.ego8.space/static/wallpaper/media"
-                # info["picurl_tmp"] = img_base if settings.ENV == "dev" else f"{nginx_url}/{picurl_tmp}"
-                info["picurl_tmp"] = img_base
+                info["picurl_tmp"] = img_base if settings.ENV == "dev" else f"{settings.NGINX_MEDIA_URL}/{picurl_tmp}"
 
                 items.append(info)
 
@@ -139,7 +137,7 @@ def _generate_info_with_llm(img_url):
 
     prompt = f"""根据图片内容，回答以下问题：
     1. 用自然柔和的语言，生成图片描述,30字以内。
-    2. 生成2到5个中英文标签，用英文逗号分隔，逗号之间不要有空格。
+    2. 生成3到6个中英文标签，用英文逗号分隔，逗号之间不要有空格。
     3. 在以下分类中选择最合适的一个作为图片分类：{", ".join(classcfy_name)}。
     请按照以下 JSON 格式返回分析结果：
     {{

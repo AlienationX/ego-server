@@ -185,6 +185,8 @@ STATIC_ROOT = Path(BASE_DIR).joinpath("static")
 # MEDIA_ROOT = Path(BASE_DIR).joinpath("media")
 MEDIA_ROOT = Path(BASE_DIR).joinpath("wallpaper", "scripts", "images")
 
+NGINX_MEDIA_URL = "https://api.wp.ego8.space/static/wallpaper/media"
+
 # 以上直接访问即可，不需要配置urls。通过配置urls可以映射到应用的地址上
 # http://127.0.0.1:8000/static/pokemon_library/images/0001-妙蛙种子.png 映射到 http://127.0.0.1:8000/pokemon_library/static/images/0001-妙蛙种子.png
 
