@@ -177,7 +177,7 @@ def _generate_info_with_llm(img_url):
     }
 
     try:
-        response = requests.post(url, headers=headers, json=data, timeout=5)
+        response = requests.post(url, headers=headers, json=data, timeout=60)
         response.raise_for_status()
 
         result = response.json()
