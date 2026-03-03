@@ -87,7 +87,8 @@ def upload(request):
                 info["filename"] = new_filename
                 info["size"] = f"{original_width} x {original_height}"
                 info["save_path_tmp"] = save_path_tmp
-                info["picurl_tmp"] = img_base if settings.ENV == "dev" else f"{settings.NGINX_MEDIA_URL}/{picurl_tmp}"
+                # info["picurl_tmp"] = img_base if settings.ENV == "dev" else f"{settings.NGINX_MEDIA_URL}/{picurl_tmp}"
+                info["picurl_tmp"] = img_base
 
                 items.append(info)
 
