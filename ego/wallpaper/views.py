@@ -87,7 +87,9 @@ def upload(request):
                 info["filename"] = new_filename
                 info["size"] = f"{original_width} x {original_height}"
                 info["save_path_tmp"] = save_path_tmp
-                info["picurl_tmp"] = img_base if settings.ENV == "dev" else picurl_tmp
+                # nginx_url = "https://api.wp.ego8.space/static/wallpaper/media"
+                # info["picurl_tmp"] = img_base if settings.ENV == "dev" else f"{nginx_url}/{picurl_tmp}"
+                info["picurl_tmp"] = img_base
 
                 items.append(info)
 
