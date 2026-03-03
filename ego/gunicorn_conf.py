@@ -14,3 +14,6 @@ timeout = 120
 loglevel = "info"
 accesslog = "var/log/gunicorn/ego-server/access.log"
 errorlog = "var/log/gunicorn/ego-server/error.log"
+
+Path(accesslog).parent.mkdir(parents=True, exist_ok=True)
+Path(errorlog).parent.mkdir(parents=True, exist_ok=True)
