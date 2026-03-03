@@ -74,12 +74,12 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
-    # 'django.middleware.csrf.CsrfViewMiddleware',
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django_htmx.middleware.HtmxMiddleware",  # HTMX 中间件
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "django_htmx.middleware.HtmxMiddleware",  # HTMX 中间件
-    "server.middleware.request_middleware.RequestLoggingMiddleware",  # 自定义中间件，需要获取request.user, 所以需要放到auth中间件之后
+    "server.middleware.request_logging.RequestLoggingMiddleware",  # 自定义中间件，需要获取request.user, 所以需要放到auth中间件之后
 ]
 
 ROOT_URLCONF = "server.urls"
@@ -288,8 +288,8 @@ CORS_ALLOW_HEADERS = [
     # 'dnt',
     # 'origin',
     # 'user-agent',
-    # 'x-csrftoken',
-    # 'x-requested-with',
+    "x-csrftoken",
+    "x-requested-with",
     "access-key",
     "authorization",
     "token",
@@ -309,106 +309,142 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 # ######################## 日志配置
 
-# # 创建日志路径
-# Path(f"{BASE_DIR}/logs").mkdir(parents=True, exist_ok=True)
-# # 日志相关配置
-# LOGGING = {
-#     'version': 1,
-#     'disable_existing_loggers': False,
-#     # 日志格式
-#     'formatters': {
-#         'verbose': {
-#             'format': '{asctime} {levelname} [{module}] {message}',
-#             'style': '{',
-#         },
-#         'request_format': {
-#             'format': '{asctime} {message}',
-#             'style': '{',
-#         },
-#     },
-#     # 处理器（控制台、文件等）
-#     'handlers': {
-#         'console': {
-#             'level': 'INFO',
-#             'class': 'logging.StreamHandler',
-#             'formatter': 'verbose'
-#         },
-#         'file': {
-#             'level': 'INFO',
-#             'class': 'logging.handlers.RotatingFileHandler',
-#             'filename': 'logs/django.log',  # 日志文件路径
-#             'maxBytes': 1024 * 1024 * 5,   # 文件大小限制（5MB）
-#             'backupCount': 5,              # 保留日志文件数
-#             'formatter': 'verbose',
-#         },
-#         'mail_admins': {
-#             'level': 'ERROR',
-#             'class': 'django.utils.log.AdminEmailHandler',
-#             'include_html': True,
-#         },
-#         # StreamHandler：输出到控制台。
-#         # RotatingFileHandler：按文件大小轮转日志文件。
-#         # TimedRotatingFileHandler：按时间轮转日志文件。
-#         # AdminEmailHandler：发送错误邮件给管理员（需配置 ADMINS）。
-#         'request_file': {
-#             'level': 'INFO',
-#             'class': 'logging.handlers.RotatingFileHandler',
-#             'filename': 'logs/request.log',  # 日志文件路径
-#             'maxBytes': 1024 * 1024 * 5,   # 文件大小限制（5MB）
-#             'backupCount': 5,              # 保留日志文件数
-#             'formatter': 'request_format',
-#         },
-#         'wallpaper_file': {
-#             'level': 'INFO',
-#             'class': 'logging.handlers.RotatingFileHandler',
-#             'filename': 'logs/wallpaper.log',  # 日志文件路径
-#             'maxBytes': 1024 * 1024 * 5,   # 文件大小限制（5MB）
-#             'backupCount': 5,              # 保留日志文件数
-#             'formatter': 'verbose',
-#         },
-#     },
-#     # 日志记录器（定义不同模块的日志行为）
-#     'loggers': {
-#         '': {
-#             # 根记录器，捕获所有日志。
-#             'handlers': ['console', 'file', 'request_file'],
-#             'level': 'INFO',
-#         },
-#         'django': {
-#             # 处理django的默认日志，比如"GET /wallpaper/api/classify/?select=true HTTP/1.1" 200 2555
-#             # 只用来打印和写入file文件
-#             'handlers': ['console', 'file'],
-#             'level': 'INFO',
-#             'propagate': False,  # 是否传递给父记录器
-#         },
-#         'wallpaper': {
-#             # wallpaper应用的日志
-#             'handlers': ['console', 'wallpaper_file', 'mail_admins'],
-#             'level': 'INFO',
-#             'propagate': False,  # 是否传递给父记录器
-#         },
-#     },
-# }
-
-# 云函数不能用文件记录日志
+# # 创建日志路径。或者/var/log/ego-server/
+LOG_DIR = Path(f"{BASE_DIR}/logs")
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+# 日志相关配置
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     # 日志格式
     "formatters": {
-        "verbose": {
+        "simple": {
+            "format": "{asctime} {message}",
+            "style": "{",
+        },
+        "common": {
             "format": "{asctime} {levelname} [{module}:{lineno}] {message}",
             "style": "{",
-        }
+        },
+        "verbose": {
+            "format": "{asctime} {levelname} [{name}] [{module}:{funcName}:{lineno}] {message}",
+            "style": "{",
+        },
+    },
+    "filters": {
+        "require_debug_false": {
+            "()": "django.utils.log.RequireDebugFalse",
+        },
+        "require_debug_true": {
+            "()": "django.utils.log.RequireDebugTrue",
+        },
     },
     # 处理器（控制台、文件等）
-    "handlers": {"console": {"level": config("LOG_LEVEL"), "class": "logging.StreamHandler", "formatter": "verbose"}},
+    "handlers": {
+        "console": {
+            "level": "INFO",
+            "filters": ["require_debug_true"],  # 仅在 DEBUG=True 时输出到控制台
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+        },
+        "file_error": {
+            "level": "ERROR",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": LOG_DIR / "django_error.log",
+            "maxBytes": 1024 * 1024 * 5,  # 5MB
+            "backupCount": 5,
+            "formatter": "verbose",  # 使用详细格式，包含堆栈信息
+            "encoding": "utf-8",
+        },
+        "file_request": {
+            "level": "INFO",
+            "class": "logging.handlers.TimedRotatingFileHandler",  # 按时间轮转更合适
+            "filename": LOG_DIR / "django_request.log",
+            "when": "midnight",  # 每天轮转
+            "backupCount": 30,  # 保留30天
+            "formatter": "simple",
+            "encoding": "utf-8",
+        },
+        "ego_server": {
+            "level": "INFO",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": LOG_DIR / "ego_server.log",
+            "maxBytes": 1024 * 1024 * 10,  # 10MB
+            "backupCount": 10,
+            "formatter": "common",
+            "encoding": "utf-8",
+        },
+        "wallpaper_app": {
+            "level": "INFO",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": LOG_DIR / "wallpaper_app.log",
+            "maxBytes": 1024 * 1024 * 5,
+            "backupCount": 5,
+            "formatter": "verbose",  # 应用日志使用详细格式
+            "encoding": "utf-8",
+        },
+        "mail_admins": {
+            "level": "ERROR",
+            "filters": ["require_debug_false"],  # 只在生产环境发送邮件
+            "class": "django.utils.log.AdminEmailHandler",
+            "include_html": True,
+            "formatter": "verbose",  # 为邮件添加格式
+        },
+        # StreamHandler：输出到控制台。
+        # RotatingFileHandler：按文件大小轮转日志文件。
+        # TimedRotatingFileHandler：按时间轮转日志文件。
+        # AdminEmailHandler：发送错误邮件给管理员（需配置 ADMINS）。
+        "null": {
+            "class": "logging.NullHandler",  # 用于静默某些日志
+        },
+    },
     # 日志记录器（定义不同模块的日志行为）
     "loggers": {
         "": {
-            # 根记录器，捕获所有日志。
-            "handlers": ["console"],
-            "level": config("LOG_LEVEL"),
+            # 根记录器 - 捕获所有未被明确处理的日志
+            "handlers": ["console", "file_error", "mail_admins"],  # 只处理ERROR及以上
+            "level": "ERROR",
+        },
+        "django": {
+            # Django 请求日志
+            "handlers": ["console", "file_request"],  # 请求日志单独存储
+            "level": "INFO",
+            "propagate": False,
+        },
+        "server": {
+            # server模块的日志（包括中间件）
+            "handlers": ["console", "ego_server"],
+            "level": "INFO",
+            "propagate": False,  # 是否传递给父记录器
+        },
+        "wallpaper": {
+            # wallpaper应用的日志
+            "handlers": ["console", "wallpaper_app"],
+            "level": "INFO",
+            "propagate": False,  # 是否传递给父记录器
         },
     },
 }
+
+# lambda云函数临时环境不能用文件记录日志
+# LOGGING = {
+#     "version": 1,
+#     "disable_existing_loggers": False,
+#     # 日志格式
+#     "formatters": {
+#         "verbose": {
+#             "format": "{asctime} {levelname} [{module}:{lineno}] {message}",
+#             "style": "{",
+#         }
+#     },
+#     # 处理器（控制台、文件等）
+#     "handlers": {"console": {"level": config("LOG_LEVEL"), "class": "logging.StreamHandler", "formatter": "verbose"}},
+#     # 日志记录器（定义不同模块的日志行为）
+#     "loggers": {
+#         "": {
+#             # 根记录器，捕获所有日志。
+#             "handlers": ["console"],
+#             "level": config("LOG_LEVEL"),
+#         },
+#     },
+# }

@@ -2,6 +2,7 @@ import base64
 import json
 import logging
 import random
+from math import log
 from pathlib import Path
 
 import requests
@@ -23,9 +24,6 @@ def index(request):
 
 
 def upload(request):
-    print("===================", request.method)
-    print("FILES:", request.FILES)
-
     # GET 请求：渲染上传页面
     if request.method == "GET":
         return render(request, "wallpaper/upload.html")
@@ -41,6 +39,7 @@ def upload(request):
 
         # 如果是预览操作，处理上传的文件
         if action == "preview":
+            logger.info(f"FILES: {request.FILES}")
             uploaded_files = request.FILES.getlist("images")
 
             # 如果没有文件，返回错误信息
@@ -59,14 +58,16 @@ def upload(request):
 
                 # 1. 保存文件到服务器临时目录
                 new_filename = uploaded_file.name.replace(" ", "_").replace("/", "_")
-                picurl_tmp = f"/upload_tmp/{new_filename}"
+                picurl_tmp = f"upload_tmp11/{new_filename}"
                 save_path_tmp = f"{settings.MEDIA_ROOT}/{picurl_tmp}"
                 try:
                     with open(save_path_tmp, "wb+") as f:
                         for chunk in uploaded_file.chunks():
                             f.write(chunk)
                 except IOError as e:
-                    raise Exception(f"{new_filename} 文件保存失败，{e.strerror}")
+                    error_msg = f"{new_filename} 文件保存失败，{e}"
+                    data = {"items": [], "msg": error_msg, "alert_type": "alert-warning"}
+                    return render(request, "wallpaper/upload_cards.html", data)
 
                 # 0. 生成图片描述、标签、分类
                 info = _generate_info_with_llm(img_base)
@@ -90,7 +91,7 @@ def upload(request):
 
                 items.append(info)
 
-            print("xxxxxxxxxxx", {k: v for k, v in items[0].items() if settings.ENV == "dev" and k not in ("picurl_tmp")})
+            logger.info({k: v for k, v in items[0].items() if settings.ENV == "dev" and k not in ("picurl_tmp")})
 
             data = {"items": items, "classifies": classifies}
             return render(request, "wallpaper/upload_cards.html", data)
@@ -100,7 +101,7 @@ def upload(request):
             # 获取表单数据
             form_data = request.POST
             filenames = form_data.getlist("filename")
-            print(form_data)
+            logger.debug(form_data)
 
             success_count = 0
             error_count = 0
@@ -109,47 +110,7 @@ def upload(request):
                 try:
                     obj = _save_wallpaper(form_data, i)
 
-                    # record_picurl = form_data.getlist("picurl")[i]
-                    # pic_path_prefix = form_data.getlist("pic_path_prefix")[i]
-                    # save_path_tmp = form_data.getlist("save_path_tmp")[i]
-
-                    # # 处理 is_locked：checkbox 未勾选时不会提交，按行索引读取更稳定
-                    # is_locked = form_data.get(f"is_locked_{i}") == "on"
-
-                    # record = {
-                    #     "description": form_data.getlist("description")[i],
-                    #     "tabs": form_data.getlist("tabs")[i],
-                    #     "score": round(random.uniform(4, 5), 1),
-                    #     "publisher": form_data.getlist("publisher")[i],
-                    #     "is_active": True,
-                    #     "is_locked": is_locked,
-                    #     # "created_at": datetime.now(),
-                    #     # "updated_at": datetime.now(),
-                    #     "classify_id": form_data.getlist("classify_id")[i],
-                    #     "remark": None,
-                    # }
-                    # print(record)
-
-                    # # 重置图片尺寸
-                    # resize_file = resize_image(save_path_tmp, f"{settings.MEDIA_ROOT}/{record_picurl}")
-                    # print(pic_path_prefix, resize_file)
-
-                    # # 生成缩略图
-                    # generate_thumbs(Path(resize_file))
-
-                    # # # 上传到 s3
-                    # upload_file_to_s3(resize_file, s3_prefix=f"{pic_path_prefix}/")
-
-                    # # # 上传到 cos
-                    # upload_file_to_cos(resize_file, cos_prefix=f"{pic_path_prefix}/")
-
-                    # # 上传到数据库
-                    # obj, created = Wall.objects.get_or_create(
-                    #     picurl=record_picurl,
-                    #     defaults=record,
-                    # )
-
-                    print(f"保存第 {i + 1} 张图片: {obj.picurl}")
+                    logger.debug(f"保存第 {i + 1} 张图片: {obj.picurl}")
                     success_count += 1
                 except Exception:
                     logger.exception(f"保存第 {i + 1} 张图片失败")
@@ -175,15 +136,23 @@ def _generate_info_with_llm(img_url):
     classcfy_name = [obj.name for obj in classify_objects]
 
     prompt = f"""根据图片内容，回答以下问题：
-    1. 用自然柔和的语言，生成图片描述，30字以内
-    2. 生成2到5个中英文标签（tag），用英文逗号分隔，逗号之间不要有空格
-    3. 在以下分类中选择最合适的一个作为图片分类：{", ".join(classcfy_name)}
-    请将回答内容以json格式返回，key分别为：description, tabs, classify_name
+    1. 用自然柔和的语言，生成图片描述,30字以内。
+    2. 生成2到5个中英文标签，用英文逗号分隔，逗号之间不要有空格。
+    3. 在以下分类中选择最合适的一个作为图片分类：{", ".join(classcfy_name)}。
+    请按照以下 JSON 格式返回分析结果：
+    {{
+        "description": "报纸纹理的动漫角色，蓝色调，侧身姿态，文字元素点缀",
+        "tabs": "海贼王,路飞,anime",
+        "classify_name": "动漫二次元"
+    }}
     """
 
     url = "https://open.bigmodel.cn/api/paas/v4/chat/completions"
     headers = {"Authorization": f"Bearer {settings.DECOUPLE_CONFIG('ZHIPU_API_KEY')}", "Content-Type": "application/json"}
     data = {
+        # glm-4.7-flash 免费，但只能输入文字
+        # https://bigmodel.cn/finance-center/resource-package/package-mgmt
+        # glm-4.6v-flash 免费，支持图片输入。glm-4.6v 付费，支持图片输入，2026-03-12到期
         "model": "glm-4.6v",  # glm-4.6v-flash、glm-4.6v 付费
         "messages": [
             {
@@ -208,7 +177,7 @@ def _generate_info_with_llm(img_url):
     }
 
     try:
-        response = requests.post(url, headers=headers, json=data, timeout=30)
+        response = requests.post(url, headers=headers, json=data, timeout=5)
         response.raise_for_status()
 
         result = response.json()
@@ -223,7 +192,7 @@ def _generate_info_with_llm(img_url):
         return info
 
     except Exception as e:
-        logging.exception(f"Unexpected error: {e}")
+        logging.exception(f"Unexpected error: \n{e}")
         return {"error": str(e)}
 
 
@@ -247,11 +216,11 @@ def _save_wallpaper(form_data, i):
         "classify_id": form_data.getlist("classify_id")[i],
         "remark": "upload",
     }
-    print(record)
+    logger.debug(record)
 
     # 重置图片尺寸
     resize_path = resize_image(Path(save_path_tmp), Path(f"{settings.MEDIA_ROOT}/{record_picurl}"))
-    print(pic_path_prefix, resize_path)
+    logger.debug(f"重置图片尺寸: {pic_path_prefix, resize_path}")
 
     # 生成缩略图
     generate_thumbs(resize_path)

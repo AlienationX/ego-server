@@ -1,14 +1,20 @@
 import logging
 import time
 
+from django.http import JsonResponse
+
 logger = logging.getLogger(__name__)
 
 
 class RequestLoggingMiddleware:
+    """
+    自定义中间件，额外增加相应时间和IP地址等。
+    """
+
     def __init__(self, get_response):
         self.get_response = get_response
         # 忽略特定路径的请求（如静态文件）
-        self.ignore_paths = ['/static/', '/favicon.ico']
+        self.ignore_paths = ["/static/", "/favicon.ico"]
 
     def __call__(self, request):
         """新式中间件，替代 process_request 和 process_response，逻辑更集中"""
@@ -67,23 +73,15 @@ class RequestLoggingMiddleware:
     def process_exception(self, request, exception):
         """当视图抛出异常时调用"""
         logger.error(
-            f"Exception: {request.method} {request.path} "
-            f"Error: {str(exception)}",
-            exc_info=True
+            f"Unhandled exception [middleware]: {request.META.get('REMOTE_ADDR')} {request.method} {request.path} Error:\n {exception}",
+            exc_info=True,
         )
+
+        # 如果是API请求（根据请求头或路径判断），返回JSON格式的错误
+        if ("/api/") in request.path:
+            return JsonResponse({"code": "500", "message": "middleware 服务器内部错误", "detail": str(exception)}, status=500)
+
         return None
-
-     # from django.utils.deprecation import MiddlewareMixin
-    # 执行时机：Django 1.10+ 引入的新式中间件，替代旧式中间件（无需显式定义 process_request 和 process_response）。
-
-    def process_request(self, request):
-        """废弃的，已不再执行"""
-        logger.info("处理请求前逻辑")
-
-    def process_response(self, request, response):
-        """废弃的，已不再执行"""
-        logger.info("处理响应后逻辑")
-        return response
 
     # def process_template_response(self, request, response):
     #     """当视图返回 TemplateResponse 时调用"""
