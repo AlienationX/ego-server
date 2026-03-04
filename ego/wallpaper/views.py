@@ -106,22 +106,24 @@ def upload(request):
 
             success_count = 0
             error_count = 0
+            update_count = 0
 
             for i in range(len(filenames)):
                 try:
-                    obj = _save_wallpaper(form_data, i)
+                    obj, created = _save_wallpaper(form_data, i)
 
                     logger.debug(f"保存第 {i + 1} 张图片: {obj.picurl}")
                     success_count += 1
+                    update_count += 1 if not created else 0
                 except Exception:
                     logger.exception(f"保存第 {i + 1} 张图片失败")
                     error_count += 1
 
             # 返回成功消息（items 为空，清空表单）
-            if error_count == 0:
-                msg = f"成功保存 {success_count} 条记录"
-            else:
-                msg = f"成功 {success_count} 条，失败 {error_count} 条"
+            if success_count > 0:
+                msg = f"成功 {success_count} 条记录{f'（包括更新 {update_count} 条记录）' if update_count > 0 else ''}。"
+            if error_count > 0:
+                msg += f"失败 {error_count} 条记录。"
 
             data = {"items": [], "msg": msg, "alert_type": "alert-success" if error_count == 0 else "alert-warning"}
             return render(request, "wallpaper/upload_cards.html", data)
@@ -182,7 +184,7 @@ def _generate_info_with_llm(img_url):
         response.raise_for_status()
 
         result = response.json()
-        logging.debug(json.dumps(result, indent=2, ensure_ascii=False))
+        logger.debug(json.dumps(result, indent=2, ensure_ascii=False))
 
         content = result["choices"][0]["message"]["content"].strip()
         info = json.loads(content)
@@ -193,7 +195,7 @@ def _generate_info_with_llm(img_url):
         return info
 
     except Exception as e:
-        logging.exception(f"Unexpected error: \n{e}")
+        logger.exception(f"Unexpected error: \n{e}")
         return {"error": str(e)}
 
 
@@ -244,4 +246,4 @@ def _save_wallpaper(form_data, i):
             setattr(obj, key, value)
         obj.save()
 
-    return obj
+    return obj, created

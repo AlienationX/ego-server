@@ -48,6 +48,8 @@ class ApiModelView(ListModelMixin, RetrieveModelMixin, GenericViewSet):
         sortord = self.request.query_params.get("sortord")
         data = None
 
+        # 向查询集中的每个对象添加一个名为 classify_name 的新字段，值为 classify__name
+        # F 表达式，用于引用模型字段：classify ：当前模型的外键字段，__name ：双下划线表示跨关系查询，获取 classify 关联对象的 name 属性
         queryset = queryset.annotate(classify_name=F("classify__name"))
         if sortord == "random":
             # 随机排序，性能差且分页会出现重复数据。其实使用缓存结果即可解决这个问题
@@ -82,7 +84,7 @@ class ApiModelView(ListModelMixin, RetrieveModelMixin, GenericViewSet):
             #     return products
 
             # 最终方案，乱序加缓存
-            cache_key = f"walls_{keyword or 'blank'}_{self.request.query_params.get('classify_id','0')}"
+            cache_key = f"walls_{keyword or 'blank'}_{self.request.query_params.get('classify_id', '0')}"
 
             # data = cache.get(cache_key)
             # if not data:
@@ -100,7 +102,8 @@ class ApiModelView(ListModelMixin, RetrieveModelMixin, GenericViewSet):
             queryset = queryset.order_by("-score")
         elif sortord == "date_asc":
             queryset = queryset.order_by("updated_at")
-        elif sortord == "date_desc":
+        # elif sortord == "date_desc":
+        else:
             queryset = queryset.order_by("-updated_at")
 
         if data is not None:
@@ -121,7 +124,7 @@ class ApiModelView(ListModelMixin, RetrieveModelMixin, GenericViewSet):
         return Response(data)
 
     @action(detail=False, methods=["get"])
-    def random(self, request):
+    def random_daily(self, request):
         # detail=True 表示这个动作是针对单个对象的，如果设置为 False，则表示这个动作是针对所有对象的。
 
         # 获取所有的对象，且classify.enable为True的数据

@@ -5,10 +5,26 @@
       {% for item in items %}
       <div class="card bg-base-100 shadow-md hover:shadow-lg transition-shadow min-w-0">
         <div class="card-body flex flex-col sm:flex-row gap-0 p-0 min-w-0">
-          <figure class="w-full sm:w-2/5 flex-shrink-0">
+          <figure class="w-full sm:w-2/5 flex-shrink-0 cursor-pointer" onclick="document.getElementById('preview-modal-{{ forloop.counter }}').showModal()">
             <img src="{{ item.picurl_tmp }}" alt="{{ item.filename }}"
-              class="w-full h-48 sm:h-full object-cover rounded-t-lg sm:rounded-l-lg sm:rounded-tr-none" />
+              class="w-full h-48 sm:h-full object-cover rounded-t-lg sm:rounded-l-lg sm:rounded-tr-none hover:opacity-90 transition-opacity" />
           </figure>
+
+          <!-- 图片预览模态框 -->
+          <dialog id="preview-modal-{{ forloop.counter }}" class="modal">
+            <div class="modal-box p-0 bg-transparent shadow-none flex items-center justify-center">
+              <div class="relative inline-block">
+                <img src="{{ item.picurl_tmp }}" alt="{{ item.filename }}" class="max-h-[90vh] max-w-[90vw] object-contain rounded-lg" />
+                <form method="dialog" class="absolute right-0 top-0 z-20">
+                  <button class="btn btn-sm btn-circle btn-ghost bg-base-100/80 hover:bg-base-100 m-2">✕</button>
+                </form>
+              </div>
+            </div>
+            <!-- 点击背景关闭模态框效果 backdrop -->
+            <form method="dialog" class="modal-backdrop">
+              <button class="hidden">关闭</button>
+            </form>
+          </dialog>
 
           <div class="card-body p-4 gap-3 flex-1 min-w-0 overflow-hidden">
             <input type="hidden" name="filename" value="{{ item.filename }}" />
@@ -104,7 +120,7 @@
 
     <!-- 提交事件 -->
     <div class="flex flex-wrap gap-3 justify-start">
-      <input type="hidden" name="action" value="save">
+      <!-- <input type="hidden" name="action" value="save"> -->
       <button 
         type="button" class="btn btn-sm btn-primary"
         hx-post="{% url 'wallpaper:upload' %}"

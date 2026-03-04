@@ -348,7 +348,7 @@ LOGGING = {
     # 处理器（控制台、文件等）
     "handlers": {
         "console": {
-            "level": "INFO",
+            "level": "DEBUG",
             "filters": ["require_debug_true"],  # 仅在 DEBUG=True 时输出到控制台
             "class": "logging.StreamHandler",
             "formatter": "verbose",
@@ -407,9 +407,9 @@ LOGGING = {
     # 日志记录器（定义不同模块的日志行为）
     "loggers": {
         "": {
-            # 根记录器 - 捕获所有未被明确处理的日志
-            "handlers": ["console", "file_error", "mail_admins"],  # 只处理ERROR及以上
-            "level": "ERROR",
+            # 根记录器 - 捕获所有未被明确处理的日志，只显示INFO及以上
+            "handlers": ["console", "file_error", "mail_admins"],
+            "level": "INFO",
         },
         "django": {
             # Django 请求日志
@@ -420,13 +420,13 @@ LOGGING = {
         "server": {
             # server模块的日志（包括中间件）
             "handlers": ["console", "ego_server"],
-            "level": "INFO",
+            "level": config("LOG_LEVEL"),
             "propagate": False,  # 是否传递给父记录器
         },
         "wallpaper": {
             # wallpaper应用的日志
             "handlers": ["console", "wallpaper_app"],
-            "level": "INFO",
+            "level": config("LOG_LEVEL"),
             "propagate": False,  # 是否传递给父记录器
         },
     },

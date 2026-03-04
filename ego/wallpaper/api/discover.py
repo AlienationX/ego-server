@@ -12,6 +12,8 @@ from rest_framework.viewsets import GenericViewSet, ModelViewSet
 from ..permissions import HasAccessKey
 from ..renderers import CustomJSONRenderer
 
+logger = logging.getLogger(__name__)
+
 
 class ApiModelView(CreateModelMixin, GenericViewSet):
     # CreateAPIView = (CreateModelMixin, GenericViewSet)
@@ -24,18 +26,16 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
     renderer_classes = [CustomJSONRenderer]
 
     def create(self, request, *args, **kwargs):
-        message = "访问 Ollama Library 官网 [https://ollama.com/library](https://ollama.com/library)支持的模型model列表（deepseek、qwen等开源模型，1.5b代表15亿个参数，参数越多模型越强，但是也越大，部署起来配置要求更高）安装ollama后启动：ollama serve拉取相关模型： ollama pull qwen2.5:1.5b、ollama run deepseek-r1:8b默认会有一个窗口，可以下载模型和支持对话，也可以通过api调用。"
-        return Response({"message": message})
-
+        # TODO: 校验img_url是否是http开头，还是local图片。如果是local图片，需要转换为base64编码。
         img_url = request.data.get("img_url")
+        logger.info(f"Discover Analyze img_url: {img_url}")
         if not img_url:
             return Response({"error": "img_url is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-        prompt = """根据图片内容，回答以下问题：
-        1. 用自然柔和的语言，生成图片描述，30字以内
-        2. 生成2到5个中英文标签（tag），用英文逗号分隔，逗号之间不要有空格
-        3. 在以下分类中选择最合适的一个作为图片分类：
-        请将回答内容以json格式返回，key分别为：description, tabs, classify_name
+        prompt = """请扮演一位融合了心理学、艺术评论和人文洞察的分析师。
+        我将给你一张我特别喜欢的图片。请你从色彩心理学、构图焦点、象征元素、整体氛围等多个维度，
+        分析这张图片可能反映出拥有者怎样的性格特质、潜在爱好和当前的情感或精神需求，
+        最后结合基于弗洛伊德的本我、自我、超我理论，给出一个综合的分析结果。
         """
 
         url = "https://open.bigmodel.cn/api/paas/v4/chat/completions"
@@ -53,7 +53,7 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
                             "type": "image_url",
                             "image_url": {
                                 # "url": "https://cloudcovert-1305175928.cos.ap-guangzhou.myqcloud.com/%E5%9B%BE%E7%89%87grounding.PNG"
-                                # "url": img_base
+                                # "url": img_base64
                                 "url": img_url
                             },
                         },
@@ -69,15 +69,15 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
         }
 
         try:
-            response = requests.post(url, headers=headers, json=data, timeout=30)
+            response = requests.post(url, headers=headers, json=data, timeout=180)
             response.raise_for_status()
 
             result = response.json()
-            logging.debug(json.dumps(result, indent=2, ensure_ascii=False))
+            logger.debug(json.dumps(result, indent=2, ensure_ascii=False))
 
             content = result["choices"][0]["message"]["content"].strip()
-            message = json.loads(content)
-            return Response({"message": message})
+            return Response({"content": content})
 
         except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            logging.error(f"Discover Analyze error: {e}", exc_info=True)
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
