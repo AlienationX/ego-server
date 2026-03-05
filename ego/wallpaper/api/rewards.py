@@ -49,7 +49,7 @@ class ApiModelView(ViewSet):
 
         return Response({"access_key": access_key, "count": new_value})
 
-    @action(detail=False, methods=["get"])
+    @action(detail=False, methods=["post"])
     def check(self, request, *args, **kwargs):
         """
         检查激励视频奖励记录
