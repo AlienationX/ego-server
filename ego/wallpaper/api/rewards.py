@@ -54,8 +54,7 @@ class ApiModelView(ViewSet):
         """
         检查激励视频奖励记录
         """
-        data = request.query_params
-        access_key = data.get("access_key")
+        access_key = request.data.get("access_key")
 
         if not access_key:
             return Response(
