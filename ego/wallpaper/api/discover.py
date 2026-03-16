@@ -153,7 +153,9 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
                     # 返回 API 的原始错误信息
                     error_data = response.json()
                     # yield f"data: {json.dumps(error_data)}\n\n"
-                    yield f"data: {json.dumps(error_data.get('error'))}\n\n"
+                    yield f"data: {json.dumps({'content': error_data.get('error', {}).get('message', '')})}\n\n"
+                    yield f"data: {json.dumps({'done': True})}\n\n"
+                    return
 
                 for line in response.iter_lines():
                     if line:
