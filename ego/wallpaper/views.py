@@ -2,7 +2,6 @@ import base64
 import json
 import logging
 import random
-from math import log
 from pathlib import Path
 
 import requests
@@ -35,7 +34,7 @@ def upload(request):
 
         # 分类
         classify_objects = Classify.objects.all().filter(enable=True)
-        classifies = [obj.name for obj in classify_objects]
+        classifies = {obj.id: obj.name for obj in classify_objects}
 
         # 如果是预览操作，处理上传的文件
         if action == "preview":
@@ -156,7 +155,7 @@ def _generate_info_with_llm(img_url):
         # glm-4.7-flash 免费，但只能输入文字
         # https://bigmodel.cn/finance-center/resource-package/package-mgmt
         # glm-4.6v-flash 免费，支持图片输入。glm-4.6v 付费，支持图片输入，2026-03-12到期
-        "model": "glm-4.6v",  # glm-4.6v-flash、glm-4.6v 付费
+        "model": "glm-4.6v-flash",
         "messages": [
             {
                 "role": "user",

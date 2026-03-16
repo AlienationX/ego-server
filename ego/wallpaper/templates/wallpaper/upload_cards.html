@@ -28,7 +28,7 @@
 
           <div class="card-body p-4 gap-3 flex-1 min-w-0 overflow-hidden">
             <input type="hidden" name="filename" value="{{ item.filename }}" />
-            <input type="hidden" name="classify_id" value="{{ item.classify_id }}" />
+            <!-- <input type="hidden" name="classify_id" value="{{ item.classify_id }}" /> -->
             <input type="hidden" name="picurl" value="{{ item.picurl }}" />
             <input type="hidden" name="pic_path_prefix" value="{{ item.pic_path_prefix }}" />
             <input type="hidden" name="save_path_tmp" value="{{ item.save_path_tmp }}" />
@@ -73,10 +73,10 @@
               <label class="label py-1">
                 <span class="label-text text-xs font-medium">分类</span>
               </label>
-              <select name="classify_name" class="select select-bordered select-sm w-full">
+              <select name="classify_id" class="select select-bordered select-sm w-full">
                 <option disabled>请选择分类</option>
-                {% for classify_name in classifies %}
-                <option value="{{ classify_name }}" {% if classify_name == item.classify_name %}selected{% endif %}>{{ classify_name }}</option>
+                {% for classify in classifies %}
+                <option value="{{ classify.classify_id }}" {% if classify.classify_id == item.classify_id %}selected{% endif %}>{{ classify.classify_name }}</option>
                 {% endfor %}
               </select>
             </div>

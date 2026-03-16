@@ -48,7 +48,7 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
             # glm-4.7-flash 免费，但只能输入文字
             # https://bigmodel.cn/finance-center/resource-package/package-mgmt
             # glm-4.6v-flash 免费，支持图片输入。glm-4.6v 付费，支持图片输入，2026-03-12到期
-            "model": "glm-4.6v",  # glm-4.6v-flash、glm-4.6v 付费
+            "model": "glm-4.6v-flash",  # glm-4.6v-flash、glm-4.6v 付费
             "messages": [
                 {
                     "role": "user",
@@ -74,7 +74,14 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
 
         try:
             response = requests.post(url, headers=headers, json=data, timeout=180)
-            response.raise_for_status()
+            # 不使用 raise_for_status()，方法会在 HTTP 状态码为 4xx 或 5xx 时抛出异常
+            # response.raise_for_status()
+
+            # 避免 429 错误抛出异常，显示业务错误信息 https://docs.bigmodel.cn/cn/faq/api-code
+            if response.status_code != 200:
+                # 返回 API 的原始错误信息
+                error_data = response.json()
+                return Response(error_data, status=response.status_code)
 
             result = response.json()
             logger.debug(json.dumps(result, indent=2, ensure_ascii=False))
@@ -114,7 +121,10 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
         url = "https://open.bigmodel.cn/api/paas/v4/chat/completions"
         headers = {"Authorization": f"Bearer {settings.DECOUPLE_CONFIG('ZHIPU_API_KEY')}", "Content-Type": "application/json"}
         data = {
-            "model": "glm-4.6v",
+            # glm-4.7-flash 免费，但只能输入文字
+            # https://bigmodel.cn/finance-center/resource-package/package-mgmt
+            # glm-4.6v-flash 免费，支持图片输入。glm-4.6v 付费，支持图片输入，2026-03-12到期
+            "model": "glm-4.6v-flash",
             "messages": [
                 {
                     "role": "user",
@@ -134,7 +144,16 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
             """生成器函数，用于流式返回数据"""
             try:
                 response = requests.post(url, headers=headers, json=data, timeout=180, stream=True)
-                response.raise_for_status()
+
+                # 不使用 raise_for_status()，方法会在 HTTP 状态码为 4xx 或 5xx 时抛出异常
+                # response.raise_for_status()
+
+                # 避免 429 错误抛出异常，显示业务错误信息 https://docs.bigmodel.cn/cn/faq/api-code
+                if response.status_code != 200:
+                    # 返回 API 的原始错误信息
+                    error_data = response.json()
+                    # yield f"data: {json.dumps(error_data)}\n\n"
+                    yield f"data: {json.dumps({'content': error_data['error']['message']})}\n\n"
 
                 for line in response.iter_lines():
                     if line:

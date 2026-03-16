@@ -41,7 +41,13 @@ class CustomJSONRenderer(JSONRenderer):
         return super().render(formatted_data, accepted_media_type, renderer_context)
 
     def _get_error_message(self, data, response):
-        """提取错误信息"""
+        """
+        提取错误信息，message就返回http错误状态码的文本，比如400就是Bad Request，500就是Internal Server Error
+        data里面就存储相关业务错误信息，比如{"detail": "Invalid input."}
+        """
+
+        return response.status_text
+
         if isinstance(data, dict):
             return data.get("detail") or data.get("error") or response.status_text
         elif isinstance(data, list):
