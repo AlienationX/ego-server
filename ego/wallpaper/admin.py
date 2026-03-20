@@ -41,8 +41,9 @@ class ClassifyAdmin(admin.ModelAdmin):
     def image_preview(self, obj):
         # return self.display_image(obj)
         if obj.picurl:
+            small_picurl = obj.picurl.replace(".jpg", "_small.webp")
             return format_html(
-                '<img src="{}" style="height: 360px; width: auto; border-radius: 4px;" />', ROOT_PIC_URL + "/" + obj.picurl
+                '<img src="{}" style="height: 360px; width: auto; border-radius: 4px;" />', ROOT_PIC_URL + "/" + small_picurl
             )
         return "-"
 
@@ -97,7 +98,8 @@ class WallAdmin(admin.ModelAdmin):
     # 定义图片展示方法
     def display_image(self, obj):
         if obj.picurl:
-            return format_html('<img src="{}" style="max-height: 60px; max-width: 60px;" />', ROOT_PIC_URL + "/" + obj.picurl)
+            small_picurl = obj.picurl.replace(".jpg", "_small.webp")
+            return format_html('<img src="{}" style="max-height: 60px; max-width: 60px;" />', ROOT_PIC_URL + "/" + small_picurl)
         return "-"
 
     display_image.short_description = "图片预览"  # 设置列标题
