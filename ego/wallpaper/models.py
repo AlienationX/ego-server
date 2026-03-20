@@ -69,11 +69,14 @@ class Classify(models.Model):
 
 
 class Subject(models.Model):
-    name = models.CharField(max_length=100, unique=True, verbose_name="专题名称", db_comment="db_comment中显示的名称: 分类名称")
+    name = models.CharField(max_length=100, unique=True, verbose_name="专题名称", db_comment="db_comment中显示的名称: 专题名称")
+    name_en = models.CharField(max_length=100, unique=True, verbose_name="专题英文名称", blank=True, null=True)
     content = models.TextField(verbose_name="专题内容", blank=True, null=True)
-    sort = models.IntegerField(verbose_name="排序")
+    content_en = models.TextField(verbose_name="专题英文内容", blank=True, null=True)
+    sort = models.IntegerField(verbose_name="排序", blank=True, null=True)
     picurl = models.CharField(max_length=255, verbose_name="图片地址")
     select = models.BooleanField(default=False, verbose_name="是否首页推荐")
+    tabs = models.CharField(max_length=200, verbose_name="标签", blank=True, null=True)
     is_active = models.BooleanField(default=True, verbose_name="是否启用")
     is_locked = models.BooleanField(default=False, verbose_name="是否需要解锁")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
@@ -91,6 +94,7 @@ class Wall(models.Model):
     # small_picurl = models.CharField(max_length=255, verbose_name="图片缩略图地址")
     picurl = models.CharField(max_length=255, unique=True, verbose_name="图片地址")
     description = models.CharField(max_length=255, verbose_name="描述", blank=True, null=True)
+    description_en = models.CharField(max_length=255, verbose_name="英文描述", blank=True, null=True)
     publisher = models.CharField(max_length=60, default="unknown", verbose_name="发布者", blank=True, null=True)
     is_active = models.BooleanField(default=True, verbose_name="是否启用")
     is_locked = models.BooleanField(default=False, verbose_name="是否需要解锁")
@@ -154,7 +158,7 @@ class Banner(models.Model):
 
     class Meta:
         verbose_name = "首页横幅"
-        verbose_name_plural = "首页横幅_plural"
+        verbose_name_plural = "首页横幅"
 
 
 class Profile(models.Model):
@@ -177,7 +181,7 @@ class Profile(models.Model):
 
     class Meta:
         verbose_name = "个人信息"
-        verbose_name_plural = "用户个人信息s"
+        verbose_name_plural = "用户个人信息"
 
 
 # # 自动创建Profile对象
@@ -219,8 +223,6 @@ class PageView(models.Model):
 class Access(models.Model):
     ip = models.CharField(max_length=100, verbose_name="ip地址")  #  models.GenericIPAddressField
     address = models.CharField(max_length=255, verbose_name="访问地址", blank=True, null=True)
-    # device_id = models.CharField(max_length=100, verbose_name="设备id", blank=True, null=True)
-    # app_version = models.CharField(max_length=100, verbose_name="app版本号", blank=True, null=True)
     username = models.CharField(max_length=100, verbose_name="用户名", blank=True, null=True)
 
     # client = models.CharField(max_length=100, verbose_name="", blank=True, null=True)  # 客户端类型，如：web、android、ios、wechat、douyin、qq等
@@ -230,6 +232,8 @@ class Access(models.Model):
     platform = models.CharField(max_length=100, verbose_name="平台", blank=True, null=True)
     # 如：google、小米、oppo、vivo、apple等应用商店
     channel = models.CharField(max_length=100, verbose_name="渠道", blank=True, null=True)
+    # device_id = models.CharField(max_length=100, verbose_name="设备id", blank=True, null=True)
+    app_version = models.CharField(max_length=100, verbose_name="app版本号", blank=True, null=True)
 
     access_time = models.DateTimeField(auto_now_add=True, verbose_name="访问时间")
     remark = models.JSONField(default=dict, verbose_name="备注", blank=True, null=True)  # desciption
@@ -243,7 +247,7 @@ class Access(models.Model):
 
     class Meta:
         verbose_name = "访问日志详情"
-        verbose_name_plural = "访问日志"
+        verbose_name_plural = "访问日志_plural"
 
 
 class Feedback(models.Model):

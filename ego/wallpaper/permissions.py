@@ -11,14 +11,12 @@ class HasAccessKey(BasePermission):
         access_key = request.headers.get("Access-Key", None)
         secret_key = settings.SECRET_KEY
 
-        logger.debug(f"verify access_key: {access_key}, secret_key: {secret_key}")
+        # logger.debug(f"verify access_key: {access_key}, secret_key: {secret_key}")
         return access_key == secret_key
 
 
 class IsSuperUser(BasePermission):
-    """
-    仅允许超级管理员访问
-    """
+    """仅允许超级管理员访问"""
 
     message = "仅超级管理员可访问此接口"
 

@@ -28,7 +28,7 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
     renderer_classes = [CustomJSONRenderer]
 
     def create(self, request, *args, **kwargs):
-        # 直接返回太耗时，不推荐使用
+        # 直接返回太耗时，强烈不推荐使用
 
         # TODO: 校验img_url是否是http开头，还是local图片。如果是local图片，需要转换为base64编码。
         img_url = request.data.get("img_url")
@@ -189,8 +189,14 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
         response["X-Accel-Buffering"] = "no"  # 禁用 Nginx 缓冲
         return response
 
-    def _zhipu_chat(self, prompt, img_url):
-        """
-        调用智普AI接口，返回分析结果
-        """
+    def _zhipu_ai(self, prompt, img_url):
+        """调用智普AI接口，返回分析结果"""
+        pass
+
+    def _deepseek_ai(self, prompt, img_url):
+        """调用Deepseek AI接口，返回分析结果"""
+        pass
+
+    def _openai_ai(self, prompt, img_url):
+        """调用OpenAI AI接口，返回分析结果"""
         pass

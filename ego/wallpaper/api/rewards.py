@@ -14,21 +14,18 @@ logger = logging.getLogger(__name__)
 
 
 class ApiModelView(ViewSet):
-    """激励视频奖励接口，接收前端传来的奖励相关参数，进行记录"""
-
     permission_classes = []  # uni-ad设置的回调函数，不支持key或token的设置，暂时关闭
     # pagination_class = CustomPageNumberPagination
     renderer_classes = [CustomJSONRenderer]
 
     def list(self, request, *args, **kwargs):
+        """uniapp-ad回调函数，接收前端传来的奖励相关参数，进行记录"""
         queryParams = request.query_params
         logger.info(f"Uniapp received query parameters: {queryParams}")
         return Response({"Uniapp queryParams": queryParams})
 
     def create(self, request, *args, **kwargs):
-        """
-        新增激励视频奖励记录
-        """
+        """新增激励视频奖励记录"""
         access_key = request.data.get("access_key")
         if access_key:
             # 检查access_key是否符合要求
@@ -51,9 +48,7 @@ class ApiModelView(ViewSet):
 
     @action(detail=False, methods=["post"])
     def check(self, request, *args, **kwargs):
-        """
-        检查激励视频奖励记录
-        """
+        """检查激励视频奖励记录"""
         access_key = request.data.get("access_key")
 
         if not access_key:

@@ -5,9 +5,11 @@ from datetime import datetime, timedelta
 
 from django.core.cache import cache
 from django.db.models import F, Func, Q, Value
+from django.forms.models import model_to_dict
 from django.shortcuts import render
+from rest_framework import status
 from rest_framework.decorators import action
-from rest_framework.mixins import ListModelMixin, RetrieveModelMixin
+from rest_framework.mixins import CreateModelMixin, ListModelMixin, UpdateModelMixin
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ModelViewSet
@@ -21,9 +23,10 @@ from ..serializers import WallSerializer
 logger = logging.getLogger(__name__)
 
 
-class ApiModelView(ListModelMixin, RetrieveModelMixin, GenericViewSet):
+class ApiModelView(ListModelMixin, CreateModelMixin, GenericViewSet):
     queryset = Wall.objects.select_related("classify").all()
     serializer_class = WallSerializer
+    permission_classes = [HasAccessKey]
     pagination_class = CustomPageNumberPagination  # 使用自定义分页类
     renderer_classes = [CustomJSONRenderer]  # 使用自定义渲染器，额外统一增加code和message字段。默认是JSONRenderer
 
@@ -122,6 +125,28 @@ class ApiModelView(ListModelMixin, RetrieveModelMixin, GenericViewSet):
             paginated_data = paginator.paginate_queryset(data, request)
             return paginator.get_paginated_response(paginated_data)
         return Response(data)
+
+    def create(self, request, *args, **kwargs):
+        """更新壁纸相关信息，如名称、描述、分类等。update接口是put请求，为了统一接口，这里使用create"""
+        user = request.user
+        if not user.is_authenticated or not user.is_staff:
+            return Response({"error": "您没有权限修改壁纸信息"}, status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            data = request.data.copy()
+            wall_obj = self.queryset.filter(id=data.get("id")).first()
+            if not wall_obj:
+                return Response({"error": "壁纸不存在"}, status=status.HTTP_404_NOT_FOUND)
+
+            data.pop("id", None)
+            # 更新数据，类似于 wall_obj.classify_id = classify_id, wall_obj.description = description
+            for attr, value in data.items():
+                setattr(wall_obj, attr, value)
+            wall_obj.save(update_fields=list(data.keys()))  # 仅更新变化的字段
+            return Response(model_to_dict(wall_obj))
+        except Exception as e:
+            logger.error(e, exc_info=True)
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=False, methods=["get"])
     def random_daily(self, request):

@@ -20,7 +20,6 @@ logger = logging.getLogger(__name__)
 
 
 class ApiModelView(CreateModelMixin, ListModelMixin, UpdateModelMixin, GenericViewSet):
-
     queryset = Actions.objects.all()
     serializer_class = ActionsSerializer
     # authentication_classes = [JSONWebTokenAuthentication]  # JWT 认证, 已在settings中全局配置
@@ -110,5 +109,5 @@ class ApiModelView(CreateModelMixin, ListModelMixin, UpdateModelMixin, GenericVi
         return Response(serializer.data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
 
     def update(self, request, *args, **kwargs):
-        """更新用户对壁纸的操作记录，如收藏、下载、评分等。其实应该使用 update 方法，因为是 upsert 操作。"""
+        """更新用户对壁纸的操作记录，如收藏、下载、评分等。其实应该使用 update 方法，因为是 upsert 操作。该接口暂时未使用"""
         return super().update(request, *args, **kwargs)

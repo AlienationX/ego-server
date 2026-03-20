@@ -5,7 +5,6 @@ from pathlib import Path
 import requests
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.db import connection
 from PIL import Image
 from rest_framework import status
 from rest_framework.decorators import action
@@ -20,13 +19,12 @@ from ..models import Actions, Profile
 from ..paginations import CustomPageNumberPagination
 from ..permissions import HasAccessKey
 from ..renderers import CustomJSONRenderer
-from ..serializers import ProfileSerializer, UserSerializer, WallSerializer
+from ..serializers import ProfileSerializer, UserSerializer
 
 logger = logging.getLogger(__name__)
 
 
 class ApiModelView(RetrieveModelMixin, GenericViewSet):
-
     queryset = User.objects.select_related("profile").all()
     serializer_class = UserSerializer
     # authentication_classes = [JSONWebTokenAuthentication]  # JWT 认证, 已在settings中全局配置
@@ -106,7 +104,6 @@ class ApiModelView(RetrieveModelMixin, GenericViewSet):
         return Response(ProfileSerializer(profile).data)
 
     def _update_avatar(self, uploaded_file, user_id):
-
         if not uploaded_file:
             raise Exception("未提供文件")
 
@@ -144,12 +141,42 @@ class ApiModelView(RetrieveModelMixin, GenericViewSet):
 
         return avatar_url, file_save_path
 
-    # @action(detail=False, methods=["post"])
-    # def energy(self, request):
-    #     # JWT通过，会将user放入到request.user中，没有登录默认返回是AnonymousUser
-    #     user = request.user
-    #     return Response(data)
+    @action(detail=False, methods=["post"])
+    def change_password(self, request):
+        """修改密码（需要验证旧密码，需要用户登录状态）"""
+        user = request.user
+        old_password = request.data.get("old_password")
+        new_password = request.data.get("new_password")
+        confirm_password = request.data.get("confirm_password")
 
+        if not old_password or not new_password or not confirm_password:
+            return Response(
+                {"error": "old_password, new_password, confirm_password 不能为空"}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # 验证新密码和确认密码是否一致
+        if new_password != confirm_password:
+            return Response({"error": "新密码和确认密码不一致"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 验证旧密码
+        if not user.check_password(old_password):
+            return Response({"error": "旧密码错误"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 验证新密码长度
+        if len(new_password) < 6:
+            return Response({"error": "新密码长度不能少于6位"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 设置新密码
+        try:
+            user.set_password(new_password)
+            user.save(update_fields=["password"])
+            logger.info(f"用户 {user.id} {user.username} 修改密码成功")
+            return Response({"msg": "密码修改成功"})
+        except Exception as e:
+            logger.error(f"用户 {user.id} {user.username} 修改密码失败: {e}")
+            return Response({"error": f"修改密码失败: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    # 类似me接口，但是做权限控制。故暂时不开放，后续再考虑是否需要
     # def retrieve(self, request, *args, **kwargs):
     #     # 获取路径上的pk/id值
     #     # print(self.kwargs)

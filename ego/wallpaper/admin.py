@@ -17,8 +17,10 @@ from .models import (
     Wall,
 )
 
-ROOT_PIC_URL = "https://wallpaper-kpze6c.s3.eu-north-1.amazonaws.com/"
 # ROOT_PIC_URL = "https://mp-36059119-7390-44c6-8190-cc3527d1e745.cdn.bspapp.com/wallpaper"
+# ROOT_PIC_URL = "https://wallpaper-kpze6c.s3.eu-north-1.amazonaws.com"
+# ROOT_PIC_URL = "https://wp-1328701250.cos.ap-beijing.myqcloud.com"
+ROOT_PIC_URL = "https://api.wp.ego8.space/static/wallpaper/media"
 
 
 class ClassifyAdmin(admin.ModelAdmin):
@@ -40,7 +42,7 @@ class ClassifyAdmin(admin.ModelAdmin):
         # return self.display_image(obj)
         if obj.picurl:
             return format_html(
-                '<img src="{}" style="height: 360px; width: auto; border-radius: 4px;" />', ROOT_PIC_URL + obj.picurl
+                '<img src="{}" style="height: 360px; width: auto; border-radius: 4px;" />', ROOT_PIC_URL + "/" + obj.picurl
             )
         return "-"
 
@@ -95,7 +97,7 @@ class WallAdmin(admin.ModelAdmin):
     # 定义图片展示方法
     def display_image(self, obj):
         if obj.picurl:
-            return format_html('<img src="{}" style="max-height: 60px; max-width: 60px;" />', ROOT_PIC_URL + obj.picurl)
+            return format_html('<img src="{}" style="max-height: 60px; max-width: 60px;" />', ROOT_PIC_URL + "/" + obj.picurl)
         return "-"
 
     display_image.short_description = "图片预览"  # 设置列标题
@@ -108,7 +110,7 @@ class WallAdmin(admin.ModelAdmin):
         # return self.display_image(obj)
         if obj.picurl:
             return format_html(
-                '<img src="{}" style="height: 640px; width: auto; border-radius: 4px;" />', ROOT_PIC_URL + obj.picurl
+                '<img src="{}" style="height: 640px; width: auto; border-radius: 4px;" />', ROOT_PIC_URL + "/" + obj.picurl
             )
         return "-"
 
@@ -137,8 +139,18 @@ class NoticeAdmin(admin.ModelAdmin):
 
 @admin.register(Access)
 class AccessAdmin(admin.ModelAdmin):
-    list_display = ("ip", "address", "platform", "channel", "access_time")
-    fields = ("ip", "address", "username", "source", "platform", "channel", "access_time", "remark_json")  # 可以控制顺序
+    list_display = ("ip", "address", "platform", "channel", "app_version", "access_time")
+    fields = (
+        "ip",
+        "address",
+        "username",
+        "source",
+        "platform",
+        "channel",
+        "app_version",
+        "access_time",
+        "remark_json",
+    )  # 可以控制顺序
     readonly_fields = ("access_time", "remark_json")
 
     def remark_json(self, obj):
