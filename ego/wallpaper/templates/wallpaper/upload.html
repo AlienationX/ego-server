@@ -43,6 +43,7 @@
         <!-- TODO 无法获取 hx-vals数据，暂时使用隐藏元素传递action参数 -->
         <!-- <input type="hidden" name="action" value="preview"> -->
         <button 
+          id="upload-preview-btn"
           type="button"
           class="btn btn-sm btn-primary w-28" 
           hx-post="{% url 'wallpaper:upload' %}" 
@@ -58,6 +59,10 @@
             上传中...
           </span>
         </button>
+
+        <div id="upload-timer" class="hidden text-sm text-gray-500 tabular-nums whitespace-nowrap">
+          耗时 <span id="upload-timer-value">0.0</span>s
+        </div>
 
       </div>
     </form>
@@ -79,5 +84,75 @@
     <li>HTMX 会把表单替换目标区域替换为服务器返回的 HTML，请在服务器端返回合适的片段。</li>
   </ul>
 </div>
+
+<script>
+  (function () {
+    const uploadButton = document.getElementById("upload-preview-btn");
+    const timer = document.getElementById("upload-timer");
+    const timerValue = document.getElementById("upload-timer-value");
+    const uploadCards = document.getElementById("upload-cards");
+
+    if (!uploadButton || !timer || !timerValue) return;
+
+    let startAt = null;
+    let timerId = null;
+
+    function tick() {
+      if (!startAt) return;
+      const elapsed = (Date.now() - startAt) / 1000;
+      timerValue.textContent = elapsed.toFixed(1);
+    }
+
+    function startTimer() {
+      startAt = Date.now();
+      tick();
+      timer.classList.remove("hidden");
+      if (timerId) window.clearInterval(timerId);
+      timerId = window.setInterval(tick, 100);
+
+      document.querySelectorAll("#upload-cards .alert").forEach(function (alert) {
+        alert.classList.add("hidden");
+      });
+      if (uploadCards) {
+        uploadCards.classList.add("hidden");
+      }
+    }
+
+    function stopTimer() {
+      tick();
+      if (timerId) {
+        window.clearInterval(timerId);
+        timerId = null;
+      }
+      if (uploadCards) {
+        uploadCards.classList.remove("hidden");
+      }
+    }
+
+    document.body.addEventListener("htmx:beforeRequest", function (event) {
+      if (event.target === uploadButton) {
+        startTimer();
+      }
+    });
+
+    document.body.addEventListener("htmx:afterRequest", function (event) {
+      if (event.target === uploadButton) {
+        stopTimer();
+      }
+    });
+
+    document.body.addEventListener("htmx:responseError", function (event) {
+      if (event.target === uploadButton) {
+        stopTimer();
+      }
+    });
+
+    document.body.addEventListener("htmx:sendError", function (event) {
+      if (event.target === uploadButton) {
+        stopTimer();
+      }
+    });
+  })();
+</script>
 
 {% endblock %}

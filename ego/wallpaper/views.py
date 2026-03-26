@@ -34,7 +34,7 @@ def upload(request):
 
         # 分类
         classify_objects = Classify.objects.all().filter(enable=True)
-        classifies = {obj.id: obj.name for obj in classify_objects}
+        classifies = [{"id": obj.id, "name": obj.name} for obj in classify_objects]
 
         # 如果是预览操作，处理上传的文件
         if action == "preview":
@@ -141,7 +141,7 @@ def _generate_info_with_llm(img_url):
     1. 用自然柔和的语言，生成图片描述,30字以内。
     2. 生成3到6个中英文标签，用英文逗号分隔，逗号之间不要有空格。
     3. 在以下分类中选择最合适的一个作为图片分类：{", ".join(classcfy_name)}。
-    请按照以下 JSON 格式返回分析结果：
+    请按照以下 JSON 格式返回分析结果（不要有任何样式或格式化）：
     {{
         "description": "报纸纹理的动漫角色，蓝色调，侧身姿态，文字元素点缀",
         "tabs": "海贼王,路飞,anime",
@@ -180,7 +180,15 @@ def _generate_info_with_llm(img_url):
 
     try:
         response = requests.post(url, headers=headers, json=data, timeout=60)
-        response.raise_for_status()
+        # 不使用 raise_for_status()，方法会在 HTTP 状态码为 4xx 或 5xx 时抛出异常
+        # response.raise_for_status()
+
+        # 避免 429 错误抛出异常，显示业务错误信息 https://docs.bigmodel.cn/cn/faq/api-code
+        if response.status_code != 200:
+            # 返回 API 的原始错误信息
+            # {'error': {'code': '1305', 'message': '该模型当前访问量过大，请您稍后再试'}}
+            error_data = response.json()
+            return error_data
 
         result = response.json()
         logger.debug(json.dumps(result, indent=2, ensure_ascii=False))
@@ -209,7 +217,7 @@ def _save_wallpaper(form_data, i):
     record = {
         "description": form_data.getlist("description")[i],
         "tabs": form_data.getlist("tabs")[i],
-        "score": round(random.uniform(4, 5), 1),
+        "score": form_data.getlist("score")[i],
         "publisher": form_data.getlist("publisher")[i],
         "is_active": True,
         "is_locked": is_locked,
@@ -231,7 +239,7 @@ def _save_wallpaper(form_data, i):
     upload_file_to_s3(resize_path, s3_prefix=f"{pic_path_prefix}/")
 
     # # 上传到 cos
-    upload_file_to_cos(resize_path, cos_prefix=f"{pic_path_prefix}/")
+    # upload_file_to_cos(resize_path, cos_prefix=f"{pic_path_prefix}/")
 
     # 上传到数据库
     obj, created = Wall.objects.get_or_create(

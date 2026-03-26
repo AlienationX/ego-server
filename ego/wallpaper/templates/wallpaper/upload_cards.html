@@ -76,7 +76,7 @@
               <select name="classify_id" class="select select-bordered select-sm w-full">
                 <option disabled>请选择分类</option>
                 {% for classify in classifies %}
-                <option value="{{ classify.classify_id }}" {% if classify.classify_id == item.classify_id %}selected{% endif %}>{{ classify.classify_name }}</option>
+                <option value="{{ classify.id }}" {% if classify.id == item.classify_id %}selected{% endif %}>{{ classify.name }}</option>
                 {% endfor %}
               </select>
             </div>
@@ -122,6 +122,7 @@
     <div class="flex flex-wrap gap-3 justify-start">
       <!-- <input type="hidden" name="action" value="save"> -->
       <button 
+        id="save-all-btn"
         type="button" class="btn btn-sm btn-primary"
         hx-post="{% url 'wallpaper:upload' %}"
         hx-include="#cards-form"
@@ -137,6 +138,9 @@
       </button>
       <button type="button" class="btn btn-sm btn-secondary">生成全部分类</button>
       <button type="button" class="btn btn-sm btn-ghost">添加示例卡</button>
+      <div id="save-all-timer" class="hidden text-sm text-gray-500 tabular-nums whitespace-nowrap self-center">
+        耗时 <span id="save-all-timer-value">0.0</span>s
+      </div>
     </div>
   </form>
   {% endif %}
@@ -151,3 +155,61 @@
   </div>
   {% endif %}
 </div>
+
+<script>
+  (function () {
+    const saveButton = document.getElementById("save-all-btn");
+    const timer = document.getElementById("save-all-timer");
+    const timerValue = document.getElementById("save-all-timer-value");
+
+    if (!saveButton || !timer || !timerValue) return;
+
+    let startAt = null;
+    let timerId = null;
+
+    function tick() {
+      if (!startAt) return;
+      timerValue.textContent = ((Date.now() - startAt) / 1000).toFixed(1);
+    }
+
+    function startTimer() {
+      startAt = Date.now();
+      tick();
+      timer.classList.remove("hidden");
+      if (timerId) window.clearInterval(timerId);
+      timerId = window.setInterval(tick, 100);
+    }
+
+    function stopTimer() {
+      tick();
+      if (timerId) {
+        window.clearInterval(timerId);
+        timerId = null;
+      }
+    }
+
+    document.body.addEventListener("htmx:beforeRequest", function (event) {
+      if (event.target === saveButton) {
+        startTimer();
+      }
+    });
+
+    document.body.addEventListener("htmx:afterRequest", function (event) {
+      if (event.target === saveButton) {
+        stopTimer();
+      }
+    });
+
+    document.body.addEventListener("htmx:responseError", function (event) {
+      if (event.target === saveButton) {
+        stopTimer();
+      }
+    });
+
+    document.body.addEventListener("htmx:sendError", function (event) {
+      if (event.target === saveButton) {
+        stopTimer();
+      }
+    });
+  })();
+</script>
