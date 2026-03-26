@@ -1,6 +1,5 @@
 import logging
 import random
-import string
 import uuid
 from datetime import datetime
 
@@ -15,8 +14,10 @@ from rest_framework.mixins import CreateModelMixin
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ModelViewSet, ViewSet
 
+from ..business_status import BusinessStatus
 from ..permissions import HasAccessKey
 from ..renderers import CustomJSONRenderer
+from ..responses import BusinessResponse
 from ..serializers import UserProfileSerializer
 
 logger = logging.getLogger(__name__)
@@ -32,11 +33,11 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
     def create(self, request, *args, **kwargs):
         """校验验证码"""
         code = request.data.get("code")
-        if not code:
-            return Response({"error": "缺少code参数"}, status=status.HTTP_400_BAD_REQUEST)
-
         email = request.data.get("email")
         phone = request.data.get("phone")
+
+        if not code:
+            return Response({"error": "缺少code参数"}, status=status.HTTP_400_BAD_REQUEST)
 
         if email:
             code_cache_key = f"email_verification_code:{email}"
@@ -48,10 +49,10 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
         cached_code = cache.get(code_cache_key)
 
         if not cached_code:
-            return Response({"error": "验证码已过期或不存在"}, status=status.HTTP_400_BAD_REQUEST)
+            return BusinessResponse({"error": "验证码已过期或不存在"}, business_status=BusinessStatus.AUTH_ERROR)
 
         if cached_code != code:
-            return Response({"error": "验证码错误"}, status=status.HTTP_400_BAD_REQUEST)
+            return BusinessResponse({"error": "验证码错误"}, business_status=BusinessStatus.AUTH_ERROR)
 
         # 验证成功后，返回reset_token，用于后续的重置密码请求必须携带此令牌，确保流程连续性。
         reset_token = str(uuid.uuid4()).replace("-", "")
@@ -72,13 +73,13 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
         if not new_password or not confirm_password or new_password != confirm_password:
             return Response({"error": "new_password 和 confirm_password 不能为空 或不一致"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # 验证新密码长度
-        if len(new_password) < 6:
-            return Response({"error": "新密码长度不能少于6位"}, status=status.HTTP_400_BAD_REQUEST)
-
         # 验证reset_token
         if not reset_token:
             return Response({"error": "reset_token 不能为空"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 验证新密码长度
+        if len(new_password) < 6:
+            return BusinessResponse({"error": "新密码长度不能少于6位"}, business_status=BusinessStatus.AUTH_ERROR)
 
         # 验证reset_token是否匹配
         token_cache_key = f"reset_token:{reset_token}"

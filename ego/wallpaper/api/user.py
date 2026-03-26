@@ -15,10 +15,12 @@ from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ModelViewSet, ViewSet
 from rest_framework_simplejwt.exceptions import AuthenticationFailed
 
+from ..business_status import BusinessStatus
 from ..models import Actions, Profile
 from ..paginations import CustomPageNumberPagination
 from ..permissions import HasAccessKey
 from ..renderers import CustomJSONRenderer
+from ..responses import BusinessResponse
 from ..serializers import ProfileSerializer, UserSerializer
 
 logger = logging.getLogger(__name__)
@@ -156,15 +158,15 @@ class ApiModelView(RetrieveModelMixin, GenericViewSet):
 
         # 验证新密码和确认密码是否一致
         if new_password != confirm_password:
-            return Response({"error": "新密码和确认密码不一致"}, status=status.HTTP_400_BAD_REQUEST)
+            return BusinessResponse({"error": "新密码和确认密码不一致"}, business_status=BusinessStatus.AUTH_ERROR)
 
         # 验证旧密码
         if not user.check_password(old_password):
-            return Response({"error": "旧密码错误"}, status=status.HTTP_400_BAD_REQUEST)
+            return BusinessResponse({"error": "旧密码错误"}, business_status=BusinessStatus.AUTH_ERROR)
 
         # 验证新密码长度
         if len(new_password) < 6:
-            return Response({"error": "新密码长度不能少于6位"}, status=status.HTTP_400_BAD_REQUEST)
+            return BusinessResponse({"error": "新密码长度不能少于6位"}, business_status=BusinessStatus.AUTH_ERROR)
 
         # 设置新密码
         try:
@@ -175,6 +177,13 @@ class ApiModelView(RetrieveModelMixin, GenericViewSet):
         except Exception as e:
             logger.error(f"用户 {user.id} {user.username} 修改密码失败: {e}")
             return Response({"error": f"修改密码失败: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=["post"])
+    def deactivate(self, request):
+        user = request.user
+        user.is_active = False
+        user.save()
+        return Response({"msg": "用户已停用"})
 
     # 类似me接口，但是做权限控制。故暂时不开放，后续再考虑是否需要
     # def retrieve(self, request, *args, **kwargs):

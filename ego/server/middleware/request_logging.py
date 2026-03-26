@@ -1,6 +1,7 @@
 import logging
 import time
 
+from django.conf import settings
 from django.http import JsonResponse
 
 logger = logging.getLogger(__name__)
@@ -64,26 +65,41 @@ class RequestLoggingMiddleware:
 
         return response
 
-    def process_view(self, request, view_func, view_args, view_kwargs):
-        """在视图函数执行前调用"""
-        # logger.info(f"process_view: 即将执行视图 {view_func.__name__}")
-        pass
-
     # 可选：处理异常日志
     def process_exception(self, request, exception):
-        """当视图抛出异常时调用"""
+        """当视图抛出异常时调用，比如代码错误等没有使用try except捕获的"""
+
+        # 记录完整的异常信息和堆栈跟踪
         logger.error(
-            f"Unhandled exception [middleware]: {request.META.get('REMOTE_ADDR')} {request.method} {request.path} Error:\n {exception}",
+            f"全局异常捕获[middleware]: {request.method} {request.path}\n"
+            f"异常类型: {type(exception).__name__}\n"
+            f"异常信息: {str(exception)}\n"
+            f"IP: {request.META.get('REMOTE_ADDR')}\n"
+            f"用户: {request.user if request.user.is_authenticated else 'Anonymous'}",
             exc_info=True,
         )
 
         # 如果是API请求（根据请求头或路径判断），返回JSON格式的错误
         if ("/api/") in request.path:
-            return JsonResponse({"code": "500", "message": "middleware 服务器内部错误", "detail": str(exception)}, status=500)
+            error_data = {
+                "code": "500",
+                "message": "Internal Server Error",
+                "detail": str(exception) if settings.DEBUG else "Internal Server Error",
+            }
+            return JsonResponse(error_data, status=500)
 
+        # 或者返回 500.html 模板
         return None
 
-    # def process_template_response(self, request, response):
-    #     """当视图返回 TemplateResponse 时调用"""
-    #     logger.info("当视图返回 TemplateResponse 时调用")
-    #     return response
+    def process_view(self, request, view_func, view_args, view_kwargs):
+        """在视图函数执行前调用"""
+        # logger.debug(
+        #     f"process_view: 即将执行视图 {type(view_func)}, {view_func}, {view_func.__name__}, {view_func.__module__}, 参数: {view_args}, {view_kwargs}"
+        # )
+
+    def process_template_response(self, request, response):
+        """当视图返回 TemplateResponse 时调用"""
+        # logger.debug(
+        #     f"process_template_response: 即将返回 TemplateResponse {type(response)}, {response}, {response.template_name}, {response.status_code} {response.content_type}"
+        # )
+        return response

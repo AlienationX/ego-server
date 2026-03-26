@@ -6,12 +6,12 @@ from rest_framework.renderers import JSONRenderer
 
 
 class CustomJSONRenderer(JSONRenderer):
-    def render(self, data, accepted_media_type=None, renderer_context=None):
-        response = renderer_context.get("response") if renderer_context else None
-        code = response.status_code if response else status.HTTP_500_INTERNAL_SERVER_ERROR
-        # message = "success" if code < 400 else self._get_error_message(data, response)
-        message = "success" if code == status.HTTP_200_OK else self._get_error_message(data, response)
+    """
+    自定义JSON渲染器，添加code和message字段
+    接收到的响应码由两部分组成：外层是 HTTP 状态码，内层是响应体正文中的定义的业务错误码，提供了更具体的错误描述。
+    """
 
+    def render(self, data, accepted_media_type=None, renderer_context=None):
         # 获取请求开始时间（需通过中间件或视图记录）, 每个接口增加cost_time耗时字段
         request = renderer_context["request"]
         if hasattr(request, "start_time"):
@@ -19,38 +19,22 @@ class CustomJSONRenderer(JSONRenderer):
         else:
             duration = None
 
+        response = renderer_context.get("response") if renderer_context else None
+        # 从BusinessResponse响应体中获取code和message字段
+        code = data["code"] if "code" in data else response.status_code
+        message = data["message"] if "message" in data else response.status_text
+        data = data["data"] if "data" in data else data
+
+        formatted_data = {
+            "code": code,
+            "message": message,
+            "data": data,
+            "duration": f"{duration:.2f}s",
+        }
+
+        # 增加 pagination 字段和 duration 字段
         # 判断是否为分页响应
-        if isinstance(data, dict) and "pagination" in data and "data" in data:
-            formatted_data = {
-                "code": code,
-                "message": message,
-                "pagination": data["pagination"],  # 分页信息
-                "data": data["data"],  # 分页数据
-                # "data": data["data"] if code == status.HTTP_200_OK else [],  # 如果报错返回空列表
-                "duration": f"{duration:.2f}s",
-            }
-        else:
-            formatted_data = {
-                "code": code,
-                "message": message,
-                "data": data,  # 非分页数据
-                # "data": data if code == status.HTTP_200_OK else [],              # 如果报错返回空列表
-                "duration": f"{duration:.2f}s",
-            }
+        if "pagination" in data:
+            formatted_data["pagination"] = data["pagination"]
 
         return super().render(formatted_data, accepted_media_type, renderer_context)
-
-    def _get_error_message(self, data, response):
-        """
-        提取错误信息，message就返回http错误状态码的文本，比如400就是Bad Request，500就是Internal Server Error
-        data里面就存储相关业务错误信息，比如{"detail": "Invalid input."}
-        """
-
-        return response.status_text
-
-        if isinstance(data, dict):
-            return data.get("detail") or data.get("error") or response.status_text
-        elif isinstance(data, list):
-            return data[0] if len(data) > 0 else response.status_text
-        else:
-            return response.status_text

@@ -22,7 +22,6 @@ logger = logging.getLogger(__name__)
 
 
 class ApiModelView(CreateModelMixin, GenericViewSet):
-
     queryset = User.objects.select_related("profile").all()
     # serializer_class = ProfileSerializer
     # permission_classes = [HasAccessKey, IsAuthenticated]
@@ -38,7 +37,7 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
         if not email or not password:
             return Response({"error": "缺少email或password参数"}, status=status.HTTP_400_BAD_REQUEST)
 
-        user = User.objects.filter(email=email).first()
+        user = self.queryset.filter(email=email).first()
         # if not user:
         #     return Response({"error": "用户不存在"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -49,11 +48,16 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
         #     return Response({"error": "用户未激活"}, status=status.HTTP_400_BAD_REQUEST)
 
         if not user or not user.check_password(password) or not user.is_active:
-            raise AuthenticationFailed("Invalid Email or Password")
+            # raise AuthenticationFailed("Invalid Email or Password")
+            return Response({"error": "Invalid Email or Password"}, status=status.HTTP_401_UNAUTHORIZED)
 
         # 更新最后登录时间
         user.last_login = timezone.now()
         user.save(update_fields=["last_login"])
+
+        # 如果profile不存在，创建一条记录
+        if not hasattr(user, "profile"):
+            Profile.objects.create(user=user)
 
         refresh = RefreshToken.for_user(user)
         return Response(
