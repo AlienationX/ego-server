@@ -176,6 +176,7 @@
       startAt = Date.now();
       tick();
       timer.classList.remove("hidden");
+      saveButton.disabled = true;
       if (timerId) window.clearInterval(timerId);
       timerId = window.setInterval(tick, 100);
     }
@@ -186,6 +187,7 @@
         window.clearInterval(timerId);
         timerId = null;
       }
+      saveButton.disabled = false;
     }
 
     document.body.addEventListener("htmx:beforeRequest", function (event) {

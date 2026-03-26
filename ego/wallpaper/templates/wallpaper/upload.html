@@ -107,6 +107,7 @@
       startAt = Date.now();
       tick();
       timer.classList.remove("hidden");
+      uploadButton.disabled = true;
       if (timerId) window.clearInterval(timerId);
       timerId = window.setInterval(tick, 100);
 
@@ -124,6 +125,7 @@
         window.clearInterval(timerId);
         timerId = null;
       }
+      uploadButton.disabled = false;
       if (uploadCards) {
         uploadCards.classList.remove("hidden");
       }
