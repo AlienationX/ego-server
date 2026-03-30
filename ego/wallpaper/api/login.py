@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 class ApiModelView(CreateModelMixin, GenericViewSet):
     queryset = User.objects.select_related("profile").all()
     # serializer_class = ProfileSerializer
-    # permission_classes = [HasAccessKey, IsAuthenticated]
+    permission_classes = [HasAccessKey]
     permission_classes = []
     renderer_classes = [CustomJSONRenderer]
 

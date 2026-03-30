@@ -1,7 +1,6 @@
 # your_app/renderers.py
 import time
 
-from rest_framework import status
 from rest_framework.renderers import JSONRenderer
 
 
