@@ -4,18 +4,19 @@ import boto3
 from django.conf import settings
 from loguru import logger
 
-s3_client = boto3.client(
-    "s3",
-    aws_access_key_id=settings.DECOUPLE_CONFIG("AWS_ACCESS_KEY_ID"),
-    aws_secret_access_key=settings.DECOUPLE_CONFIG("AWS_SECRET_ACCESS_KEY"),
-    region_name="eu-north-1",
-)
 
-bucket_name = "wallpaper-kpze6c"
+def get_s3_client():
+    return boto3.client(
+        "s3",
+        aws_access_key_id=settings.DECOUPLE_CONFIG("AWS_ACCESS_KEY_ID"),
+        aws_secret_access_key=settings.DECOUPLE_CONFIG("AWS_SECRET_ACCESS_KEY"),
+        region_name="eu-north-1",
+    )
 
 
-def upload_file_to_s3(file: Path, bucket_name=bucket_name, s3_prefix=""):
+def upload_file_to_s3(file: Path, bucket_name="wallpaper-kpze6c", s3_prefix=""):
     try:
+        s3_client = get_s3_client()
         files = [file, file.with_name(f"{file.stem}_small.webp")]
         for f in files:
             if not f.exists():

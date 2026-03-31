@@ -4,26 +4,28 @@ from django.conf import settings
 from loguru import logger
 from qcloud_cos import CosConfig, CosS3Client
 
-# 用户的 SecretId，建议使用子账号密钥，授权遵循最小权限指引，降低使用风险。子账号密钥获取可参见 https://cloud.tencent.com/document/product/598/37140
-secret_id = settings.DECOUPLE_CONFIG("COS_SECRET_ID")
 
-# 用户的 SecretKey，建议使用子账号密钥，授权遵循最小权限指引，降低使用风险。子账号密钥获取可参见 https://cloud.tencent.com/document/product/598/37140
-secret_key = settings.DECOUPLE_CONFIG("COS_SECRET_KEY")
+def get_cos_client():
+    """懒加载 COS 客户端，避免模块导入时就初始化"""
+    # 用户的 SecretId，建议使用子账号密钥，授权遵循最小权限指引，降低使用风险。子账号密钥获取可参见 https://cloud.tencent.com/document/product/598/37140
+    secret_id = settings.DECOUPLE_CONFIG("COS_SECRET_ID")
 
-# 替换为用户的 region，已创建桶归属的 region 可以在控制台查看，https://console.cloud.tencent.com/cos5/bucket
-region = "ap-beijing"
+    # 用户的 SecretKey，建议使用子账号密钥，授权遵循最小权限指引，降低使用风险。子账号密钥获取可参见 https://cloud.tencent.com/document/product/598/37140
+    secret_key = settings.DECOUPLE_CONFIG("COS_SECRET_KEY")
 
-# COS 支持的所有 region 列表参见 https://cloud.tencent.com/document/product/436/6224
-token = None  # 如果使用永久密钥不需要填入 token，如果使用临时密钥需要填入，临时密钥生成和使用指引参见 https://cloud.tencent.com/document/product/436/14048
-scheme = "https"  # 指定使用 http/https 协议来访问 COS，默认为 https，可不填
+    # 替换为用户的 region，已创建桶归属的 region 可以在控制台查看，https://console.cloud.tencent.com/cos5/bucket
+    region = "ap-beijing"
 
-cos_config = CosConfig(Region=region, SecretId=secret_id, SecretKey=secret_key, Token=token, Scheme=scheme)
-cos_client = CosS3Client(cos_config)
+    # COS 支持的所有 region 列表参见 https://cloud.tencent.com/document/product/436/6224
+    token = None  # 如果使用永久密钥不需要填入 token，如果使用临时密钥需要填入，临时密钥生成和使用指引参见 https://cloud.tencent.com/document/product/436/14048
+    scheme = "https"  # 指定使用 http/https 协议来访问 COS，默认为 https，可不填
 
-bucket_name = "wp-1328701250"
+    cos_config = CosConfig(Region=region, SecretId=secret_id, SecretKey=secret_key, Token=token, Scheme=scheme)
+    return CosS3Client(cos_config)
 
 
-def upload_file_to_cos(file: Path, bucket_name=bucket_name, cos_prefix=""):
+def upload_file_to_cos(file: Path, bucket_name="wp-1328701250", cos_prefix=""):
+    cos_client = get_cos_client()
     # response = client.upload_file(
     #     Bucket=bucket_name, Key="exampleobject", LocalFilePath="local.txt", EnableMD5=False, progress_callback=None
     # )

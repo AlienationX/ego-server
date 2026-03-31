@@ -13,7 +13,7 @@ from rest_framework.decorators import action
 from rest_framework.mixins import CreateModelMixin
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ModelViewSet, ViewSet
-from utils.tools import ip_to_region
+from utils.tools import generate_nickname, ip_to_region
 
 from ..permissions import HasAccessKey
 from ..renderers import CustomJSONRenderer
@@ -58,7 +58,7 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
             profile["ip"] = request.META.get("REMOTE_ADDR", "")
             profile["region"] = ip_to_region(profile["ip"])
             profile["phone_number"] = phone_number
-            profile["nickname"] = self._generate_nickname()
+            profile["nickname"] = generate_nickname()
 
             data["profile"] = profile
 
@@ -81,9 +81,3 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
         except Exception as e:
             logger.exception("INTERNAL_SERVER_ERROR")
             return Response({"error": "注册失败", "detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-    def _generate_nickname(self, length=8):
-        """生成一个指定长度的随机用户名，包含大小写字母和数字"""
-        characters = string.ascii_letters + string.digits  # 大小写字母和数字
-        username = "".join(random.choices(characters, k=length))
-        return username

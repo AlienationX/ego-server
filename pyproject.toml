@@ -20,6 +20,8 @@ dependencies = [
     "python-decouple>=3.8",
     "requests>=2.32.5",
     "tenacity>=9.1.2",
+    "torch>=2.11.0",
+    "torchvision>=0.26.0",
 ]
 
 [[tool.uv.index]]

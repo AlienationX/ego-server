@@ -1,3 +1,6 @@
+import random
+import string
+
 from django.conf import settings
 from utils.ip2region.xdbSearcher import XdbSearcher
 
@@ -14,7 +17,14 @@ def ip_to_region(ip_address: str) -> str:
         searcher = XdbSearcher(dbfile=db_path)
         region_str = searcher.searchByIPStr(ip_address)
         searcher.close()
-    except Exception as e:
+    except Exception:
         region_str = "N/A|N/A|N/A|N/A|N/A"
 
     return region_str
+
+
+def generate_nickname(self, length=8):
+    """生成一个指定长度的随机用户名，包含大小写字母和数字"""
+    characters = string.ascii_letters + string.digits  # 大小写字母和数字
+    nickname = "".join(random.choices(characters, k=length))
+    return nickname

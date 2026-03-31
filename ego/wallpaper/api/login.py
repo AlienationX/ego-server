@@ -11,6 +11,7 @@ from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ModelViewSet, ViewSet
 from rest_framework_simplejwt.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.tokens import RefreshToken
+from utils.tools import generate_nickname
 
 from ..models import Profile
 from ..permissions import HasAccessKey
@@ -57,7 +58,7 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
 
         # 如果profile不存在，创建一条记录
         if not hasattr(user, "profile"):
-            Profile.objects.create(user=user)
+            Profile.objects.create(user=user, nickname=generate_nickname())
 
         refresh = RefreshToken.for_user(user)
         return Response(

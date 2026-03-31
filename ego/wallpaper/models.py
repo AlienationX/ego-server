@@ -96,10 +96,13 @@ class Wall(models.Model):
     description = models.CharField(max_length=255, verbose_name="描述", blank=True, null=True)
     description_en = models.CharField(max_length=255, verbose_name="英文描述", blank=True, null=True)
     publisher = models.CharField(max_length=60, default="unknown", verbose_name="发布者", blank=True, null=True)
-    is_active = models.BooleanField(default=True, verbose_name="是否启用")
+    is_active = models.BooleanField(default=True, verbose_name="是否启用", db_index=True)
     is_locked = models.BooleanField(default=False, verbose_name="是否需要解锁")
+    md5_hash = models.CharField(max_length=32, verbose_name="MD5哈希值", blank=True, null=True)
+    content_hash = models.CharField(max_length=32, verbose_name="内容哈希值", blank=True, null=True)
+
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
-    updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间", db_index=True)
     remark = models.CharField(max_length=500, verbose_name="备注", blank=True, null=True)
 
     # 1对1关系
@@ -107,7 +110,7 @@ class Wall(models.Model):
 
     # 这个字段其实可以设计成 ManyToManyField，其实就是列表存储，使用add方法添加
     tabs = models.CharField(max_length=200, verbose_name="标签", blank=True, null=True)
-    score = models.DecimalField(max_digits=10, decimal_places=1, verbose_name="图片分数", blank=True, null=True)
+    score = models.DecimalField(max_digits=2, decimal_places=1, verbose_name="图片分数", blank=True, null=True)
     views = models.IntegerField(default=0, db_default=0, verbose_name="浏览量")
     downloads = models.IntegerField(default=0, db_default=0, verbose_name="下载量")
 
@@ -120,6 +123,44 @@ class Wall(models.Model):
     class Meta:
         verbose_name = "壁纸"
         verbose_name_plural = "壁纸信息"
+        db_table_comment = "壁纸信息，存储壁纸的基本信息"
+        indexes = [
+            # 联合索引：先按分类排序，再按更新时间排序
+            models.Index(fields=["classify", "updated_at"]),
+            # 自定义索引名
+            # models.Index(fields=['title', 'author'], name='idx_title_author'),
+        ]
+
+
+class WallFeatures(models.Model):
+    wall = models.OneToOneField(Wall, on_delete=models.CASCADE, related_name="wall_features", primary_key=True)
+    # 二进制存储特征向量,比TEXT存储JSON节省50%空间
+    feature_vector = models.BinaryField(verbose_name="特征向量", blank=True, null=True)
+    # 特征维度，用于记录特征向量的维度，用于判断是否需要降维
+    feature_dim = models.IntegerField(verbose_name="特征维度", blank=True, null=True)
+    # 模型名称，用于记录使用的是哪个模型提取的特征
+    model_name = models.CharField(max_length=100, verbose_name="模型名称", blank=True, null=True)
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
+
+    class Meta:
+        verbose_name = "壁纸特征向量"
+        verbose_name_plural = "壁纸特征向量"
+        db_table = "wallpaper_wall_features"  # 自定义表名最好带上应用名。没指定db_table，默认是应用名_模型名
+        db_table_comment = "壁纸特征向量，存储图片的特征向量用于相似度计算"
+
+
+class WallSimilarities(models.Model):
+    source_wall_id = models.IntegerField(verbose_name="源壁纸ID", db_index=True)
+    target_wall_id = models.IntegerField(verbose_name="目标壁纸ID")
+    similarity = models.FloatField(verbose_name="相似度", blank=True, null=True, db_index=True)
+    rank_in_list = models.IntegerField(verbose_name="排名", blank=True, null=True)
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
+
+    class Meta:
+        verbose_name = "壁纸相似度"
+        verbose_name_plural = "壁纸相似度"
+        db_table = "wallpaper_wall_similarities"
+        db_table_comment = "壁纸相似度，用于存储壁纸之间的相似度关系"
 
 
 class Notice(models.Model):
@@ -162,7 +203,7 @@ class Banner(models.Model):
 
 
 class Profile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile", primary_key=True)
     nickname = models.CharField(max_length=60, verbose_name="用户昵称", blank=True, null=True)
     description = models.CharField(max_length=255, verbose_name="个人简介", blank=True, null=True)
     avatar = models.CharField(max_length=150, verbose_name="头像", blank=True, null=True)
