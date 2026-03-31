@@ -119,8 +119,9 @@ def upload(request):
                     error_count += 1
 
             # 返回成功消息（items 为空，清空表单）
+            msg = ""
             if success_count > 0:
-                msg = f"成功 {success_count} 条记录{f'（包括更新 {update_count} 条记录）' if update_count > 0 else ''}。"
+                msg += f"成功 {success_count} 条记录{f'（包括更新 {update_count} 条记录）' if update_count > 0 else ''}。"
             if error_count > 0:
                 msg += f"失败 {error_count} 条记录。"
 

@@ -24,7 +24,13 @@ def generate_thumbs(file: Path, max_size=(520, 520)):
         # ​​WEBP​​：范围 0-100（默认 80）。
         # ​​optimize​​（适用于 PNG）：
         # 启用优化压缩（True/False），减小文件体积。
-        img.save(output_file, "WEBP", quality=85)
+
+        # 处理 RGBA 模式（包含透明度）
+        if img.mode == "RGBA":
+            # 对于 WEBP，直接保存 RGBA
+            img.save(output_file, "WEBP", quality=85, lossless=False)
+        else:
+            img.save(output_file, "WEBP", quality=85)
 
 
 def remove_watermark():
@@ -96,6 +102,15 @@ def resize_image(
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     resized_image = original_image.resize((new_width, new_height), Image.LANCZOS)
+
+    # 处理 RGBA 模式（包含透明度），转换为 RGB 模式
+    if resized_image.mode == "RGBA":
+        # 创建一个白色背景
+        background = Image.new("RGB", resized_image.size, (255, 255, 255))
+        # 将 RGBA 图像粘贴到白色背景上
+        background.paste(resized_image, mask=resized_image.split()[3])  # 3 是 alpha 通道
+        resized_image = background
+
     resized_image.save(output_path, quality=95)
     logger.info(f"{input_path} 图片已保存至: {output_path}")
     return output_path
