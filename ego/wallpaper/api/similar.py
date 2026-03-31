@@ -16,7 +16,7 @@ from ..serializers import WallSerializer
 
 
 class ApiModelView(RetrieveModelMixin, GenericViewSet):
-    queryset = Wall.objects.select_related("wall_features").all()
+    queryset = WallFeatures.objects.all()
     serializer_class = WallSerializer
     permission_classes = [HasAccessKey]
     renderer_classes = [CustomJSONRenderer]
@@ -26,16 +26,15 @@ class ApiModelView(RetrieveModelMixin, GenericViewSet):
 
         print(f"{datetime.now()} 1")
         query_wall = self.get_object()  # 获取单个对象
-        feature_vector = FeatureStorage.blob_to_vector(
-            query_wall.wall_features.feature_vector, query_wall.wall_features.feature_dim
-        )
+        feature_vector = FeatureStorage.blob_to_vector(query_wall.feature_vector, query_wall.feature_dim)
         print(f"{datetime.now()} 2")
         query_vec = np.array(feature_vector)
         print(f"{datetime.now()} 3")
 
         # 获取所有其他有特征的图片，预加载 Wall 数据
+        # TODO 表数据量大查询慢，需要优化
         all_images = (
-            WallFeatures.objects.select_related("wall").exclude(wall_id=query_wall.id).filter(feature_vector__isnull=False)
+            WallFeatures.objects.select_related("wall").exclude(wall_id=query_wall.wall_id).filter(feature_vector__isnull=False)
         )
         print(f"{datetime.now()} 4")
 
@@ -59,7 +58,8 @@ class ApiModelView(RetrieveModelMixin, GenericViewSet):
                 "wall_id": wall.id,
                 "picurl": wall.picurl,
                 "description": wall.description,
-                "classify": wall.classify_id,
+                "classify_id": wall.classify_id,
+                # "classify_name": wall.classify_name,
                 "tabs": wall.tabs,
                 "score": wall.score,
                 "is_locked": wall.is_locked,

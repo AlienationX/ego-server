@@ -153,7 +153,6 @@ class WallSimilarities(models.Model):
     source_wall_id = models.IntegerField(verbose_name="源壁纸ID", db_index=True)
     target_wall_id = models.IntegerField(verbose_name="目标壁纸ID")
     similarity = models.FloatField(verbose_name="相似度", blank=True, null=True, db_index=True)
-    rank_in_list = models.IntegerField(verbose_name="排名", blank=True, null=True)
     updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
     class Meta:

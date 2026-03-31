@@ -55,7 +55,8 @@ class ImageFeatureExtractor:
 
     def reduce_dimension(self, features, target_dim=128):
         """
-        将512维特征降维到128维，减少存储和计算量
+        features: 二维数组，每个元素是一个特征向量
+        将每个特征降维到target_dim维，减少存储和计算量
         保留90%以上信息的情况下，计算量减少16倍
         """
         from sklearn.decomposition import PCA
