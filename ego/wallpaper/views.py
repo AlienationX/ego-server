@@ -135,7 +135,7 @@ def upload(request):
 
 def _generate_info_with_llm(img_url):
     # exclude 取反 实现 notin 逻辑
-    classify_objects = Classify.objects.all().exclude(name__in=("必应每日壁纸", "宝可梦官方壁纸", "宝可梦睡眠"))
+    classify_objects = Classify.objects.all().exclude(name__in=("必应每日壁纸", "宝可梦睡眠"))
     classcfy_name = [obj.name for obj in classify_objects]
 
     prompt = f"""根据图片内容，回答以下问题：
