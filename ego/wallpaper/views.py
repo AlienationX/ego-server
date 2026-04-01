@@ -33,7 +33,7 @@ def upload(request):
         action = request.POST.get("action")
 
         # 分类
-        classify_objects = Classify.objects.all().filter(enable=True)
+        classify_objects = Classify.objects.all()
         classifies = [{"id": obj.id, "name": obj.name} for obj in classify_objects]
 
         # 如果是预览操作，处理上传的文件
@@ -74,7 +74,6 @@ def upload(request):
                     data = {"items": [], "msg": info["error"], "alert_type": "alert-warning"}
                     return render(request, "wallpaper/upload_cards.html", data)
 
-                info["picurl"] = f"{info['pic_path_prefix']}/{new_filename}"
                 info["tabs"] = info["tabs"]
                 info["tabs_list"] = info["tabs"].split(",")
                 info["score"] = round(random.uniform(4, 5), 1)
@@ -197,7 +196,6 @@ def _generate_info_with_llm(img_url):
         content = result["choices"][0]["message"]["content"].strip()
         info = json.loads(content)
         info["tabs"] = info.get("tabs").replace(", ", ",")
-        info["pic_path_prefix"] = classify_objects.get(name=info["classify_name"]).pic_path_prefix
         info["classify_id"] = classify_objects.get(name=info["classify_name"]).id
 
         return info
@@ -208,9 +206,12 @@ def _generate_info_with_llm(img_url):
 
 
 def _save_wallpaper(form_data, i):
-    record_picurl = form_data.getlist("picurl")[i]
-    pic_path_prefix = form_data.getlist("pic_path_prefix")[i]
     save_path_tmp = form_data.getlist("save_path_tmp")[i]
+    classify_id = form_data.getlist("classify_id")[i]
+    filename = form_data.getlist("filename")[i]
+
+    pic_path_prefix = Classify.objects.get(id=classify_id).pic_path_prefix
+    record_picurl = f"{pic_path_prefix}/{filename}"
 
     # 处理 is_locked：checkbox 未勾选时不会提交，按行索引读取更稳定
     is_locked = form_data.get(f"is_locked_{i}") == "on"
@@ -224,7 +225,7 @@ def _save_wallpaper(form_data, i):
         "is_locked": is_locked,
         # "created_at": datetime.now(),
         # "updated_at": datetime.now(),
-        "classify_id": form_data.getlist("classify_id")[i],
+        "classify_id": classify_id,
         "remark": "upload",
     }
     logger.debug(record)
@@ -237,7 +238,7 @@ def _save_wallpaper(form_data, i):
     generate_thumbs(resize_path)
 
     # # 上传到 s3
-    upload_file_to_s3(resize_path, s3_prefix=f"{pic_path_prefix}/")
+    # upload_file_to_s3(resize_path, s3_prefix=f"{pic_path_prefix}/")
 
     # # 上传到 cos
     # upload_file_to_cos(resize_path, cos_prefix=f"{pic_path_prefix}/")
