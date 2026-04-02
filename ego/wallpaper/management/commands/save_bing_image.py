@@ -3,7 +3,9 @@ from datetime import datetime
 from pathlib import Path
 
 import requests
+from django.conf import settings
 from django.core.management.base import BaseCommand
+from utils.compare_image import get_file_md5, get_image_content_hash
 from wallpaper.management.commands.upload_cos import upload_file_to_cos
 from wallpaper.management.commands.upload_s3 import upload_file_to_s3
 from wallpaper.management.commands.utils import generate_thumbs, send_dingtalk
@@ -22,21 +24,23 @@ class Command(BaseCommand):
         current_date = options.get("date")
 
         # step1：下载 image 到本地
-        local_bing_path = Path(__file__).parent.parent.parent / "scripts/images/pics/classify_bing/"
+        local_bing_path = Path(settings.BASE_DIR) / "wallpaper" / "scripts/images/pics/classify_bing/"
         records = self._download_bing_image(local_bing_path)
         new_records = []
 
         for record in records:
             file_path = local_bing_path / record["file_name"]
+            md5_hash = get_file_md5(file_path)
+            content_hash = get_image_content_hash(file_path)
 
             # step2：生成缩略图
             generate_thumbs(file_path)
 
             # 上传到 s3
-            upload_file_to_s3(file_path, s3_prefix="pics/classify_bing/")
+            # upload_file_to_s3(file_path, s3_prefix="pics/classify_bing/")
 
             # 上传到 cos
-            upload_file_to_cos(file_path, cos_prefix="pics/classify_bing/")
+            # upload_file_to_cos(file_path, cos_prefix="pics/classify_bing/")
 
             # step3：上传到数据库
 
@@ -68,6 +72,8 @@ class Command(BaseCommand):
                     "publisher": "Bing",
                     "is_active": True,
                     "is_locked": False,
+                    "md5_hash": md5_hash,
+                    "content_hash": content_hash,
                     # "created_at": datetime.now(),
                     # "updated_at": datetime.now(),
                     "classify_id": 30,

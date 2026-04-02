@@ -188,15 +188,17 @@ class ApiModelView(ListModelMixin, CreateModelMixin, GenericViewSet):
             queryset = queryset.filter(Q(classify_id__in=classify_ids))
             for classify_id in classify_ids:
                 # 过滤该分类的数据并随机排序
-                classified_queryset = queryset.filter(classify_id=classify_id).order_by("?")[:12]  # 使用order_by("?")实现随机
-                result_data.append(
-                    {
-                        "id": classified_queryset.first().classify_id,
-                        "name": classified_queryset.first().classify.name,
-                        "name_en": classified_queryset.first().classify.name_en,
-                        "data": self.get_serializer(classified_queryset, many=True).data,
-                    }
-                )
+                classified_queryset = queryset.filter(classify_id=classify_id).order_by("?")[:12]
+                first_wall = classified_queryset.first()
+                if first_wall:  # 只有当有数据时才添加
+                    result_data.append(
+                        {
+                            "id": first_wall.classify.id,
+                            "name": first_wall.classify.name,
+                            "name_en": first_wall.classify.name_en,
+                            "data": self.get_serializer(classified_queryset, many=True).data,
+                        }
+                    )
 
         return Response(result_data)
 

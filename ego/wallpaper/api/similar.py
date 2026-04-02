@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 from utils.feature_extractor import FeatureStorage
 
-from ..models import Wall, WallFeatures
+from ..models import Wall, WallFeatures, WallSimilarities
 from ..permissions import HasAccessKey
 from ..renderers import CustomJSONRenderer
 from ..serializers import WallSerializer
@@ -24,10 +24,8 @@ class ApiModelView(RetrieveModelMixin, GenericViewSet):
     def retrieve(self, request, *args, **kwargs):
         from datetime import datetime
 
-        print(f"{datetime.now()} 1")
         query_wall = self.get_object()  # 获取单个对象
         feature_vector = FeatureStorage.blob_to_vector(query_wall.feature_vector, query_wall.feature_dim)
-        print(f"{datetime.now()} 2")
         query_vec = np.array(feature_vector)
         print(f"{datetime.now()} 3")
 
@@ -51,7 +49,6 @@ class ApiModelView(RetrieveModelMixin, GenericViewSet):
         # 按相似度降序排序，取前10
         similarities.sort(key=lambda x: x[1], reverse=True)
         top10 = similarities[:10]
-        print(f"{datetime.now()} 6")
 
         data = [
             {
@@ -70,9 +67,36 @@ class ApiModelView(RetrieveModelMixin, GenericViewSet):
 
         return Response(data)
 
+    # 默认访问路径是 /api/similar/<wall_id>/precomputed/
     @action(detail=True, methods=["get"])
     def precomputed(self, request, pk=None):
         """获取预计算的TopN相似度"""
-        search_wall = self.serializer_class(self.get_object())
-        search_wall.is_valid(raise_exception=True)
-        return Response(search_wall.data)
+        # 获取预计算的相似度
+        similarities = WallSimilarities.objects.filter(source_wall_id=pk).order_by("-similarity")[:10]  # 只取前10个
+
+        # 获取 target_wall_id 列表
+        target_ids = [sim.target_wall_id for sim in similarities]
+
+        # 批量获取 Wall 信息
+        walls = Wall.objects.filter(id__in=target_ids)
+        wall_map = {wall.id: wall for wall in walls}
+
+        # 构建响应数据
+        data = []
+        for sim in similarities:
+            wall = wall_map.get(sim.target_wall_id)
+            if wall:
+                data.append(
+                    {
+                        "wall_id": wall.id,
+                        "picurl": wall.picurl,
+                        "description": wall.description,
+                        "classify_id": wall.classify_id,
+                        "tabs": wall.tabs,
+                        "score": wall.score,
+                        "is_locked": wall.is_locked,
+                        "similarity": round(float(sim.similarity), 4),
+                    }
+                )
+
+        return Response(data)

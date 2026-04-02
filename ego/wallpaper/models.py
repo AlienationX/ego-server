@@ -150,9 +150,9 @@ class WallFeatures(models.Model):
 
 
 class WallSimilarities(models.Model):
-    source_wall_id = models.IntegerField(verbose_name="源壁纸ID", db_index=True)
+    source_wall_id = models.IntegerField(verbose_name="源壁纸ID")
     target_wall_id = models.IntegerField(verbose_name="目标壁纸ID")
-    similarity = models.FloatField(verbose_name="相似度", blank=True, null=True, db_index=True)
+    similarity = models.FloatField(verbose_name="相似度", blank=True, null=True)
     updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
     class Meta:
@@ -160,6 +160,14 @@ class WallSimilarities(models.Model):
         verbose_name_plural = "壁纸相似度"
         db_table = "wallpaper_wall_similarities"
         db_table_comment = "壁纸相似度，用于存储壁纸之间的相似度关系"
+        constraints = [
+            # 唯一约束：确保 source_wall_id + target_wall_id 组合唯一
+            models.UniqueConstraint(fields=["source_wall_id", "target_wall_id"], name="unique_source_target")
+        ]
+        indexes = [
+            # 联合索引：先按源壁纸 ID 排序，再按相似度倒序排序。自定义索引名
+            models.Index(fields=["source_wall_id", "-similarity"], name="idx_source_wall_id_similarity"),
+        ]
 
 
 class Notice(models.Model):
