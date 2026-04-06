@@ -67,7 +67,8 @@ class ApiModelView(RetrieveModelMixin, GenericViewSet):
 
         return Response(data)
 
-    # 默认访问路径是 /api/similar/<wall_id>/precomputed/
+    # 默认访问路径url_path = /api/similar/<wall_id>/precomputed/
+    # 指定url_path = "top10", 访问路径为 /api/similar/<wall_id>/top10/
     @action(detail=True, methods=["get"])
     def precomputed(self, request, pk=None):
         """获取预计算的TopN相似度"""

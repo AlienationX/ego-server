@@ -264,6 +264,21 @@ class ApiModelView(ListModelMixin, CreateModelMixin, GenericViewSet):
         # serializer = self.get_serializer(queryset, many=True)
         # return Response(serializer.data)
 
+    @action(detail=False, methods=["get"])
+    def top(self, request):
+        type = self.request.query_params.get("type")
+        n = self.request.query_params.get("n", "10")
+        n = int(n)
+        if type not in ["views", "downloads"]:
+            return Response([])
+        if n <= 0:
+            n = 10
+        if n > 30:
+            n = 30
+        queryset = self.get_queryset().order_by(f"-{type}")[:n]
+        data = self.get_serializer(queryset, many=True).data
+        return Response(data)
+
     # datail=True时，表示这个动作是针对单个对象。url会自动增加pk，例如wall/<pk>/increment_views/
     # pk参数会自动传入increment_views和increment_downloads方法，必须有
     @action(detail=True, methods=["post"])
