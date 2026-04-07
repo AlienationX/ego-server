@@ -56,13 +56,13 @@ class ApiModelView(CreateModelMixin, ListModelMixin, UpdateModelMixin, GenericVi
 
         # 处理数据，提取 wall 并添加 my_score 字段
         data = []
-        for action in serialized_actions:
-            if action.get("wall"):
-                wall_data = action["wall"].copy()  # 复制 wall 数据以避免修改原始数据
+        for act in serialized_actions:
+            if act.get("wall"):
+                wall_data = act["wall"].copy()  # 复制 wall 数据以避免修改原始数据
                 wall_data.pop("created_at")
                 wall_data.pop("updated_at")
-                wall_data["my_score"] = action.get("pic_score")
-                wall_data["action_updated_at"] = action.get("updated_at")
+                wall_data["my_score"] = act.get("pic_score")
+                wall_data["action_updated_at"] = act.get("updated_at")
                 data.append(wall_data)
 
         return data
@@ -79,7 +79,8 @@ class ApiModelView(CreateModelMixin, ListModelMixin, UpdateModelMixin, GenericVi
         update_payload = {}
         for key in ("is_collect", "is_download", "pic_score"):
             if key in request.data:
-                update_payload[key] = request.data.get(key)
+                value = request.data.get(key)
+                update_payload[key] = None if key == "pic_score" and value == 0 else value
 
         # 如果没有可更新字段，直接返回当前记录
         if not update_payload:

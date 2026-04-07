@@ -1,7 +1,4 @@
 import logging
-import random
-import re
-from datetime import datetime, timedelta
 
 from django.core.cache import cache
 from django.db.models import F, Func, Q, Value
@@ -10,7 +7,6 @@ from django.shortcuts import render
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.mixins import CreateModelMixin, ListModelMixin, UpdateModelMixin
-from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ModelViewSet
 
@@ -120,10 +116,10 @@ class ApiModelView(ListModelMixin, CreateModelMixin, GenericViewSet):
         queryset = self.get_queryset()
         data = self._get_sorted_data(queryset)
 
-        if ApiModelView.pagination_class is not None:
-            paginator = self.pagination_class()
-            paginated_data = paginator.paginate_queryset(data, request)
-            return paginator.get_paginated_response(paginated_data)
+        # 使用 DRF 内置的分页逻辑
+        page = self.paginate_queryset(data)
+        if page is not None:
+            return self.get_paginated_response(page)
         return Response(data)
 
     def create(self, request, *args, **kwargs):
@@ -243,10 +239,9 @@ class ApiModelView(ListModelMixin, CreateModelMixin, GenericViewSet):
         data = self._get_sorted_data(queryset, keyword=keyword)
 
         # 如果启用分页器，则返回分页信息
-        if ApiModelView.pagination_class is not None:
-            paginator = self.pagination_class()
-            paginated_data = paginator.paginate_queryset(data, request)
-            return paginator.get_paginated_response(paginated_data)
+        page = self.paginate_queryset(data)
+        if page is not None:
+            return self.get_paginated_response(page)
 
         return Response(data)
 

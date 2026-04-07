@@ -22,12 +22,11 @@ class CustomJSONRenderer(JSONRenderer):
         # 从BusinessResponse响应体中获取code和message字段
         code = data["code"] if "code" in data else response.status_code
         message = data["message"] if "message" in data else response.status_text
-        data = data["data"] if "data" in data else data
 
         formatted_data = {
             "code": code,
             "message": message,
-            "data": data,
+            "data": data["data"] if "data" in data else data,
             "duration": f"{duration:.2f}s",
         }
 
