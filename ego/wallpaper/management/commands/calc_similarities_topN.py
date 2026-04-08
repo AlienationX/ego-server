@@ -61,7 +61,8 @@ class Command(BaseCommand):
             src_vecs = feature_vectors.copy()
 
         if not src_vecs:
-            raise Exception("没有找到需要计算的壁纸特征向量")
+            logger.warning("没有找到需要计算的壁纸特征向量")
+            return
 
         # 3.计算相似度
         logger.info(f"共 {len(src_vecs)} 张 source 壁纸")
