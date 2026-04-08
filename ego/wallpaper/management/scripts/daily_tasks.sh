@@ -1,7 +1,9 @@
 #!/bin/bash
 
+# 每日凌晨1点执行一次，保存Bing每日壁纸，增量计算壁纸的特征向量并存储，增量预计算壁纸的TopN相似度
+
 PYTHON=/app/ego-server/.venv/bin/python
-log_file="/var/log/ego-server/save_bing_image_$(date +%Y-%m-%d).log"
+log_file="/var/log/ego-server/daily_tasks_$(date +%Y-%m-%d).log"
 
 cd /app/ego-server/ego
 
