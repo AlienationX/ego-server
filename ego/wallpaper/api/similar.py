@@ -93,6 +93,7 @@ class ApiModelView(RetrieveModelMixin, GenericViewSet):
                         "picurl": wall.picurl,
                         "description": wall.description,
                         "classify_id": wall.classify_id,
+                        "classify_name": wall.classify.name if wall.classify else None,
                         "tabs": wall.tabs,
                         "score": wall.score,
                         "is_locked": wall.is_locked,
