@@ -79,7 +79,7 @@ class ApiModelView(RetrieveModelMixin, GenericViewSet):
         target_ids = [sim.target_wall_id for sim in similarities]
 
         # 批量获取 Wall 信息
-        walls = Wall.objects.filter(id__in=target_ids)
+        walls = Wall.objects.select_related("classify").filter(is_active=True, classify__enable=True, id__in=target_ids)
         wall_map = {wall.id: wall for wall in walls}
 
         # 构建响应数据

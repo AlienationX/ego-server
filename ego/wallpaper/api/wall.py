@@ -31,7 +31,7 @@ class ApiModelView(ListModelMixin, CreateModelMixin, GenericViewSet):
         classify_id = self.request.query_params.get("classify_id")
 
         # 获取所有数据，且classify.enable为True的数据
-        queryset = self.queryset.filter(Q(classify__enable=True))
+        queryset = self.queryset.filter(is_active=True, classify__enable=True)
 
         # 如果 classify_id 参数存在，则过滤查询集
         if classify_id:
@@ -234,7 +234,7 @@ class ApiModelView(ListModelMixin, CreateModelMixin, GenericViewSet):
         # search_fields = ["description", "tabs", "classify.enable"]
 
         # queryset = Wall.objects.all()
-        queryset = self.get_queryset().filter((Q(description__contains=keyword) | Q(tabs__contains=keyword)))
+        queryset = self.get_queryset().filter((Q(description__icontains=keyword) | Q(tabs__icontains=keyword)))
 
         data = self._get_sorted_data(queryset, keyword=keyword)
 
