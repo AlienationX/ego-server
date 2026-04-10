@@ -1,5 +1,6 @@
 import random
 
+from django.core.cache import cache
 from django.forms.models import model_to_dict
 from rest_framework.mixins import CreateModelMixin, ListModelMixin
 from rest_framework.response import Response
@@ -23,7 +24,7 @@ class ApiModelView(ListModelMixin, CreateModelMixin, GenericViewSet):
     def list(self, request, *args, **kwargs):
         # 读取缓存数据
         cache_key = "banner_list"
-        cache_data = self.cache.get(cache_key)
+        cache_data = cache.get(cache_key)
         if cache_data:
             return Response(cache_data)
 
@@ -100,5 +101,5 @@ class ApiModelView(ListModelMixin, CreateModelMixin, GenericViewSet):
         ]
 
         # 增加缓存，缓存时间为 10 分钟
-        self.cache.set(cache_key, data, timeout=60 * 10)
+        cache.set(cache_key, data, timeout=60 * 10)
         return Response(data)
