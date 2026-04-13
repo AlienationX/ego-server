@@ -27,9 +27,8 @@ class ApiModelView(ListModelMixin, RetrieveModelMixin, GenericViewSet):
 
         # 如果 select 参数存在，则过滤查询集
         if select:
-            queryset = queryset.filter(select=select)
             # select=true即首页显示的分类，只显示8条即可
-            return queryset[:8]
+            queryset = queryset.filter(select=select)[:8]
 
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
