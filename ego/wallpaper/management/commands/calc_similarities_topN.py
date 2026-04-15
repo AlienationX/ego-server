@@ -124,7 +124,27 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(f"{datetime.now()}: 已写入/更新 {len(all_similarities_data)} 条记录。"))
 
         # 5.兜底处理, 删除所有 source_wall_id 壁纸大于TopN的相似度记录数
-        # TODO: 实现删除操作
+        from django.db import connection
+
+        db_table = WallSimilarities._meta.db_table
+        with connection.cursor() as cursor:
+            sql = f"""
+            SELECT t.id FROM (
+                SELECT id, ROW_NUMBER() OVER(PARTITION BY source_wall_id ORDER BY similarity DESC) as rn 
+                FROM {db_table}
+            ) t WHERE t.rn > %s
+            """
+            logger.info(f"正在执行SQL: {sql}")
+            cursor.execute(sql, [topN])
+            rows = cursor.fetchall()
+            ids_to_delete = [row[0] for row in rows]
+
+        if ids_to_delete:
+            # 分批删除，避免 in 列表过长
+            batch_size = 1000
+            for i in range(0, len(ids_to_delete), batch_size):
+                WallSimilarities.objects.filter(id__in=ids_to_delete[i : i + batch_size]).delete()
+            self.stdout.write(self.style.SUCCESS(f"{datetime.now()}: 已删除 {len(ids_to_delete)} 条多余的相似度记录。"))
 
         self.stdout.write(
             self.style.SUCCESS(

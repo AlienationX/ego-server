@@ -96,13 +96,13 @@ class Wall(models.Model):
     description = models.CharField(max_length=255, verbose_name="描述", blank=True, null=True)
     description_en = models.CharField(max_length=255, verbose_name="英文描述", blank=True, null=True)
     publisher = models.CharField(max_length=60, default="unknown", verbose_name="发布者", blank=True, null=True)
-    is_active = models.BooleanField(default=True, verbose_name="是否启用", db_index=True)
+    is_active = models.BooleanField(default=True, verbose_name="是否启用")
     is_locked = models.BooleanField(default=False, verbose_name="是否需要解锁")
     md5_hash = models.CharField(max_length=32, verbose_name="MD5哈希值", blank=True, null=True)
     content_hash = models.CharField(max_length=32, verbose_name="内容哈希值", blank=True, null=True)
 
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
-    updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间", db_index=True)
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
     remark = models.CharField(max_length=500, verbose_name="备注", blank=True, null=True)
 
     # 1对1关系
@@ -125,8 +125,11 @@ class Wall(models.Model):
         verbose_name_plural = "壁纸信息"
         db_table_comment = "壁纸信息，存储壁纸的基本信息"
         indexes = [
-            # 联合索引：先按分类排序，再按更新时间排序
-            models.Index(fields=["classify", "updated_at"]),
+            models.Index(fields=["-updated_at"]),
+            models.Index(fields=["-score"]),
+            models.Index(fields=["is_active", "-updated_at"]),
+            # 联合索引：先按分类排序，再按更新时间倒序
+            models.Index(fields=["classify", "-updated_at"]),
             # 自定义索引名
             # models.Index(fields=['title', 'author'], name='idx_title_author'),
         ]
@@ -283,7 +286,7 @@ class Access(models.Model):
     # device_id = models.CharField(max_length=100, verbose_name="设备id", blank=True, null=True)
     app_version = models.CharField(max_length=100, verbose_name="app版本号", blank=True, null=True)
 
-    access_time = models.DateTimeField(auto_now_add=True, verbose_name="访问时间")
+    access_time = models.DateTimeField(auto_now_add=True, verbose_name="访问时间", db_index=True)
     remark = models.JSONField(default=dict, verbose_name="备注", blank=True, null=True)  # desciption
 
     def __str__(self):
@@ -302,8 +305,8 @@ class Feedback(models.Model):
     type = models.CharField(max_length=60, verbose_name="反馈类型")  # 如：bug反馈、功能建议、内容投诉、其他等
     content = models.CharField(max_length=255, verbose_name="反馈内容")
     contact = models.CharField(max_length=100, verbose_name="联系方式", blank=True, null=True)  # 联系方式，如邮箱、手机号等
-    is_deal = models.BooleanField(default=False, verbose_name="处理状态")  # 处理状态, 默认未处理
     images = models.JSONField(max_length=255, verbose_name="图片地址", blank=True, null=True)  # 多张图片地址列表
+    is_deal = models.BooleanField(default=False, verbose_name="处理状态")  # 处理状态, 默认未处理
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
 
     class Meta:

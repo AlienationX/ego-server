@@ -5,17 +5,7 @@ from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
 # Register your models here.
-from .models import (
-    Access,
-    Actions,
-    Application,
-    Banner,
-    Classify,
-    Notice,
-    Profile,
-    Subject,
-    Wall,
-)
+from .models import Access, Actions, Application, Banner, Classify, Feedback, Notice, Profile, Subject, Wall
 
 # ROOT_PIC_URL = "https://mp-36059119-7390-44c6-8190-cc3527d1e745.cdn.bspapp.com/wallpaper"
 # ROOT_PIC_URL = "https://wallpaper-kpze6c.s3.eu-north-1.amazonaws.com"
@@ -146,7 +136,6 @@ class AccessAdmin(admin.ModelAdmin):
         "ip",
         "address",
         "username",
-        "source",
         "platform",
         "channel",
         "app_version",
@@ -169,12 +158,20 @@ class AccessAdmin(admin.ModelAdmin):
     # remark_json.allow_tags = True
 
 
+@admin.register(Feedback)
+class FeedbackAdmin(admin.ModelAdmin):
+    list_display = ("id", "type", "content", "contact", "is_deal", "created_at")
+    fields = ("type", "content", "contact", "images", "is_deal", "created_at")  # 可以控制顺序
+    readonly_fields = ("images", "created_at")
+
+
 admin.site.register(Classify, ClassifyAdmin)
 admin.site.register(Subject, SubjectAdmin)
 admin.site.register(Wall, WallAdmin)
 admin.site.register(Banner, BannerAdmin)
 # admin.site.register(Notice, NoticeAdmin)
 # admin.site.register(Access, AccessAdmin)
+# admin.site.register(Feedback, FeedbackAdmin)
 admin.site.register(Actions)
 admin.site.register(Profile)
 admin.site.register(Application)

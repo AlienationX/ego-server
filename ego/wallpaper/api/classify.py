@@ -20,22 +20,23 @@ class ApiModelView(ListModelMixin, RetrieveModelMixin, GenericViewSet):
     def list(self, request, *args, **kwargs):
         # 获取查询参数中的 select
         select = self.request.query_params.get("select")
-        select = True if select == "true" else False
+        select = True if select in ("true", "True") else False
+
+        enable = self.request.query_params.get("enable")
+        enable = False if enable in ("false", "False") else True
 
         # 获取所有数据
-        queryset = self.get_queryset().filter(enable=True)
+        queryset = self.get_queryset()
+
+        # 默认过滤禁用的分类，除非显式传递 enable=false
+        if enable:
+            queryset = queryset.filter(enable=enable)
 
         # 如果 select 参数存在，则过滤查询集
         if select:
             # select=true即首页显示的分类，只显示8条即可
             queryset = queryset.filter(select=select)[:8]
 
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
-
-    @action(detail=False, methods=["get"])
-    def all(self, request, *args, **kwargs):
-        queryset = self.get_queryset()
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 

@@ -45,6 +45,7 @@ class ApiModelView(ListModelMixin, CreateModelMixin, GenericViewSet):
         统一处理排序和缓存逻辑
         """
         sortord = self.request.query_params.get("sortord")
+        classify_id = self.request.query_params.get("classify_id", "0")
         data = None
 
         # 向查询集中的每个对象添加一个名为 classify_name 的新字段，值为 classify__name
@@ -83,7 +84,7 @@ class ApiModelView(ListModelMixin, CreateModelMixin, GenericViewSet):
             #     return products
 
             # 最终方案，乱序加缓存
-            cache_key = f"walls_{keyword or 'blank'}_{self.request.query_params.get('classify_id', '0')}"
+            cache_key = f"walls_rand_{keyword or 'blank'}_{classify_id}"
 
             # data = cache.get(cache_key)
             # if not data:
@@ -98,18 +99,25 @@ class ApiModelView(ListModelMixin, CreateModelMixin, GenericViewSet):
             # )  # 缓存10分钟
 
         elif sortord == "score":
-            queryset = queryset.order_by("-score")
+            cache_key = f"walls_score_{keyword or 'blank'}_{classify_id}"
+            data = cache.get_or_set(
+                cache_key, lambda: list(queryset.order_by("-score", "-updated_at", "-id").values()), timeout=600
+            )
         elif sortord == "date_asc":
-            queryset = queryset.order_by("updated_at")
+            cache_key = f"walls_date_asc_{keyword or 'blank'}_{classify_id}"
+            data = cache.get_or_set(cache_key, lambda: list(queryset.order_by("updated_at", "-id").values()), timeout=600)
         # elif sortord == "date_desc":
         else:
-            queryset = queryset.order_by("-updated_at")
+            cache_key = f"walls_date_desc_{keyword or 'blank'}_{classify_id}"
+            data = cache.get_or_set(cache_key, lambda: list(queryset.order_by("-updated_at", "-id").values()), timeout=600)
 
-        if data is not None:
-            return data
-        else:
-            return list(queryset.values())
-            # return self.get_serializer(queryset, many=True).data  # 极慢，不推荐
+        # if data is not None:
+        #     return data
+        # else:
+        #     return list(queryset.values())
+        # return self.get_serializer(queryset, many=True).data  # 极慢，不推荐
+
+        return data
 
     def list(self, request, *args, **kwargs):
         """重写list方法，添加过滤和排序逻辑"""

@@ -34,7 +34,11 @@ class Command(BaseCommand):
             content_hash = get_image_content_hash(file_path)
 
             # step2：生成缩略图
+            # 生成 small 缩略图
             generate_thumbs(file_path)
+            # 生成 medium 缩略图
+            output_file = file_path.with_name(f"{file_path.stem}_medium.webp")
+            generate_thumbs(file_path, max_size=(1024, 1024), output_file=output_file)
 
             # 上传到 s3
             # upload_file_to_s3(file_path, s3_prefix="pics/classify_bing/")
