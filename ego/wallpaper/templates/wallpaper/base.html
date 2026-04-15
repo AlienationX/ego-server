@@ -18,7 +18,8 @@
     <link rel="stylesheet" href="{% static 'wallpaper/css/style.css' %}">
 
     <!-- logo设置 -->
-    <link rel="icon" href="{% static 'wallpaper/logo.svg' %}">
+    <!-- 优化建议：因为你用的是 .svg 文件，建议把 type="image/x-icon" 修改为 type="image/svg+xml" -->
+    <link rel="icon" type="image/svg+xml" href="{% static 'wallpaper/logo.svg' %}">
 
     <!-- 必须引入htmx脚本 -->
     {% htmx_script %}

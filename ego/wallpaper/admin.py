@@ -165,6 +165,18 @@ class FeedbackAdmin(admin.ModelAdmin):
     readonly_fields = ("images", "created_at")
 
 
+@admin.register(Profile)
+class ProfileAdmin(admin.ModelAdmin):
+    # 列表显示
+    list_display = ("user__id", "user__email", "nickname", "is_vip", "energy", "channel", "source", "region", "wechat_openid")
+    # 搜索字段
+    search_fields = ("nickname", "user__email")
+    # 过滤器
+    list_filter = ("is_vip", "channel", "source")
+    # 日期层次
+    date_hierarchy = "updated_at"
+
+
 admin.site.register(Classify, ClassifyAdmin)
 admin.site.register(Subject, SubjectAdmin)
 admin.site.register(Wall, WallAdmin)
@@ -172,6 +184,6 @@ admin.site.register(Banner, BannerAdmin)
 # admin.site.register(Notice, NoticeAdmin)
 # admin.site.register(Access, AccessAdmin)
 # admin.site.register(Feedback, FeedbackAdmin)
+# admin.site.register(Profile, PrifileAdmin)
 admin.site.register(Actions)
-admin.site.register(Profile)
 admin.site.register(Application)

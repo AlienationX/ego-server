@@ -63,9 +63,8 @@ INSTALLED_APPS = [
     # 'drf_yasg',
     # 'drf_spectacular',         # 接口文档 swagger
     # 'drf_spectacular_sidecar', # 接口文档 swagger-ui
-    "pokemon_library",  # 注册图鉴应用
-    "pokemon_wallpaper",  #  注册壁纸应用
     "wallpaper.apps.WallpaperConfig",  # 写成config样式，admin页面才会显示
+    "pocket.apps.PocketConfig",
     "polls.apps.PollsConfig",
 ]
 

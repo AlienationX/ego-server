@@ -2,7 +2,7 @@ from django.urls import path
 
 from . import views
 
-app_name = 'pokemon_library'
+app_name = "pocket"
 urlpatterns = [
     # # ex: /polls/
     # path('', views.IndexView.as_view(), name='index'),
