@@ -92,10 +92,6 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
         if user:
             if not user.is_active:
                 raise AuthenticationFailed("User is not active")
-
-            # TODO ip不同则替换更新，包括region字段
-            if ip_address != user.profile.ip_address:
-                logger.debug(f" username={user.username}, ip_address={user.profile.ip_address}, region={user.profile.region}")
         else:
             username = f"wechat_{openid}"
             # password = User.objects.make_random_password()
