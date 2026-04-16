@@ -18,7 +18,6 @@ def generate_thumbs(file: Path, max_size=(520, 520), output_file: Path = None):
         # 保存缩略图（支持JPEG/PNG等格式）
         if output_file is None:
             output_file = file.with_name(f"{file.stem}_small.webp")
-        logger.info(f"Generating thumbnail {output_file}")
 
         # ​​JPEG​​：范围 1-95（值越大质量越高，默认 75）。
         # ​​WEBP​​：范围 0-100（默认 80）。

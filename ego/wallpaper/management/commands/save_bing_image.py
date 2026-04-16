@@ -5,6 +5,7 @@ from pathlib import Path
 import requests
 from django.conf import settings
 from django.core.management.base import BaseCommand
+from loguru import logger
 from utils.compare_image import get_file_md5, get_image_content_hash
 from wallpaper.management.commands.upload_cos import upload_file_to_cos
 from wallpaper.management.commands.upload_s3 import upload_file_to_s3
@@ -35,10 +36,13 @@ class Command(BaseCommand):
 
             # step2：生成缩略图
             # 生成 small 缩略图
-            generate_thumbs(file_path)
+            output_file = file_path.with_name(f"{file_path.stem}_small.webp")
+            generate_thumbs(file_path, max_size=(520, 520), output_file=output_file)
+            logger.info(f"Generating thumbnail {output_file}")
             # 生成 medium 缩略图
             output_file = file_path.with_name(f"{file_path.stem}_medium.webp")
             generate_thumbs(file_path, max_size=(1024, 1024), output_file=output_file)
+            logger.info(f"Generating thumbnail {output_file}")
 
             # 上传到 s3
             # upload_file_to_s3(file_path, s3_prefix="pics/classify_bing/")

@@ -5,18 +5,20 @@ __pycache__
 
 *.zip
 
+# 代码辅助工具
+.trae
+.codebuddy
+
 # 文件夹
 ego/.env*
 ego/zappa_settings.json
 ego/logs/
 ego/static/
-ego/utils/tmp.vue
 ego/wallpaper/scripts/images/
 ego/wallpaper/scripts/output/
 ego/wallpaper/scripts/s3_wallpaper_bucket/
 ego/ego-dev*.zip
 ego/package/
-ego/utils/output*
 
 # 前端编译 tailwindcss 71M
 ego/wallpaper/static/wallpaper/css/tailwindcss
