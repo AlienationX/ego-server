@@ -312,3 +312,15 @@ class Feedback(models.Model):
     class Meta:
         verbose_name = "反馈信息"
         verbose_name_plural = "反馈信息"
+
+
+class Versions(models.Model):
+    channel = models.CharField(max_length=100, verbose_name="渠道")
+    platform = models.CharField(max_length=100, verbose_name="平台")
+    app_store_url = models.CharField(max_length=255, verbose_name="应用商店地址")
+    app_version = models.CharField(max_length=100, verbose_name="app版本号")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
+
+    class Meta:
+        verbose_name = "版本信息"
+        verbose_name_plural = "版本信息"

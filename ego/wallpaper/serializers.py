@@ -16,6 +16,7 @@ from .models import (
     Feedback,
     Notice,
     Profile,
+    Versions,
     Wall,
 )
 
@@ -63,7 +64,6 @@ class ProfileSerializer(ModelSerializer):
 
 
 class UserSerializer(ModelSerializer):
-
     # 使用嵌套序列化器，注意：这默认是只读的
     profile = ProfileSerializer()
 
@@ -138,6 +138,12 @@ class AccessSerializer(ModelSerializer):
 class FeedbackSerializer(ModelSerializer):
     class Meta:
         model = Feedback
+        fields = "__all__"
+
+
+class VersionsSerializer(ModelSerializer):
+    class Meta:
+        model = Versions
         fields = "__all__"
 
 

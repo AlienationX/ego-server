@@ -92,7 +92,7 @@ class ApiModelView(ListModelMixin, CreateModelMixin, GenericViewSet):
             #     cache.set(cache_key, data, timeout=5)  # 缓存5秒
 
             # 使用list(queryset.order_by('?').values())会丢失序列化器的处理逻辑
-            data = cache.get_or_set(cache_key, lambda: list(queryset.order_by("?").values()), timeout=600)
+            data = cache.get_or_set(cache_key, lambda: list(queryset.order_by("?").values()), timeout=10 * 60)
             # 极慢，不推荐
             # data = cache.get_or_set(
             #     cache_key, lambda: self.get_serializer(queryset.order_by("?"), many=True).data, timeout=600
@@ -101,15 +101,15 @@ class ApiModelView(ListModelMixin, CreateModelMixin, GenericViewSet):
         elif sortord == "score":
             cache_key = f"walls_score_{keyword or 'blank'}_{classify_id}"
             data = cache.get_or_set(
-                cache_key, lambda: list(queryset.order_by("-score", "-updated_at", "-id").values()), timeout=600
+                cache_key, lambda: list(queryset.order_by("-score", "-updated_at", "-id").values()), timeout=10 * 60
             )
         elif sortord == "date_asc":
             cache_key = f"walls_date_asc_{keyword or 'blank'}_{classify_id}"
-            data = cache.get_or_set(cache_key, lambda: list(queryset.order_by("updated_at", "-id").values()), timeout=600)
+            data = cache.get_or_set(cache_key, lambda: list(queryset.order_by("updated_at", "-id").values()), timeout=60 * 60)
         # elif sortord == "date_desc":
         else:
             cache_key = f"walls_date_desc_{keyword or 'blank'}_{classify_id}"
-            data = cache.get_or_set(cache_key, lambda: list(queryset.order_by("-updated_at", "-id").values()), timeout=600)
+            data = cache.get_or_set(cache_key, lambda: list(queryset.order_by("-updated_at", "-id").values()), timeout=60 * 60)
 
         # if data is not None:
         #     return data

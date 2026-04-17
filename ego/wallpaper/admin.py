@@ -5,7 +5,7 @@ from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
 # Register your models here.
-from .models import Access, Actions, Application, Banner, Classify, Feedback, Notice, Profile, Subject, Wall
+from .models import Access, Actions, Application, Banner, Classify, Feedback, Notice, Profile, Subject, Versions, Wall
 
 # ROOT_PIC_URL = "https://mp-36059119-7390-44c6-8190-cc3527d1e745.cdn.bspapp.com/wallpaper"
 # ROOT_PIC_URL = "https://wallpaper-kpze6c.s3.eu-north-1.amazonaws.com"
@@ -177,6 +177,13 @@ class ProfileAdmin(admin.ModelAdmin):
     date_hierarchy = "updated_at"
 
 
+@admin.register(Versions)
+class VersionsAdmin(admin.ModelAdmin):
+    list_display = ("platform", "channel", "app_store_url", "app_version", "created_at")
+    fields = ("platform", "channel", "app_store_url", "app_version", "created_at")
+    readonly_fields = ("created_at",)
+
+
 admin.site.register(Classify, ClassifyAdmin)
 admin.site.register(Subject, SubjectAdmin)
 admin.site.register(Wall, WallAdmin)
@@ -185,5 +192,6 @@ admin.site.register(Banner, BannerAdmin)
 # admin.site.register(Access, AccessAdmin)
 # admin.site.register(Feedback, FeedbackAdmin)
 # admin.site.register(Profile, PrifileAdmin)
+# admin.site.register(Versions, VersionsAdmin)
 admin.site.register(Actions)
 admin.site.register(Application)

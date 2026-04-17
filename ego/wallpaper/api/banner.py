@@ -101,5 +101,5 @@ class ApiModelView(ListModelMixin, CreateModelMixin, GenericViewSet):
         ]
 
         # 增加缓存，缓存时间为 10 分钟
-        cache.set(cache_key, data, timeout=60 * 10)
+        cache.set(cache_key, data, timeout=10 * 60)
         return Response(data)
