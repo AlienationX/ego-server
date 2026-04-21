@@ -27,15 +27,18 @@ class ApiModelView(ListModelMixin, CreateModelMixin, GenericViewSet):
     renderer_classes = [CustomJSONRenderer]  # 使用自定义渲染器，额外统一增加code和message字段。默认是JSONRenderer
 
     def get_queryset(self):
-        # 获取查询参数中的 class_id
-        classify_id = self.request.query_params.get("classify_id")
-
         # 获取所有数据，且classify.enable为True的数据
-        queryset = self.queryset.filter(is_active=True, classify__enable=True)
+        queryset = self.queryset.filter(is_active=True)
 
-        # 如果 classify_id 参数存在，则过滤查询集
+        # 获取查询参数中的 classify_id ，如果参数存在，则过滤查询集
+        classify_id = self.request.query_params.get("classify_id")
         if classify_id:
             queryset = queryset.filter(classify_id=classify_id)
+
+        # 获取查询参数中的 classify_enable
+        classify_enable = self.request.query_params.get("classify_enable")
+        if classify_enable not in ("false", "False"):
+            queryset = queryset.filter(classify__enable=True)
 
         # 返回最终的查询集
         return queryset
