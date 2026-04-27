@@ -138,7 +138,7 @@ def _generate_info_with_llm(img_url):
     classcfy_name = [obj.name for obj in classify_objects]
 
     prompt = f"""根据图片内容，回答以下问题：
-    1. 用自然柔和的语言，生成图片描述,30字以内。
+    1. 用自然柔和的语言，生成图片描述，如果识别出图片中的人物，需要包含人物的名称。30字以内。
     2. 生成3到6个中英文标签，用英文逗号分隔，逗号之间不要有空格。
     3. 在以下分类中选择最合适的一个作为图片分类：{", ".join(classcfy_name)}。
     请按照以下 JSON 格式返回分析结果（不要有任何样式或格式化）：
@@ -216,22 +216,9 @@ def _save_wallpaper(form_data, i):
     # 处理 is_locked：checkbox 未勾选时不会提交，按行索引读取更稳定
     is_locked = form_data.get(f"is_locked_{i}") == "on"
 
-    record = {
-        "description": form_data.getlist("description")[i],
-        "tabs": form_data.getlist("tabs")[i],
-        "score": form_data.getlist("score")[i],
-        "publisher": form_data.getlist("publisher")[i],
-        "is_active": True,
-        "is_locked": is_locked,
-        # "created_at": datetime.now(),
-        # "updated_at": datetime.now(),
-        "classify_id": classify_id,
-        "remark": "upload",
-    }
-    logger.debug(record)
-
     # 重置图片尺寸
-    resize_path = resize_image(Path(save_path_tmp), Path(f"{settings.MEDIA_ROOT}/wallpaper/{record_picurl}"))
+    file_path = Path(f"{settings.MEDIA_ROOT}/wallpaper/{record_picurl}")
+    resize_path = resize_image(Path(save_path_tmp), file_path)
     logger.debug(f"重置图片尺寸: {pic_path_prefix, resize_path}")
 
     # 生成缩略图
@@ -247,6 +234,25 @@ def _save_wallpaper(form_data, i):
 
     # # 上传到 cos
     # upload_file_to_cos(resize_path, cos_prefix=f"{pic_path_prefix}/")
+
+    with Image.open(file_path) as img:
+        width, height = img.size
+
+    record = {
+        "description": form_data.getlist("description")[i],
+        "tabs": form_data.getlist("tabs")[i],
+        "score": form_data.getlist("score")[i],
+        "publisher": form_data.getlist("publisher")[i],
+        "is_active": True,
+        "is_locked": is_locked,
+        # "created_at": datetime.now(),
+        # "updated_at": datetime.now(),
+        "classify_id": classify_id,
+        "remark": "upload",
+        "width": width,
+        "height": height,
+    }
+    logger.debug(record)
 
     # 上传到数据库
     obj, created = Wall.objects.get_or_create(

@@ -3,7 +3,6 @@ import logging
 from django.core.cache import cache
 from django.db.models import F, Func, Q, Value
 from django.forms.models import model_to_dict
-from django.shortcuts import render
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.mixins import CreateModelMixin, ListModelMixin, UpdateModelMixin

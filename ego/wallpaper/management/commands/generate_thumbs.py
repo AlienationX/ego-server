@@ -25,7 +25,7 @@ class Command(BaseCommand):
             walls = walls.filter(id=wall_id)
 
         for wall in tqdm(walls, desc="生成缩略图"):
-            file = Path(settings.MEDIA_ROOT, wall.picurl)
+            file = Path(settings.MEDIA_ROOT, "wallpaper", wall.picurl)
             # 生成 small 缩略图
             output_file = file.with_name(f"{file.stem}_small.webp")
             generate_thumbs(file, max_size=(520, 520), output_file=output_file)

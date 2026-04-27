@@ -6,7 +6,7 @@ import requests
 from django.conf import settings
 from django.core.management.base import BaseCommand
 from loguru import logger
-from utils.compare_image import get_file_md5, get_image_content_hash
+from utils.compare_image import get_file_md5, get_file_shape, get_image_content_hash
 from wallpaper.management.commands.upload_cos import upload_file_to_cos
 from wallpaper.management.commands.upload_s3 import upload_file_to_s3
 from wallpaper.management.commands.utils import generate_thumbs, send_dingtalk
@@ -33,6 +33,7 @@ class Command(BaseCommand):
             file_path = local_bing_path / record["file_name"]
             md5_hash = get_file_md5(file_path)
             content_hash = get_image_content_hash(file_path)
+            width, height = get_file_shape(file_path)
 
             # step2：生成缩略图
             # 生成 small 缩略图
@@ -86,6 +87,8 @@ class Command(BaseCommand):
                     # "updated_at": datetime.now(),
                     "classify_id": 30,
                     "remark": record["image_url"],
+                    "width": width,
+                    "height": height,
                 },
             )
 

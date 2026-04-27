@@ -8,7 +8,7 @@ from django.conf import settings
 from django.core.management.base import BaseCommand
 from loguru import logger
 from tqdm import tqdm
-from utils.compare_image import get_file_md5, get_image_content_hash
+from utils.compare_image import get_file_md5, get_file_shape, get_image_content_hash
 from wallpaper.management.commands.upload_cos import upload_file_to_cos
 from wallpaper.management.commands.upload_s3 import upload_file_to_s3
 from wallpaper.management.commands.utils import generate_thumbs, send_dingtalk
@@ -143,10 +143,13 @@ class Command(BaseCommand):
                 # step3：上传到数据库
                 md5_hash = get_file_md5(file_path)
                 content_hash = get_image_content_hash(file_path)
+                width, height = get_file_shape(file_path)
                 new_record = {
                     **record,
                     "md5_hash": md5_hash,
                     "content_hash": content_hash,
+                    "width": width,
+                    "height": height,
                 }
                 new_records.append(new_record)
 
@@ -163,10 +166,12 @@ class Command(BaseCommand):
                         is_locked=False,
                         md5_hash=record["md5_hash"],
                         content_hash=record["content_hash"],
-                        # "created_at": datetime.now(),
-                        # "updated_at": datetime.now(),
+                        created_at=datetime(2026, 1, 1, 0, 0, 0),
+                        updated_at=datetime(2026, 1, 1, 0, 0, 0),
                         classify_id=30,
                         remark=f"{record['image_url']},{location}",
+                        width=record["width"],
+                        height=record["height"],
                     )
                     for record in new_records
                 ],

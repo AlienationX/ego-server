@@ -4,6 +4,11 @@ import numpy as np
 from PIL import Image
 
 
+def get_file_shape(file_path):
+    with Image.open(file_path) as img:
+        return img.size  # 返回 (width, height)
+
+
 def get_file_md5(file_path):
     """计算文件的二进制内容的MD5哈希值"""
     hash_md5 = hashlib.md5()
