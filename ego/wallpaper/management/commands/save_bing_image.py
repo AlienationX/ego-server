@@ -25,7 +25,7 @@ class Command(BaseCommand):
         current_date = options.get("date")
 
         # step1：下载 image 到本地
-        local_bing_path = Path(settings.BASE_DIR) / "wallpaper" / "scripts/images/pics/classify_bing/"
+        local_bing_path = Path(settings.MEDIA_ROOT) / "wallpaper/pics/classify_bing/"
         records = self._download_bing_image(local_bing_path)
         new_records = []
 

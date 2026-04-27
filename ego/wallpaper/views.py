@@ -57,7 +57,7 @@ def upload(request):
 
                 # 1. 保存文件到服务器临时目录
                 new_filename = uploaded_file.name.replace(" ", "_").replace("/", "_")
-                picurl_tmp = f"upload_tmp/{new_filename}"
+                picurl_tmp = f"wallpaper/upload_tmp/{new_filename}"
                 save_path_tmp = f"{settings.MEDIA_ROOT}/{picurl_tmp}"
                 try:
                     with open(save_path_tmp, "wb+") as f:
@@ -231,7 +231,7 @@ def _save_wallpaper(form_data, i):
     logger.debug(record)
 
     # 重置图片尺寸
-    resize_path = resize_image(Path(save_path_tmp), Path(f"{settings.MEDIA_ROOT}/{record_picurl}"))
+    resize_path = resize_image(Path(save_path_tmp), Path(f"{settings.MEDIA_ROOT}/wallpaper/{record_picurl}"))
     logger.debug(f"重置图片尺寸: {pic_path_prefix, resize_path}")
 
     # 生成缩略图

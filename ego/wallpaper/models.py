@@ -9,6 +9,8 @@ from django.utils import timezone
 
 # from django.db.models.functions import Now
 
+# 0.重新从零初始化数据库
+# python manage.py migrate --fake <app_name> zero
 
 # 1.生成模型
 # python manage.py makemigrations polls
@@ -113,6 +115,8 @@ class Wall(models.Model):
     score = models.DecimalField(max_digits=2, decimal_places=1, verbose_name="图片分数", blank=True, null=True)
     views = models.IntegerField(default=0, db_default=0, verbose_name="浏览量")
     downloads = models.IntegerField(default=0, db_default=0, verbose_name="下载量")
+    width = models.IntegerField(blank=True, null=True, verbose_name="图片宽度")
+    height = models.IntegerField(blank=True, null=True, verbose_name="图片高度")
 
     # 多对多关系，不会添加该字段，会增加一张存储对应关系的中间表wallpaper_wall_subjects，里面只有三个字段 id、wall_id、subject_id
     subjects = models.ManyToManyField(Subject, related_name="walls", verbose_name="专题", blank=True)

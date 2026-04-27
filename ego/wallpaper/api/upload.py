@@ -90,7 +90,7 @@ class ApiModelView(GenericViewSet):
         uploaded_file: InMemoryUploadedFile,
         max_size: int = 2 * 1024 * 1024,
         allowed_extensions: list = [".jpg", ".jpeg", ".png", ".webp"],
-        save_dir: str = "upload_tmp",
+        save_dir: str = "wallpaper/upload_tmp",
     ) -> str:
         # logger.debug(type(uploaded_file))  # <class 'django.core.files.uploadedfile.InMemoryUploadedFile'>
         # logger.debug(uploaded_file.file)  # <_io.BytesIO object at 0x10d413d30>

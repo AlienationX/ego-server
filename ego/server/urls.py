@@ -24,6 +24,12 @@ from rest_framework_simplejwt.views import TokenBlacklistView, TokenObtainPairVi
 # from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 
 urlpatterns = [
+    path("admin/", admin.site.urls),
+    path("wallpaper/", include("wallpaper.urls")),
+    path("pocket/", include("pocket.urls")),
+    path("api/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
+    path("api/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+    path("api/token/black/", TokenBlacklistView.as_view(), name="token_blacklist"),
     # 网站 favicon，浏览器默认会请求 /favicon.ico
     path(
         "favicon.ico",
@@ -36,15 +42,9 @@ urlpatterns = [
         serve,
         {"document_root": settings.STATIC_ROOT},
     ),
-    path("admin/", admin.site.urls),
-    path("wallpaper/", include("wallpaper.urls")),
-    path("pocket/", include("pocket.urls")),
-    path("api/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
-    path("api/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
-    path("api/token/black/", TokenBlacklistView.as_view(), name="token_blacklist"),  # 注销操作将token放入黑名单无法再使用
-    # # drf-spectacular，只能在该处配置，不推荐使用
-    # path('wallpaper/spe-schema/', SpectacularAPIView.as_view(), name='wallpaper-spe-schema'),
-    # # 为 Swagger UI 添加路径
-    # path('wallpaper/spe-swagger/', SpectacularSwaggerView.as_view(url_name='wallpaper-spe-schema'), name='spe-swagger'),
-    # path('wallpaper/spe-redoc/', SpectacularRedocView.as_view(url_name='wallpaper-spe-schema'), name='redoc'),
+    re_path(
+        r"^media/(?P<path>.*)$",
+        serve,
+        {"document_root": settings.MEDIA_ROOT},
+    ),
 ]

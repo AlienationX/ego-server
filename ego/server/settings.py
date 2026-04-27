@@ -181,8 +181,8 @@ STATIC_URL = "static/"
 #
 STATIC_ROOT = Path(BASE_DIR).joinpath("static")
 
-# MEDIA_ROOT = Path(BASE_DIR).joinpath("media")
-MEDIA_ROOT = Path(BASE_DIR).joinpath("wallpaper", "scripts", "images")
+MEDIA_ROOT = BASE_DIR / "media"
+MEDIA_URL = "/media/"
 
 # 限制内存中处理的上传文件大小（默认1MB）
 # FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB

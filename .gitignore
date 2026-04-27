@@ -14,6 +14,7 @@ ego/.env*
 ego/zappa_settings.json
 ego/logs/
 ego/static/
+ego/media/
 ego/wallpaper/scripts/images/
 ego/wallpaper/scripts/output/
 ego/wallpaper/scripts/s3_wallpaper_bucket/
