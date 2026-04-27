@@ -168,8 +168,7 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
-STATIC_URL = "static/"
-# django的静态文件是统一管理，都会收集放到static路径下，所以没应用的static需要再增加应用名称来隔离，重点。
+# django的静态文件是统一管理，都会收集放到static路径下，所以应用的static需要再增加应用名称来隔离，重点。
 # pokemon_library应用的图片访问地址是 http://127.0.0.1:8000/static/pokemon_library/images/0001-妙蛙种子.png
 # pokemon_wallpaper应用的图片访问地址是 http://127.0.0.1:8000/static/pokemon_wallpaper/images/WechatIMG34.jpg
 # 新版本无需添加STATICFILES_DIRS
@@ -177,12 +176,11 @@ STATIC_URL = "static/"
 #     Path(BASE_DIR).joinpath('pokemon_library/static'),  # 指定静态文件目录
 #     Path(BASE_DIR).joinpath('pokemon_wallpaper/static'),  # 指定静态文件目录
 # ]
-
-#
+STATIC_URL = "/static/"
 STATIC_ROOT = Path(BASE_DIR).joinpath("static")
 
-MEDIA_ROOT = BASE_DIR / "media"
 MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
 
 # 限制内存中处理的上传文件大小（默认1MB）
 # FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
