@@ -45,8 +45,6 @@ SECRET_KEY = config("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config("DEBUG", default=False, cast=bool)
 
-ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="").split(",")  # debug模式，默认会增加localhost、127等本机
-
 # Application definition
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -268,14 +266,12 @@ SPECTACULAR_SETTINGS = {
 # ######################## 跨域配置
 
 # 该配置是django的配置，默认是空，主要是控制postman这种请求，生产环境也需要设置成前端和测试访问。跨域是控制前端浏览器的请求
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="").split(",")  # debug模式，默认会增加localhost、127等本机
 
-CORS_ALLOW_ALL_ORIGINS = True
-# CORS_ALLOWED_ORIGINS = [
-#     "http://localhost:5173",  # 前端开发服务器地址
-#     # "http://127.0.0.1:3000",
-#     "https://your-production-domain.com"  # 生产环境域名
-# ]
+CORS_ALLOW_ALL_ORIGINS = config("DEBUG", default=False, cast=bool)
+# CSRF 信任的来源（生产环境需要配置）
+# 在 DEBUG=False 时，Django 会检查请求的 Origin 头是否在信任列表中
+CSRF_TRUSTED_ORIGINS = config("CSRF_TRUSTED_ORIGINS", default="").split(",")
 
 # 允许携带 Cookie（如果需要）
 CORS_ALLOW_CREDENTIALS = True
