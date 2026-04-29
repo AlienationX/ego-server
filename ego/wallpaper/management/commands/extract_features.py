@@ -47,7 +47,8 @@ class Command(BaseCommand):
         # for wall in tqdm(walls, desc="提取特征"):
         for wall in walls:
             # 提取特征向量
-            feature_vector_list, feature_dim, model_name = extractor.extract_features(Path(settings.MEDIA_ROOT, wall.picurl))
+            local_path = Path(settings.MEDIA_ROOT, "wallpaper", wall.picurl)
+            feature_vector_list, feature_dim, model_name = extractor.extract_features(local_path)
             feature_vector = FeatureStorage.vector_to_blob(feature_vector_list)
             # 没有创建，存在更新
             wall_features, created = WallFeatures.objects.update_or_create(
