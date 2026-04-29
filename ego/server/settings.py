@@ -270,6 +270,7 @@ ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="").split(",")  # debug模式，
 ALLOWED_HOSTS = ["*"]
 
 CORS_ALLOW_ALL_ORIGINS = config("DEBUG", default=False, cast=bool)
+CORS_ALLOW_ALL_ORIGINS = True
 # CSRF 信任的来源（生产环境需要配置）
 # 在 DEBUG=False 时，Django 会检查请求的 Origin 头是否在信任列表中
 CSRF_TRUSTED_ORIGINS = config("CSRF_TRUSTED_ORIGINS", default="").split(",")
