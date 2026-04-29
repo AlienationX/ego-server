@@ -267,6 +267,7 @@ SPECTACULAR_SETTINGS = {
 
 # 该配置是django的配置，默认是空，主要是控制postman这种请求，生产环境也需要设置成前端和测试访问。跨域是控制前端浏览器的请求
 ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="").split(",")  # debug模式，默认会增加localhost、127等本机
+ALLOWED_HOSTS = ["*"]
 
 CORS_ALLOW_ALL_ORIGINS = config("DEBUG", default=False, cast=bool)
 # CSRF 信任的来源（生产环境需要配置）

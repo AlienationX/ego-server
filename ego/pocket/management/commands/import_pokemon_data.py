@@ -8,6 +8,27 @@ from django.db import transaction
 from loguru import logger
 from pocket.models import Pokemon, Ability, Move, Item, Type, Color, Habitat, Shape
 
+TYPES_DATA = {
+    "Water": {"zh": "水", "jp": "みず", "effectiveness": {"Fire": 2, "Ground": 2, "Rock": 2, "Water": 0.5, "Grass": 0.5, "Dragon": 0.5}},
+    "Grass": {"zh": "草", "jp": "くさ", "effectiveness": {"Water": 2, "Ground": 2, "Rock": 2, "Fire": 0.5, "Grass": 0.5, "Poison": 0.5, "Flying": 0.5, "Bug": 0.5, "Dragon": 0.5, "Steel": 0.5}},
+    "Electric": {"zh": "电", "jp": "でんき", "effectiveness": {"Water": 2, "Flying": 2, "Electric": 0.5, "Grass": 0.5, "Dragon": 0.5, "Ground": 0}},
+    "Ice": {"zh": "冰", "jp": "こおり", "effectiveness": {"Grass": 2, "Ground": 2, "Flying": 2, "Dragon": 2, "Fire": 0.5, "Water": 0.5, "Ice": 0.5, "Steel": 0.5}},
+    "Fighting": {"zh": "格斗", "jp": "かくとう", "effectiveness": {"Normal": 2, "Ice": 2, "Rock": 2, "Dark": 2, "Steel": 2, "Poison": 0.5, "Flying": 0.5, "Psychic": 0.5, "Bug": 0.5, "Fairy": 0.5, "Ghost": 0}},
+    "Poison": {"zh": "毒", "jp": "どく", "effectiveness": {"Grass": 2, "Fairy": 2, "Poison": 0.5, "Ground": 0.5, "Rock": 0.5, "Ghost": 0.5, "Steel": 0}},
+    "Ground": {"zh": "地面", "jp": "じめん", "effectiveness": {"Fire": 2, "Electric": 2, "Poison": 2, "Rock": 2, "Steel": 2, "Grass": 0.5, "Bug": 0.5, "Flying": 0}},
+    "Flying": {"zh": "飞行", "jp": "ひこう", "effectiveness": {"Grass": 2, "Fighting": 2, "Bug": 2, "Electric": 0.5, "Rock": 0.5, "Steel": 0.5}},
+    "Psychic": {"zh": "超能力", "jp": "エスパー", "effectiveness": {"Fighting": 2, "Poison": 2, "Psychic": 0.5, "Steel": 0.5, "Dark": 0}},
+    "Bug": {"zh": "虫", "jp": "むし", "effectiveness": {"Grass": 2, "Psychic": 2, "Dark": 2, "Fire": 0.5, "Fighting": 0.5, "Poison": 0.5, "Flying": 0.5, "Ghost": 0.5, "Steel": 0.5, "Fairy": 0.5}},
+    "Rock": {"zh": "岩石", "jp": "いわ", "effectiveness": {"Fire": 2, "Ice": 2, "Flying": 2, "Bug": 2, "Fighting": 0.5, "Ground": 0.5, "Steel": 0.5}},
+    "Ghost": {"zh": "幽灵", "jp": "ゴースト", "effectiveness": {"Psychic": 2, "Ghost": 2, "Dark": 0.5, "Normal": 0}},
+    "Dragon": {"zh": "龙", "jp": "ドラゴン", "effectiveness": {"Dragon": 2, "Steel": 0.5, "Fairy": 0}},
+    "Dark": {"zh": "恶", "jp": "あく", "effectiveness": {"Psychic": 2, "Ghost": 2, "Fighting": 0.5, "Dark": 0.5, "Fairy": 0.5}},
+    "Steel": {"zh": "钢", "jp": "はがね", "effectiveness": {"Ice": 2, "Rock": 2, "Fairy": 2, "Fire": 0.5, "Water": 0.5, "Electric": 0.5, "Steel": 0.5}},
+    "Fairy": {"zh": "妖精", "jp": "フェアリー", "effectiveness": {"Fighting": 2, "Dragon": 2, "Dark": 2, "Fire": 0.5, "Poison": 0.5, "Steel": 0.5}},
+    "Normal": {"zh": "一般", "jp": "ノーマル", "effectiveness": {"Rock": 0.5, "Steel": 0.5, "Ghost": 0}},
+    "Fire": {"zh": "火", "jp": "ほのお", "effectiveness": {"Fire": 0.5, "Water": 0.5, "Grass": 2, "Ice": 2, "Bug": 2, "Rock": 0.5, "Dragon": 0.5, "Steel": 2}},
+}
+
 class Command(BaseCommand):
     help = 'Import Pokemon data from local dataset with performance optimizations'
 
@@ -50,6 +71,12 @@ class Command(BaseCommand):
 
     def import_props(self, base_path: Path):
         logger.info("Importing props (Types, Colors, Shapes, Habitats)...")
+        # 清除旧数据以支持重新导入
+        Type.objects.all().delete()
+        Color.objects.all().delete()
+        Shape.objects.all().delete()
+        Habitat.objects.all().delete()
+
         pokemon_dir = base_path / 'data' / 'pokemon'
         
         types_set = set()
@@ -73,13 +100,23 @@ class Command(BaseCommand):
         existing_shapes = set(Shape.objects.values_list('name_zh', flat=True))
         existing_habitats = set(Habitat.objects.values_list('name_zh', flat=True))
 
-        # 批量创建，过滤掉已存在的
-        Type.objects.bulk_create([Type(name_zh=n, name=n, name_en='', name_jp='') for n in types_set if n not in existing_types])
-        Color.objects.bulk_create([Color(name_zh=n, name=n, name_en='', name_jp='') for n in colors_set if n not in existing_colors])
-        Shape.objects.bulk_create([Shape(name_zh=n, name=n, name_en='', name_jp='') for n in shapes_set if n not in existing_shapes])
+        # 直接创建，因为上面已经清空了
+        type_objs = []
+        for name_en, info in TYPES_DATA.items():
+            type_objs.append(Type(
+                name=name_en.lower(),
+                name_zh=info['zh'],
+                name_en=name_en,
+                name_jp=info['jp'],
+                effectiveness=info['effectiveness']
+            ))
+        Type.objects.bulk_create(type_objs)
+        
+        Color.objects.bulk_create([Color(name_zh=n, name=n, name_en='', name_jp='') for n in sorted(list(colors_set))])
+        Shape.objects.bulk_create([Shape(name_zh=n, name=n, name_en='', name_jp='') for n in sorted(list(shapes_set))])
 
         habitats = ["洞穴", "森林", "草地", "山地", "水边", "城市", "海洋", "荒漠", "草原"]
-        Habitat.objects.bulk_create([Habitat(name_zh=n, name=n, name_en='', name_jp='') for n in habitats if n not in existing_habitats])
+        Habitat.objects.bulk_create([Habitat(name_zh=n, name=n, name_en='', name_jp='') for n in habitats])
         logger.info("Props import check completed.")
 
     def import_abilities(self, base_path: Path):
@@ -203,8 +240,7 @@ class Command(BaseCommand):
         json_files = sorted(list(pokemon_dir.glob('*.json')))
         
         # 先删除已存在的宝可梦数据，以便全量覆盖更新
-        # 如果只想增量，可以去掉这行并使用 ignore_conflicts=True
-        # Pokemon.objects.all().delete() 
+        Pokemon.objects.all().delete() 
 
         for json_file in json_files:
             with json_file.open('r', encoding='utf-8') as f:

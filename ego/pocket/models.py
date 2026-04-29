@@ -91,6 +91,7 @@ class Type(models.Model):
     name_zh = models.CharField(max_length=100, verbose_name="中文名称")
     name_en = models.CharField(max_length=100, verbose_name="英文名称")
     name_jp = models.CharField(max_length=100, verbose_name="日文名称")
+    effectiveness = models.JSONField(default=dict, verbose_name="属性克制关系")
 
     class Meta:
         verbose_name = "属性"

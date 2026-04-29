@@ -7,7 +7,10 @@ from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 
-from .models import Player, PlayerPokemon, Pokedex, Pokemon
+from .models import (
+    Ability, Color, Habitat, Item, Player, PlayerPokemon, 
+    Pokedex, Pokemon, Shape, Type
+)
 from .serializers import (
     PlayerPokemonDetailSerializer,
     PlayerPokemonListSerializer,
@@ -34,6 +37,7 @@ def get_default_user():
 class PokemonViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [permissions.AllowAny]
     pagination_class = StandardPagination
+    lookup_field = "index"
 
     def get_serializer_class(self):
         """列表用轻量序列化器，详情用完整序列化器"""
@@ -73,7 +77,21 @@ class PokemonViewSet(viewsets.ReadOnlyModelViewSet):
         if generation:
             qs = qs.filter(generation=generation)
 
-        return qs.order_by("id")
+        # 按栖息地过滤
+        habitat_filter = self.request.query_params.get("habitat", "").strip()
+        if habitat_filter:
+            qs = qs.filter(habitat__name_zh=habitat_filter)
+
+        return qs.distinct().order_by("id")
+
+    @action(detail=False, methods=["get"])
+    def metadata(self, request):
+        types = Type.objects.all().values("name", "name_zh", "name_en", "name_jp", "effectiveness")
+        habitats = Habitat.objects.all().values("name", "name_zh", "name_en")
+        return Response({
+            "types": list(types),
+            "habitats": list(habitats)
+        })
 
 
 class PlayerViewSet(viewsets.GenericViewSet):
@@ -158,7 +176,7 @@ class PlayerViewSet(viewsets.GenericViewSet):
         return Response({"error": "Not enough coins"}, status=status.HTTP_400_BAD_REQUEST)
 
 
-class PlayerPokemonViewSet(viewsets.ReadOnlyModelViewSet):
+class PlayerPokemonViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.AllowAny]
     pagination_class = StandardPagination
 
@@ -181,11 +199,21 @@ class PlayerPokemonViewSet(viewsets.ReadOnlyModelViewSet):
                 | Q(nickname__icontains=search)
             )
 
+        # 按属性过滤
+        type_filter = self.request.query_params.get("type", "").strip()
+        if type_filter:
+            qs = qs.filter(pokemon__types__name_zh=type_filter)
+
+        # 按栖息地过滤
+        habitat_filter = self.request.query_params.get("habitat", "").strip()
+        if habitat_filter:
+            qs = qs.filter(pokemon__habitat__name_zh=habitat_filter)
+
         if self.action == "retrieve":
             qs = qs.select_related("pokemon__color", "pokemon__habitat", "pokemon__shape")
             qs = qs.prefetch_related("pokemon__types", "pokemon__abilities", "pokemon__moves")
 
-        return qs.order_by("-catch_time")
+        return qs.distinct().order_by("-catch_time")
 
 
 class PokedexViewSet(viewsets.ReadOnlyModelViewSet):
