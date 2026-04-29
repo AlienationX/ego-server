@@ -56,4 +56,7 @@ class Command(BaseCommand):
             )
             self.stdout.write(self.style.SUCCESS(f"{datetime.now()} 成功提取 壁纸id={wall.id} 的特征"))
 
+        # 优化：使用 bulk_update 一次性更新所有数据
+        # WallFeatures.objects.bulk_update(walls, fields=["feature_vector", "feature_dim", "model_name"], batch_size=1000)
+
         self.stdout.write(self.style.SUCCESS(f"{datetime.now()} 成功提取 {len(walls)} 条壁纸 的特征"))
