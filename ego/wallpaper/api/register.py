@@ -13,7 +13,7 @@ from rest_framework.decorators import action
 from rest_framework.mixins import CreateModelMixin
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ModelViewSet, ViewSet
-from utils.tools import generate_nickname, ip_to_region
+from utils.tools import generate_nickname, get_client_ip, ip_to_region
 
 from ..permissions import HasAccessKey
 from ..renderers import CustomJSONRenderer
@@ -55,7 +55,7 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
                     data["username"] = f"user_{datetime.now().strftime('%Y%m%d%H%M%S')}"
 
             profile = {}
-            profile["ip"] = request.META.get("REMOTE_ADDR", "")
+            profile["ip"] = get_client_ip(request)
             profile["region"] = ip_to_region(profile["ip"])
             profile["phone_number"] = phone_number
             profile["nickname"] = generate_nickname()

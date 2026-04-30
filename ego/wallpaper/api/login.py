@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ModelViewSet, ViewSet
 from rest_framework_simplejwt.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.tokens import RefreshToken
-from utils.tools import generate_nickname
+from utils.tools import generate_nickname, get_client_ip, ip_to_region
 
 from ..models import Profile
 from ..permissions import HasAccessKey
@@ -85,9 +85,9 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
         # 3. 查找用户，不存在则创建
         user = User.objects.select_related("profile").filter(profile__wechat_openid=openid).first()
 
-        ip_address = request.META.get("REMOTE_ADDR")
+        ip_address = get_client_ip(request)
         # region = self._get_region(ip)  # 获取IP地址对应的地区信息，aws外部接口调用存在问题，暂时注释
-        region = ""
+        region = ip_to_region(ip_address)
 
         if user:
             if not user.is_active:

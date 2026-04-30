@@ -11,6 +11,7 @@ workers = 3
 worker_class = "gthread"  # 或 "gevent"
 threads = 4
 timeout = 120
+forwarded_allow_ips = "127.0.0.1"  # 信任来自 Nginx 代理的 X-Forwarded-For 头
 loglevel = "info"
 accesslog = "/var/log/gunicorn/ego-server/access.log"
 errorlog = "/var/log/gunicorn/ego-server/error.log"

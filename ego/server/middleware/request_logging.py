@@ -3,6 +3,7 @@ import time
 
 from django.conf import settings
 from django.http import JsonResponse
+from utils.tools import get_client_ip
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +59,7 @@ class RequestLoggingMiddleware:
         logger.info(
             f"Request and Response: {request.method} {request.path}"
             f", User: {request.user if request.user.is_authenticated else 'Anonymous'}"
-            f", IP: {request.META.get('REMOTE_ADDR')}"
+            f", IP: {get_client_ip(request)}"
             f", Status: {response.status_code}"
             f", Duration: {duration:.2f}s"
         )
@@ -74,7 +75,7 @@ class RequestLoggingMiddleware:
             f"全局异常捕获[middleware]: {request.method} {request.path}\n"
             f"异常类型: {type(exception).__name__}\n"
             f"异常信息: {str(exception)}\n"
-            f"IP: {request.META.get('REMOTE_ADDR')}\n"
+            f"IP: {get_client_ip(request)}\n"
             f"用户: {request.user if request.user.is_authenticated else 'Anonymous'}",
             exc_info=True,
         )
