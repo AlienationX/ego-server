@@ -35,6 +35,14 @@ class PlayerSerializer(serializers.ModelSerializer):
         fields = ["id", "username", "coins", "pokeballs", "berries"]
 
 
+# ========== Pokemon 游戏序列化器（超轻量） ==========
+class PokemonGameSerializer(serializers.ModelSerializer):
+    """游戏专用：仅返回 id, index, name_zh, image"""
+    class Meta:
+        model = Pokemon
+        fields = ["id", "index", "name_zh", "image"]
+
+
 # ========== Pokemon 列表序列化器（轻量） ==========
 class PokemonListSerializer(serializers.ModelSerializer):
     """列表接口：只返回必要字段，不含 moves"""

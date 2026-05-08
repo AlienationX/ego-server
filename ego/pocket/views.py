@@ -7,10 +7,7 @@ from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 
-from .models import (
-    Ability, Color, Habitat, Item, Player, PlayerPokemon, 
-    Pokedex, Pokemon, Shape, Type
-)
+from .models import Ability, Color, Habitat, Item, Player, PlayerPokemon, Pokedex, Pokemon, Shape, Type
 from .serializers import (
     PlayerPokemonDetailSerializer,
     PlayerPokemonListSerializer,
@@ -18,6 +15,7 @@ from .serializers import (
     PokedexSerializer,
     PokemonDetailSerializer,
     PokemonListSerializer,
+    PokemonGameSerializer,
 )
 
 
@@ -54,18 +52,12 @@ class PokemonViewSet(viewsets.ReadOnlyModelViewSet):
             qs = qs.prefetch_related("abilities", "moves")
 
         # Annotate owned_count
-        qs = qs.annotate(
-            owned_count=Count("playerpokemon", filter=Q(playerpokemon__player=user.player))
-        )
+        qs = qs.annotate(owned_count=Count("playerpokemon", filter=Q(playerpokemon__player=user.player)))
 
         # ===== 搜索过滤 =====
         search = self.request.query_params.get("search", "").strip()
         if search:
-            qs = qs.filter(
-                Q(name_zh__icontains=search)
-                | Q(name_en__icontains=search)
-                | Q(index__icontains=search)
-            )
+            qs = qs.filter(Q(name_zh__icontains=search) | Q(name_en__icontains=search) | Q(index__icontains=search))
 
         # 按属性过滤
         type_filter = self.request.query_params.get("type", "").strip()
@@ -88,10 +80,14 @@ class PokemonViewSet(viewsets.ReadOnlyModelViewSet):
     def metadata(self, request):
         types = Type.objects.all().values("name", "name_zh", "name_en", "name_jp", "effectiveness")
         habitats = Habitat.objects.all().values("name", "name_zh", "name_en")
-        return Response({
-            "types": list(types),
-            "habitats": list(habitats)
-        })
+        return Response({"types": list(types), "habitats": list(habitats)})
+
+    @action(detail=False, methods=["get"])
+    def game_random(self, request):
+        """随机返回 4 个宝可梦供游戏使用"""
+        qs = Pokemon.objects.all().order_by("?")[:4]
+        serializer = PokemonGameSerializer(qs, many=True, context={"request": request})
+        return Response(serializer.data)
 
 
 class PlayerViewSet(viewsets.GenericViewSet):
@@ -118,34 +114,34 @@ class PlayerViewSet(viewsets.GenericViewSet):
         owned_total = PlayerPokemon.objects.filter(player=player).count()
 
         # 最近捕获的宝可梦（最多6只），使用 select_related 避免 N+1
-        recent_catches = (
-            PlayerPokemon.objects.filter(player=player)
-            .select_related("pokemon")
-            .order_by("-catch_time")[:6]
-        )
+        recent_catches = PlayerPokemon.objects.filter(player=player).select_related("pokemon").order_by("-catch_time")[:6]
         recent_data = []
         for pp in recent_catches:
-            recent_data.append({
-                "id": pp.id,
-                "pokemon_id": pp.pokemon.id,
-                "pokemon_index": pp.pokemon.index,
-                "pokemon_name_zh": pp.pokemon.name_zh,
-                "pokemon_name_en": pp.pokemon.name_en,
-                "pokemon_image": request.build_absolute_uri(pp.pokemon.image.url) if pp.pokemon.image else "",
-                "nickname": pp.nickname,
-                "iv": pp.iv,
-                "catch_time": pp.catch_time,
-            })
+            recent_data.append(
+                {
+                    "id": pp.id,
+                    "pokemon_id": pp.pokemon.id,
+                    "pokemon_index": pp.pokemon.index,
+                    "pokemon_name_zh": pp.pokemon.name_zh,
+                    "pokemon_name_en": pp.pokemon.name_en,
+                    "pokemon_image": request.build_absolute_uri(pp.pokemon.image.url) if pp.pokemon.image else "",
+                    "nickname": pp.nickname,
+                    "iv": pp.iv,
+                    "catch_time": pp.catch_time,
+                }
+            )
 
-        return Response({
-            "player": self.get_serializer(player).data,
-            "total_pokemon": total_pokemon,
-            "caught_count": caught_count,
-            "seen_count": seen_count,
-            "owned_total": owned_total,
-            "pokedex_progress": round(caught_count / total_pokemon * 100, 1) if total_pokemon > 0 else 0,
-            "recent_catches": recent_data,
-        })
+        return Response(
+            {
+                "player": self.get_serializer(player).data,
+                "total_pokemon": total_pokemon,
+                "caught_count": caught_count,
+                "seen_count": seen_count,
+                "owned_total": owned_total,
+                "pokedex_progress": round(caught_count / total_pokemon * 100, 1) if total_pokemon > 0 else 0,
+                "recent_catches": recent_data,
+            }
+        )
 
     @action(detail=False, methods=["post"])
     def buy_pokeballs(self, request):
@@ -188,7 +184,7 @@ class PlayerPokemonViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = get_default_user()
         qs = PlayerPokemon.objects.filter(player=user.player).select_related("pokemon")
-        
+
         # ===== 搜索过滤 =====
         search = self.request.query_params.get("search", "").strip()
         if search:
@@ -270,7 +266,7 @@ class CatchAPIView(views.APIView):
             .prefetch_related("types", "abilities", "moves")
             .get(id=pokemon.id)
         )
-        serializer = PokemonDetailSerializer(pokemon)
+        serializer = PokemonDetailSerializer(pokemon, context={'request': request})
         return Response({"pokemon": serializer.data, "weather": current_weather})
 
     def post(self, request):
@@ -300,8 +296,11 @@ class CatchAPIView(views.APIView):
         # Consume 1 pokeball
         player.pokeballs -= 1
 
-        # Base probability
-        catch_chance = 0.5
+        # Base probability calculation (capture_rate is 0-255)
+        # Normalizing capture_rate: a rate of 255 (easy) gives ~0.7 base chance, 3 (hard) gives ~0.1
+        base_rate = max(10, pokemon.capture_rate) / 255.0
+        catch_chance = 0.3 + (base_rate * 0.4) # Range roughly 0.3 - 0.7
+        
         message_extras = []
 
         # Apply berry bonus
@@ -321,9 +320,12 @@ class CatchAPIView(views.APIView):
         }
         bonus_types = weather_types_map.get(weather, [])
         if pokemon.types.filter(name_zh__in=bonus_types).exists():
-            catch_chance += 0.1
-            message_extras.append("Weather match (+10%)")
+            catch_chance += 0.15
+            message_extras.append("Weather boost (+15%)")
 
+        # Cap probability between 0.1 and 0.95
+        catch_chance = max(0.1, min(0.95, catch_chance))
+        
         success = random.random() < catch_chance
 
         if success:

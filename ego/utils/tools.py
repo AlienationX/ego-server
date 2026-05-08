@@ -32,7 +32,7 @@ def ip_to_region(ip_address: str) -> str:
     except Exception:
         region_str = "N/A|N/A|N/A|N/A|N/A"
 
-    # region_str = region_str.replace("|", ",")
+    region_str = region_str.replace("|", ",")
     return region_str
 
 
