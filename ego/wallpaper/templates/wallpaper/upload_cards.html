@@ -28,7 +28,6 @@
           </dialog>
 
           <div class="card-body p-4 gap-3 flex-1 min-w-0 overflow-hidden">
-            <input type="hidden" name="filename" value="{{ item.filename }}" />
             <input type="hidden" name="pic_path_prefix" value="{{ item.pic_path_prefix }}" />
             <input type="hidden" name="save_path_tmp" value="{{ item.save_path_tmp }}" />
 
@@ -111,6 +110,23 @@
               </label>
             </div>
 
+            <div class="form-control w-full mt-auto pt-2">
+              <!-- <label class="label py-0">
+                <span class="label-text text-xs font-medium">文件名</span>
+              </label> -->
+              <div class="flex items-center justify-between gap-2 mt-1">
+                <div id="filename-display-{{ forloop.counter0 }}" class="text-xs text-base-content/70 overflow-hidden whitespace-nowrap text-ellipsis flex-1" title="{{ item.filename }}">
+                  {{ item.filename }}
+                </div>
+                <label class="cursor-pointer flex items-center gap-1 flex-shrink-0">
+                  <span class="text-xs text-base-content/70">使用uuid</span>
+                  <input type="checkbox" name="use_uuid_{{ forloop.counter0 }}" class="checkbox checkbox-xs checkbox-primary" />
+                </label>
+              </div>
+              <input type="hidden" name="filename" id="filename-input-{{ forloop.counter0 }}" value="{{ item.filename }}" />
+              <input type="hidden" id="original-filename-{{ forloop.counter0 }}" value="{{ item.filename }}" />
+            </div>
+
           </div>
         </div>
       </div>
@@ -157,6 +173,38 @@
 
 <script>
   (function () {
+    // UUID文件名切换逻辑
+    const uuidCheckboxes = document.querySelectorAll('input[name^="use_uuid_"]');
+    const uuidMap = new Map();
+    
+    uuidCheckboxes.forEach((checkbox) => {
+      const index = checkbox.name.replace('use_uuid_', '');
+      // 为每个卡片预生成UUID(去掉横杠)
+      uuidMap.set(index, crypto.randomUUID().replace(/-/g, ''));
+      
+      checkbox.addEventListener('change', function() {
+        const idx = this.name.replace('use_uuid_', '');
+        const displayElement = document.getElementById(`filename-display-${idx}`);
+        const filenameInput = document.getElementById(`filename-input-${idx}`);
+        const originalInput = document.getElementById(`original-filename-${idx}`);
+        
+        const originalFilename = originalInput.value;
+        const ext = originalFilename.substring(originalFilename.lastIndexOf('.'));
+        const jpgExt = ext.toLowerCase() === '.jpeg' ? '.jpg' : ext;
+        const uuidFilename = uuidMap.get(idx) + jpgExt;
+        
+        if (this.checked) {
+          displayElement.textContent = uuidFilename;
+          displayElement.title = uuidFilename;
+          filenameInput.value = uuidFilename;
+        } else {
+          displayElement.textContent = originalFilename;
+          displayElement.title = originalFilename;
+          filenameInput.value = originalFilename;
+        }
+      });
+    });
+
     const saveButton = document.getElementById("save-all-btn");
     const timer = document.getElementById("save-all-timer");
     const timerValue = document.getElementById("save-all-timer-value");
