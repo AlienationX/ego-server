@@ -16,7 +16,7 @@ from rest_framework.viewsets import GenericViewSet, ModelViewSet, ViewSet
 from rest_framework_simplejwt.exceptions import AuthenticationFailed
 
 from ..business_status import BusinessStatus
-from ..models import Actions, Profile
+from ..models import Profile, UserActions
 from ..paginations import CustomPageNumberPagination
 from ..permissions import HasAccessKey
 from ..renderers import CustomJSONRenderer
@@ -51,11 +51,14 @@ class ApiModelView(RetrieveModelMixin, GenericViewSet):
             # 将序列化后的数据复制为可变 dict 并添加统计字段
             data = dict(serializer.data)
             user_id = user.id
-            collect_count = Actions.objects.filter(user_id=user_id, is_collect=True).count()
-            download_count = Actions.objects.filter(user_id=user_id, is_download=True).count()
-            rate_count = Actions.objects.filter(user_id=user_id, pic_score__isnull=False).count()
+            # TODO 优化：缓存 UserActions.object.filter(user_id=user_id, action_value__gt=0)
+            # user_actions_list = list(UserActions.objects.filter(user_id=user_id, action_value__gt=0))
+            user_actions = UserActions.objects.filter(user_id=user_id, action_value__gt=0)
+            favorite_count = user_actions.filter(action_key="favorite").count()
+            download_count = user_actions.filter(action_key="download").count()
+            rate_count = user_actions.filter(action_key="rate").count()
             data["count"] = {
-                "collect_count": collect_count,
+                "favorite_count": favorite_count,
                 "download_count": download_count,
                 "rate_count": rate_count,
             }

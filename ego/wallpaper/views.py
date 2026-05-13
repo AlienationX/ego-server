@@ -74,8 +74,8 @@ def upload(request):
                     data = {"items": [], "msg": info["error"], "alert_type": "alert-warning"}
                     return render(request, "wallpaper/upload_cards.html", data)
 
-                info["tabs"] = info["tabs"]
-                info["tabs_list"] = info["tabs"].split(",")
+                info["tags"] = info["tags"]
+                info["tags_list"] = info["tags"].split(",")
                 info["score"] = round(random.uniform(4, 5), 1)
                 info["publisher"] = "Admin"
                 info["is_locked"] = False
@@ -144,7 +144,7 @@ def _generate_info_with_llm(img_url):
     请按照以下 JSON 格式返回分析结果（不要有任何样式或格式化）：
     {{
         "description": "报纸纹理的动漫角色，蓝色调，侧身姿态，文字元素点缀",
-        "tabs": "海贼王,路飞,anime",
+        "tags": "海贼王,路飞,anime",
         "classify_name": "动漫二次元"
     }}
     """
@@ -195,7 +195,7 @@ def _generate_info_with_llm(img_url):
 
         content = result["choices"][0]["message"]["content"].strip()
         info = json.loads(content)
-        info["tabs"] = info.get("tabs").replace(", ", ",")
+        info["tags"] = info.get("tags").replace(", ", ",")
         info["classify_id"] = classify_objects.get(name=info["classify_name"]).id
 
         return info
@@ -240,7 +240,7 @@ def _save_wallpaper(form_data, i):
 
     record = {
         "description": form_data.getlist("description")[i],
-        "tabs": form_data.getlist("tabs")[i],
+        "tags": form_data.getlist("tags")[i],
         "score": form_data.getlist("score")[i],
         "publisher": form_data.getlist("publisher")[i],
         "is_active": True,

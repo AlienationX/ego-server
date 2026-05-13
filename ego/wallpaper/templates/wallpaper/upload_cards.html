@@ -6,7 +6,8 @@
       {% for item in items %}
       <div class="card bg-base-100 shadow-md hover:shadow-lg transition-shadow min-w-0">
         <div class="card-body flex flex-col sm:flex-row gap-0 p-0 min-w-0">
-          <figure class="w-full sm:w-2/5 flex-shrink-0 cursor-pointer" onclick="document.getElementById('preview-modal-{{ forloop.counter }}').showModal()">
+          <figure class="w-full sm:w-2/5 flex-shrink-0 cursor-pointer"
+            onclick="document.getElementById('preview-modal-{{ forloop.counter }}').showModal()">
             <img src="{{ item.picurl_tmp }}" alt="{{ item.filename }}"
               class="w-full h-48 sm:h-full object-cover rounded-t-lg sm:rounded-l-lg sm:rounded-tr-none hover:opacity-90 transition-opacity" />
           </figure>
@@ -15,7 +16,8 @@
           <dialog id="preview-modal-{{ forloop.counter }}" class="modal">
             <div class="modal-box p-0 bg-transparent shadow-none flex items-center justify-center">
               <div class="relative inline-block">
-                <img src="{{ item.picurl_tmp }}" alt="{{ item.filename }}" class="max-h-[90vh] max-w-[90vw] object-contain rounded-lg" />
+                <img src="{{ item.picurl_tmp }}" alt="{{ item.filename }}"
+                  class="max-h-[90vh] max-w-[90vw] object-contain rounded-lg" />
                 <form method="dialog" class="absolute right-0 top-0 z-20">
                   <button class="btn btn-sm btn-circle btn-ghost bg-base-100/80 hover:bg-base-100 m-2">✕</button>
                 </form>
@@ -54,10 +56,10 @@
                 <label class="label py-1">
                   <span class="label-text text-xs font-medium">发布者</span>
                 </label>
-                <input name="publisher" type="text" value="{{ item.publisher }}" placeholder="发布者" 
+                <input name="publisher" type="text" value="{{ item.publisher }}" placeholder="发布者"
                   class="input input-bordered input-sm w-full" />
               </div>
-              
+
               <div class="form-control w-full">
                 <label class="label py-1">
                   <span class="label-text text-xs font-medium">评分</span>
@@ -74,7 +76,8 @@
               <select name="classify_id" class="select select-bordered select-sm w-full">
                 <option disabled>请选择分类</option>
                 {% for classify in classifies %}
-                <option value="{{ classify.id }}" {% if classify.id == item.classify_id %}selected{% endif %}>{{ classify.name }}</option>
+                <option value="{{ classify.id }}" {% if classify.id==item.classify_id %}selected{% endif %}>{{
+                  classify.name }}</option>
                 {% endfor %}
               </select>
             </div>
@@ -95,18 +98,19 @@
                 <span class="label-text text-xs font-medium">标签</span>
               </label>
               <div class="flex flex-wrap gap-1 mb-2">
-                {% for t in item.tabs_list %}
+                {% for t in item.tags_list %}
                 <span class="badge badge-soft badge-secondary badge-sm">{{ t }}</span>
                 {% endfor %}
               </div>
-              <input name="tabs" type="text" value="{{ item.tabs }}" placeholder="标签，逗号分隔"
+              <input name="tags" type="text" value="{{ item.tags }}" placeholder="标签，逗号分隔"
                 class="input input-bordered input-sm w-full" />
             </div>
 
             <div class="form-control w-full">
               <label class="label py-1 flex items-center justify-between">
                 <span class="label-text text-xs font-medium">是否需要解锁</span>
-                <input type="checkbox" name="is_locked_{{ forloop.counter0 }}" {% if item.is_locked %}checked{% endif %} class="toggle toggle-xs toggle-primary" />
+                <input type="checkbox" name="is_locked_{{ forloop.counter0 }}" {% if item.is_locked %}checked{% endif %}
+                  class="toggle toggle-xs toggle-primary" />
               </label>
             </div>
 
@@ -115,16 +119,20 @@
                 <span class="label-text text-xs font-medium">文件名</span>
               </label> -->
               <div class="flex items-center justify-between gap-2 mt-1">
-                <div id="filename-display-{{ forloop.counter0 }}" class="text-xs text-base-content/70 overflow-hidden whitespace-nowrap text-ellipsis flex-1" title="{{ item.filename }}">
+                <div id="filename-display-{{ forloop.counter0 }}"
+                  class="text-xs text-base-content/70 overflow-hidden whitespace-nowrap text-ellipsis flex-1"
+                  title="{{ item.filename }}">
                   {{ item.filename }}
                 </div>
                 <label class="cursor-pointer flex items-center gap-1 flex-shrink-0">
                   <span class="text-xs text-base-content/70">使用uuid</span>
-                  <input type="checkbox" name="use_uuid_{{ forloop.counter0 }}" class="checkbox checkbox-xs checkbox-primary" />
+                  <input type="checkbox" name="use_uuid_{{ forloop.counter0 }}"
+                    class="checkbox checkbox-xs checkbox-primary" />
                 </label>
               </div>
-              <input type="hidden" name="filename" id="filename-input-{{ forloop.counter0 }}" value="{{ item.filename }}" />
-              <input type="hidden" id="original-filename-{{ forloop.counter0 }}" value="{{ item.filename }}" />
+              <input type="hidden" name="filename" id="filename-input-{{ forloop.counter0 }}"
+                value="{{ item.filename }}" />
+              <!-- <input type="hidden" id="original-filename-{{ forloop.counter0 }}" value="{{ item.filename }}" /> -->
             </div>
 
           </div>
@@ -136,20 +144,13 @@
     <!-- 提交事件 -->
     <div class="flex flex-wrap gap-3 justify-start">
       <!-- <input type="hidden" name="action" value="save"> -->
-      <button 
-        id="save-all-btn"
-        type="button" class="btn btn-sm btn-primary"
-        hx-post="{% url 'wallpaper:upload' %}"
-        hx-include="#cards-form"
-        hx-vals='{ "action": "save" }'
-        hx-target="#upload-cards"
-        hx-swap="innerHTML"
-      >
+      <button id="save-all-btn" type="button" class="btn btn-sm btn-primary" hx-post="{% url 'wallpaper:upload' %}"
+        hx-include="#cards-form" hx-vals='{ "action": "save" }' hx-target="#upload-cards" hx-swap="innerHTML">
         <span class="btn-text-normal">提交全部</span>
-          <span class="btn-text-loading">
-            <span class="loading loading-spinner loading-xs"></span>
-            提交中...
-          </span>
+        <span class="btn-text-loading">
+          <span class="loading loading-spinner loading-xs"></span>
+          提交中...
+        </span>
       </button>
       <button type="button" class="btn btn-sm btn-secondary">生成全部分类</button>
       <button type="button" class="btn btn-sm btn-ghost">添加示例卡</button>
@@ -159,7 +160,7 @@
     </div>
   </form>
   {% endif %}
-  
+
   {% if msg %}
   <div class="mb-6 alert {{ alert_type }}">
     <span>{{ msg }}</span>
@@ -176,23 +177,23 @@
     // UUID文件名切换逻辑
     const uuidCheckboxes = document.querySelectorAll('input[name^="use_uuid_"]');
     const uuidMap = new Map();
-    
+
     uuidCheckboxes.forEach((checkbox) => {
       const index = checkbox.name.replace('use_uuid_', '');
       // 为每个卡片预生成UUID(去掉横杠)
       uuidMap.set(index, crypto.randomUUID().replace(/-/g, ''));
-      
-      checkbox.addEventListener('change', function() {
+
+      checkbox.addEventListener('change', function () {
         const idx = this.name.replace('use_uuid_', '');
         const displayElement = document.getElementById(`filename-display-${idx}`);
         const filenameInput = document.getElementById(`filename-input-${idx}`);
         const originalInput = document.getElementById(`original-filename-${idx}`);
-        
+
         const originalFilename = originalInput.value;
         const ext = originalFilename.substring(originalFilename.lastIndexOf('.'));
         const jpgExt = ext.toLowerCase() === '.jpeg' ? '.jpg' : ext;
         const uuidFilename = uuidMap.get(idx) + jpgExt;
-        
+
         if (this.checked) {
           displayElement.textContent = uuidFilename;
           displayElement.title = uuidFilename;

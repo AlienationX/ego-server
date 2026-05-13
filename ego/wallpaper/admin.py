@@ -5,7 +5,7 @@ from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
 # Register your models here.
-from .models import Access, Actions, Application, Banner, Classify, Feedback, Notice, Profile, Subject, Versions, Wall
+from .models import Access, Application, Banner, Classify, Feedback, Notice, Profile, Subject, UserActions, Versions, Wall
 
 # ROOT_PIC_URL = "https://mp-36059119-7390-44c6-8190-cc3527d1e745.cdn.bspapp.com/wallpaper"
 # ROOT_PIC_URL = "https://wallpaper-kpze6c.s3.eu-north-1.amazonaws.com"
@@ -64,12 +64,12 @@ class WallAdmin(admin.ModelAdmin):
         "display_subjects",
         "is_locked",
         "publisher",
-        "tabs",
+        "tags",
         "score",
         "description",
     )
     list_filter = ("classify",)
-    search_fields = ("description", "publisher", "tabs")
+    search_fields = ("description", "publisher", "tags")
     filter_horizontal = ("subjects",)  # 优化多对多字段选择界面
     date_hierarchy = "created_at"  # 按创建日期分层筛选
 
@@ -131,7 +131,17 @@ class NoticeAdmin(admin.ModelAdmin):
 
 @admin.register(Access)
 class AccessAdmin(admin.ModelAdmin):
-    list_display = ("ip", "address", "platform", "channel", "app_version", "access_time")
+    list_display = (
+        "ip",
+        "address",
+        "platform",
+        "channel",
+        "app_version",
+        "device_id",
+        "device_brand",
+        "device_model",
+        "access_time",
+    )
     fields = (
         "ip",
         "address",
@@ -139,6 +149,9 @@ class AccessAdmin(admin.ModelAdmin):
         "platform",
         "channel",
         "app_version",
+        "device_id",
+        "device_brand",
+        "device_model",
         "access_time",
         "remark_json",
     )  # 可以控制顺序
@@ -193,5 +206,5 @@ admin.site.register(Banner, BannerAdmin)
 # admin.site.register(Feedback, FeedbackAdmin)
 # admin.site.register(Profile, PrifileAdmin)
 # admin.site.register(Versions, VersionsAdmin)
-admin.site.register(Actions)
+admin.site.register(UserActions)
 admin.site.register(Application)

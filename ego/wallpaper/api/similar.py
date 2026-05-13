@@ -57,7 +57,7 @@ class ApiModelView(RetrieveModelMixin, GenericViewSet):
                 "description": wall.description,
                 "classify_id": wall.classify_id,
                 # "classify_name": wall.classify_name,
-                "tabs": wall.tabs,
+                "tags": wall.tags,
                 "score": wall.score,
                 "is_locked": wall.is_locked,
                 "similarity": round(float(sim), 4),
@@ -72,8 +72,12 @@ class ApiModelView(RetrieveModelMixin, GenericViewSet):
     @action(detail=True, methods=["get"])
     def precomputed(self, request, pk=None):
         """获取预计算的TopN相似度"""
+
+        # 只取前N个
+        n = request.query_params.get("n", 12)
+
         # 获取预计算的相似度
-        similarities = WallSimilarities.objects.filter(source_wall_id=pk).order_by("-similarity")[:10]  # 只取前10个
+        similarities = WallSimilarities.objects.filter(source_wall_id=pk).order_by("-similarity")[:n]
 
         # 获取 target_wall_id 列表
         target_ids = [sim.target_wall_id for sim in similarities]
@@ -94,7 +98,7 @@ class ApiModelView(RetrieveModelMixin, GenericViewSet):
                         "description": wall.description,
                         "classify_id": wall.classify_id,
                         "classify_name": wall.classify.name if wall.classify else None,
-                        "tabs": wall.tabs,
+                        "tags": wall.tags,
                         "score": wall.score,
                         "is_locked": wall.is_locked,
                         "similarity": round(float(sim.similarity), 4),

@@ -240,11 +240,11 @@ class ApiModelView(ListModelMixin, CreateModelMixin, GenericViewSet):
         # 12、create_time__mouth="10" #查出某一月的
         # 13、create_time__day="17" #查出每个月17号的
 
-        # 进行过滤，description 字段包含kw关键字，或者 tabs字段包含kw关键字
-        # search_fields = ["description", "tabs", "classify.enable"]
+        # 进行过滤，description 字段包含kw关键字，或者 tags字段包含kw关键字
+        # search_fields = ["description", "tags", "classify.enable"]
 
         # queryset = Wall.objects.all()
-        queryset = self.get_queryset().filter((Q(description__icontains=keyword) | Q(tabs__icontains=keyword)))
+        queryset = self.get_queryset().filter((Q(description__icontains=keyword) | Q(tags__icontains=keyword)))
 
         data = self._get_sorted_data(queryset, keyword=keyword)
 

@@ -9,13 +9,13 @@ from rest_framework.serializers import (
 
 from .models import (
     Access,
-    Actions,
     Application,
     Banner,
     Classify,
     Feedback,
     Notice,
     Profile,
+    UserActions,
     Versions,
     Wall,
 )
@@ -36,6 +36,7 @@ class ClassifySerializer(ModelSerializer):
 class WallSerializer(ModelSerializer):
     classify_id = PrimaryKeyRelatedField(source="classify", read_only=True)  # 显示外键表的主键值id
     classify_name = CharField(source="classify.name", read_only=True)
+    tabs = CharField(source="tags", read_only=True)  # 历史遗留问题，数据库命名错误导致
 
     class Meta:
         model = Wall
@@ -147,7 +148,7 @@ class VersionsSerializer(ModelSerializer):
         fields = "__all__"
 
 
-class ActionsSerializer(ModelSerializer):
+class UserActionsSerializer(ModelSerializer):
     # 同时返回外键 id 和嵌套对象，保持与 WallSerializer 的风格一致
     user_id = PrimaryKeyRelatedField(source="user", read_only=True)
     wall_id = PrimaryKeyRelatedField(source="wall", read_only=True)
@@ -157,6 +158,6 @@ class ActionsSerializer(ModelSerializer):
     wall = WallSerializer(read_only=True)
 
     class Meta:
-        model = Actions
+        model = UserActions
         fields = "__all__"
         # exclude = ["user", "wall"]

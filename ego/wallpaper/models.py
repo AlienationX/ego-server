@@ -78,7 +78,7 @@ class Subject(models.Model):
     sort = models.IntegerField(verbose_name="排序", blank=True, null=True)
     picurl = models.CharField(max_length=255, verbose_name="图片地址")
     select = models.BooleanField(default=False, verbose_name="是否首页推荐")
-    tabs = models.CharField(max_length=200, verbose_name="标签", blank=True, null=True)
+    tags = models.CharField(max_length=200, verbose_name="标签", blank=True, null=True)
     is_active = models.BooleanField(default=True, verbose_name="是否启用")
     is_locked = models.BooleanField(default=False, verbose_name="是否需要解锁")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
@@ -103,6 +103,9 @@ class Wall(models.Model):
     md5_hash = models.CharField(max_length=32, verbose_name="MD5哈希值", blank=True, null=True)
     content_hash = models.CharField(max_length=32, verbose_name="内容哈希值", blank=True, null=True)
 
+    width = models.IntegerField(blank=True, null=True, verbose_name="图片宽度")
+    height = models.IntegerField(blank=True, null=True, verbose_name="图片高度")
+
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
     remark = models.CharField(max_length=500, verbose_name="备注", blank=True, null=True)
@@ -111,12 +114,18 @@ class Wall(models.Model):
     classify = models.ForeignKey(Classify, on_delete=models.PROTECT, verbose_name="分类")  # 外键写表名即可
 
     # 这个字段其实可以设计成 ManyToManyField，其实就是列表存储，使用add方法添加
-    tabs = models.CharField(max_length=200, verbose_name="标签", blank=True, null=True)
+    tags = models.CharField(max_length=200, verbose_name="标签", blank=True, null=True)
     score = models.DecimalField(max_digits=2, decimal_places=1, verbose_name="图片分数", blank=True, null=True)
-    views = models.IntegerField(default=0, db_default=0, verbose_name="浏览量")
-    downloads = models.IntegerField(default=0, db_default=0, verbose_name="下载量")
-    width = models.IntegerField(blank=True, null=True, verbose_name="图片宽度")
-    height = models.IntegerField(blank=True, null=True, verbose_name="图片高度")
+    views = models.IntegerField(default=0, db_default=0, verbose_name="浏览量", blank=True, null=True)
+    downloads = models.IntegerField(default=0, db_default=0, verbose_name="下载量", blank=True, null=True)
+    likes = models.IntegerField(default=0, db_default=0, verbose_name="点赞数", blank=True, null=True)
+    favorites = models.IntegerField(default=0, db_default=0, verbose_name="收藏数", blank=True, null=True)
+    shares = models.IntegerField(default=0, db_default=0, verbose_name="分享数", blank=True, null=True)
+    comments = models.IntegerField(default=0, db_default=0, verbose_name="评论数", blank=True, null=True)
+
+    # 趋势评分，通过加权计算得出
+    # 例如 trends = (views * w1 + likes * w2 + favorites * w3 + downloads * w4 + comments * w5 + shares * w6) / time_decay
+    trends = models.FloatField(default=0, db_default=0, verbose_name="趋势评分", blank=True, null=True)
 
     # 多对多关系，不会添加该字段，会增加一张存储对应关系的中间表wallpaper_wall_subjects，里面只有三个字段 id、wall_id、subject_id
     subjects = models.ManyToManyField(Subject, related_name="walls", verbose_name="专题", blank=True)
@@ -131,6 +140,7 @@ class Wall(models.Model):
         indexes = [
             models.Index(fields=["-updated_at"]),
             models.Index(fields=["-score"]),
+            models.Index(fields=["-trends"]),
             models.Index(fields=["is_active", "-updated_at"]),
             # 联合索引：先按分类排序，再按更新时间倒序
             models.Index(fields=["classify", "-updated_at"]),
@@ -252,18 +262,90 @@ class Profile(models.Model):
 #         instance.profile.save()
 
 
-class Actions(models.Model):
+class UserActions(models.Model):
+    """用户操作日志表，主要用于记录用户的操作行为"""
+
+    # 用户操作：浏览、点赞、收藏、下载、分享、评论、评分
+    ACTION_TYPES = [
+        ("view", "浏览"),
+        ("like", "点赞"),
+        ("favorite", "收藏"),
+        ("download", "下载"),
+        ("share", "分享"),
+        ("comment", "评论"),
+        ("rate", "评分"),
+    ]
     user = models.ForeignKey(User, on_delete=models.PROTECT, null=True, verbose_name="用户id")
     wall = models.ForeignKey(Wall, on_delete=models.DO_NOTHING, null=True, verbose_name="壁纸id")
-    is_collect = models.BooleanField(default=False, verbose_name="是否收藏")
-    is_download = models.BooleanField(default=False, verbose_name="是否下载")
-    pic_score = models.DecimalField(max_digits=10, decimal_places=1, verbose_name="壁纸评分", blank=True, null=True)
+    action_key = models.CharField(max_length=20, choices=ACTION_TYPES, verbose_name="操作类型")
+    action_value = models.FloatField(default=0, verbose_name="操作值", blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
     class Meta:
-        verbose_name = "用户行为信息"
-        verbose_name_plural = "用户行为"
-        # table_name = "wallpaper_actions"
+        verbose_name = "用户操作日志"
+        verbose_name_plural = verbose_name
+        db_table = "wallpaper_user_actions"
+        db_table_comment = "用户操作日志表"
+        unique_together = ["user", "wall", "action_key"]  # 同一行为不重复记录
+        indexes = [
+            models.Index(fields=["user", "action_key", "-updated_at"]),
+        ]
+
+
+# class UserBehaviors(models.Model):
+#     # TODO: 用户行为，待优化，埋点数据，需要统计分析和推荐算法
+#     user = models.ForeignKey(User, on_delete=models.PROTECT, null=True, verbose_name="用户id")
+#     # -- 上下文信息 --
+#     referer = models.CharField(max_length=500, verbose_name="来源页面")
+#     updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
+
+#     class Meta:
+#         verbose_name = "用户行为"
+#         verbose_name_plural = "用户行为"
+#         db_table = "wallpaper_user_behaviors"
+
+
+# class UserPortraits(models.Model):
+#     # user_labels: 用户标签
+
+#     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="用户id")
+#     # 用户向量
+#     interest_vector = models.BLOBField(verbose_name="用户兴趣向量")
+#     interest_dim = models.SmallIntegerField(default=512, verbose_name="兴趣向量维度")
+#     # 用户画像
+#     portrait = models.JSONField(verbose_name="用户画像")
+#     updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
+
+#     class Meta:
+#         verbose_name = "用户画像"
+#         verbose_name_plural = "用户画像"
+#         db_table = "wallpaper_user_portraits"
+#         db_table_comment = "用户画像表"
+
+
+# class Events(models.Model):
+#     """用户事件表"""
+#     pass
+
+
+# class Recommendations(models.Model):
+#     """用户推荐表"""
+#     user_id = models.IntegerField(verbose_name="用户id")
+#     wall_id = models.IntegerField(verbose_name="壁纸id")
+#     score = models.FloatField(verbose_name="推荐分数")
+#     reason = models.CharField(max_length=60, verbose_name="推荐原因")  # 表示推荐的原因，如：相似度、热门等
+#     updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
+
+#     class Meta:
+#         verbose_name = "用户推荐"
+#         verbose_name_plural = verbose_name
+#         db_table = "wallpaper_recommendations"
+#         db_table_comment = "存储预计算的推荐结果"
+#         # unique_together = ["user_id", "wall_id"]  # 同一用户同一壁纸不重复推荐
+#         indexes = [
+#             models.Index(fields=["user_id", "-score"]),
+#         ]
 
 
 class PageView(models.Model):
@@ -287,8 +369,10 @@ class Access(models.Model):
     platform = models.CharField(max_length=100, verbose_name="平台", blank=True, null=True)
     # 如：google、小米、oppo、vivo、apple等应用商店
     channel = models.CharField(max_length=100, verbose_name="渠道", blank=True, null=True)
-    # device_id = models.CharField(max_length=100, verbose_name="设备id", blank=True, null=True)
     app_version = models.CharField(max_length=100, verbose_name="app版本号", blank=True, null=True)
+    device_id = models.CharField(max_length=100, verbose_name="设备id", blank=True, null=True)
+    device_brand = models.CharField(max_length=100, verbose_name="设备品牌", blank=True, null=True)
+    device_model = models.CharField(max_length=100, verbose_name="设备型号", blank=True, null=True)
 
     access_time = models.DateTimeField(auto_now_add=True, verbose_name="访问时间", db_index=True)
     remark = models.JSONField(default=dict, verbose_name="备注", blank=True, null=True)  # desciption
