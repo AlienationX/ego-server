@@ -76,8 +76,7 @@
               <select name="classify_id" class="select select-bordered select-sm w-full">
                 <option disabled>请选择分类</option>
                 {% for classify in classifies %}
-                <option value="{{ classify.id }}" {% if classify.id==item.classify_id %}selected{% endif %}>{{
-                  classify.name }}</option>
+                <option value="{{ classify.id }}" {% if classify.id == item.classify_id %}selected{% endif %}>{{classify.name }}</option>
                 {% endfor %}
               </select>
             </div>
