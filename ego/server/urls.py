@@ -23,6 +23,11 @@ from rest_framework_simplejwt.views import TokenBlacklistView, TokenObtainPairVi
 
 # from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 
+# 在这里设置AdminSite属性，修改后台标题
+# admin.site.site_title = "Ego Admin"  # 浏览器标题
+# admin.site.site_header = "本我管理系统"  # 页眉
+# admin.site.index_title = "Ego Site Administration"  # 首页标题
+
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("wallpaper/", include("wallpaper.urls")),
