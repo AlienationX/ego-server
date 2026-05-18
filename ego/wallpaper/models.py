@@ -115,6 +115,7 @@ class Wall(models.Model):
 
     # 这个字段其实可以设计成 ManyToManyField，其实就是列表存储，使用add方法添加
     tags = models.CharField(max_length=200, verbose_name="标签", blank=True, null=True)
+    # 缓存计数与热度分（应通过信号或定时任务更新）
     score = models.DecimalField(max_digits=2, decimal_places=1, verbose_name="图片分数", blank=True, null=True)
     views = models.IntegerField(default=0, db_default=0, verbose_name="浏览量", blank=True, null=True)
     downloads = models.IntegerField(default=0, db_default=0, verbose_name="下载量", blank=True, null=True)
@@ -126,12 +127,47 @@ class Wall(models.Model):
     # 趋势评分，通过加权计算得出
     # 例如 trends = (views * w1 + likes * w2 + favorites * w3 + downloads * w4 + comments * w5 + shares * w6) / time_decay
     trends = models.FloatField(default=0, db_default=0, verbose_name="趋势评分", blank=True, null=True)
+    normalized_trends = models.FloatField(default=0, db_default=0, verbose_name="归一化趋势评分", blank=True, null=True)
 
     # 多对多关系，不会添加该字段，会增加一张存储对应关系的中间表wallpaper_wall_subjects，里面只有三个字段 id、wall_id、subject_id
     subjects = models.ManyToManyField(Subject, related_name="walls", verbose_name="专题", blank=True)
 
+    def calc_trends_score(self, save=False):
+        # 计算趋势评分，通过加权计算得出。
+        # 分子：浏览量、点赞数、收藏数、下载量、评论数、分享数的加权和，
+        # 分母：时间衰减因子。根据时间衰减，用于调整旧数据的影响
+        w1 = 1  # 浏览量权重
+        w2 = 3  # 点赞数权重
+        w3 = 4  # 收藏数权重
+        w4 = 5  # 下载量权重
+        w5 = 2  # 评论数权重，无论好坏评论，都增加热度
+        w6 = 5  # 分享数权重
+        # age_in_hours = (self.updated_at - datetime.now()).days * 24
+        age_in_hours = (self.updated_at - timezone.now()).hours
+        time_decay = (age_in_hours + 2) ^ 1.5
+
+        # 计算趋势评分
+        trends_score = (
+            self.views * w1
+            + self.likes * w2
+            + self.favorites * w3
+            + self.downloads * w4
+            + self.comments * w5
+            + self.shares * w6
+            + (self.score - 2.5)  # 图片分数，2.5分以上为正数，2.5分以下为负数负评分
+        ) / time_decay
+
+        # 保存趋势评分
+        self.trends = trends_score
+        # TODO 归一化趋势评分，范围[0, 1]
+        self.normalized_trends = trends_score / max(trends_score, 1)
+        if save:
+            self.save(update_fields=["trends", "normalized_trends"])
+
+        return self.trends, self.normalized_trends
+
     def __str__(self):
-        return self.description if self.description else f"壁纸-{self.pk}"
+        return f"壁纸 - {self.description if self.description else self.pk}"
 
     class Meta:
         verbose_name = "壁纸"
@@ -152,9 +188,9 @@ class Wall(models.Model):
 class WallFeatures(models.Model):
     wall = models.OneToOneField(Wall, on_delete=models.CASCADE, related_name="wall_features", primary_key=True)
     # 二进制存储特征向量,比TEXT存储JSON节省50%空间
-    feature_vector = models.BinaryField(verbose_name="特征向量", blank=True, null=True)
+    feature_vector = models.BinaryField(verbose_name="壁纸特征向量", blank=True, null=True)
     # 特征维度，用于记录特征向量的维度，用于判断是否需要降维
-    feature_dim = models.IntegerField(verbose_name="特征维度", blank=True, null=True)
+    feature_dim = models.IntegerField(verbose_name="壁纸特征维度", blank=True, null=True)
     # 模型名称，用于记录使用的是哪个模型提取的特征
     model_name = models.CharField(max_length=100, verbose_name="模型名称", blank=True, null=True)
     updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
@@ -311,9 +347,11 @@ class UserActions(models.Model):
 
 #     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="用户id")
 #     # 用户向量
-#     interest_vector = models.BLOBField(verbose_name="用户兴趣向量")
-#     interest_dim = models.SmallIntegerField(default=512, verbose_name="兴趣向量维度")
+#     feature_vector = models.BLOBField(verbose_name="用户特征向量")
+#     feature_dim = models.SmallIntegerField(default=512, verbose_name="壁纸特征维度")
 #     # 用户画像
+#     interest_classify = models.JSONField(verbose_name="用户兴趣分类")  # 前端用户选择设置订阅喜欢的分类
+#     interest_tags = models.JSONField(verbose_name="用户兴趣标签")  # 前端用户选择设置订阅喜欢的标签
 #     portrait = models.JSONField(verbose_name="用户画像")
 #     updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
@@ -373,6 +411,7 @@ class Access(models.Model):
     device_id = models.CharField(max_length=100, verbose_name="设备id", blank=True, null=True)
     device_brand = models.CharField(max_length=100, verbose_name="设备品牌", blank=True, null=True)
     device_model = models.CharField(max_length=100, verbose_name="设备型号", blank=True, null=True)
+    language = models.CharField(max_length=16, verbose_name="语言", blank=True, null=True)  # 语言，如：zh-CN、en-US等
 
     access_time = models.DateTimeField(auto_now_add=True, verbose_name="访问时间", db_index=True)
     remark = models.JSONField(default=dict, verbose_name="备注", blank=True, null=True)  # desciption

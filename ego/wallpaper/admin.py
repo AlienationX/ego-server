@@ -137,9 +137,9 @@ class AccessAdmin(admin.ModelAdmin):
         "platform",
         "channel",
         "app_version",
-        "device_id",
         "device_brand",
         "device_model",
+        "language",
         "access_time",
     )
     fields = (
@@ -152,10 +152,11 @@ class AccessAdmin(admin.ModelAdmin):
         "device_id",
         "device_brand",
         "device_model",
+        "language",
         "access_time",
         "remark_json",
-    )  # 可以控制顺序
-    readonly_fields = ("access_time", "remark_json")
+    )
+    readonly_fields = fields
 
     def remark_json(self, obj):
         data_str = obj.remark

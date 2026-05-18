@@ -8,6 +8,7 @@ import requests
 from django.conf import settings
 from django.shortcuts import render
 from PIL import Image
+from utils.compare_image import get_file_md5, get_file_shape, get_image_content_hash
 
 from wallpaper.management.commands.upload_cos import upload_file_to_cos
 from wallpaper.management.commands.upload_s3 import upload_file_to_s3
@@ -235,8 +236,9 @@ def _save_wallpaper(form_data, i):
     # # 上传到 cos
     # upload_file_to_cos(resize_path, cos_prefix=f"{pic_path_prefix}/")
 
-    with Image.open(file_path) as img:
-        width, height = img.size
+    md5_hash = get_file_md5(file_path)
+    content_hash = get_image_content_hash(file_path)
+    width, height = get_file_shape(file_path)
 
     record = {
         "description": form_data.getlist("description")[i],
@@ -245,10 +247,12 @@ def _save_wallpaper(form_data, i):
         "publisher": form_data.getlist("publisher")[i],
         "is_active": True,
         "is_locked": is_locked,
+        "md5_hash": md5_hash,
+        "content_hash": content_hash,
         # "created_at": datetime.now(),
         # "updated_at": datetime.now(),
         "classify_id": classify_id,
-        "remark": "upload",
+        "remark": "manual upload",
         "width": width,
         "height": height,
     }
