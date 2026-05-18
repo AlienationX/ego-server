@@ -116,7 +116,7 @@ class Wall(models.Model):
     # 这个字段其实可以设计成 ManyToManyField，其实就是列表存储，使用add方法添加
     tags = models.CharField(max_length=200, verbose_name="标签", blank=True, null=True)
     # 缓存计数与热度分（应通过信号或定时任务更新）
-    score = models.DecimalField(max_digits=2, decimal_places=1, verbose_name="图片分数", blank=True, null=True)
+    score = models.FloatField(verbose_name="图片分数", blank=True, null=True)
     views = models.IntegerField(default=0, db_default=0, verbose_name="浏览量", blank=True, null=True)
     downloads = models.IntegerField(default=0, db_default=0, verbose_name="下载量", blank=True, null=True)
     likes = models.IntegerField(default=0, db_default=0, verbose_name="点赞数", blank=True, null=True)
@@ -142,24 +142,25 @@ class Wall(models.Model):
         w4 = 5  # 下载量权重
         w5 = 2  # 评论数权重，无论好坏评论，都增加热度
         w6 = 5  # 分享数权重
-        # age_in_hours = (self.updated_at - datetime.now()).days * 24
-        age_in_hours = (self.updated_at - timezone.now()).hours
-        time_decay = (age_in_hours + 2) ^ 1.5
+
+        age_in_hours = (timezone.now() - self.updated_at).total_seconds() / 3600
+        time_decay = (age_in_hours + 2) ** 1.5
 
         # 计算趋势评分
+        base_score = self.score if self.score is not None else 2.5
         trends_score = (
-            self.views * w1
-            + self.likes * w2
-            + self.favorites * w3
-            + self.downloads * w4
-            + self.comments * w5
-            + self.shares * w6
-            + (self.score - 2.5)  # 图片分数，2.5分以上为正数，2.5分以下为负数负评分
+            (self.views or 0) * w1
+            + (self.likes or 0) * w2
+            + (self.favorites or 0) * w3
+            + (self.downloads or 0) * w4
+            + (self.comments or 0) * w5
+            + (self.shares or 0) * w6
+            + (base_score - 2.5)  # 图片分数，2.5分以上为正数，2.5分以下为负数负评分
         ) / time_decay
 
         # 保存趋势评分
         self.trends = trends_score
-        # TODO 归一化趋势评分，范围[0, 1]
+        # 归一化趋势评分，范围(0, 1]
         self.normalized_trends = trends_score / max(trends_score, 1)
         if save:
             self.save(update_fields=["trends", "normalized_trends"])
@@ -303,16 +304,17 @@ class UserActions(models.Model):
 
     # 用户操作：浏览、点赞、收藏、下载、分享、评论、评分
     ACTION_TYPES = [
-        ("view", "浏览"),
-        ("like", "点赞"),
-        ("favorite", "收藏"),
-        ("download", "下载"),
-        ("share", "分享"),
-        ("comment", "评论"),
-        ("rate", "评分"),
+        ("view", "浏览"),  # 1为浏览1次，可以多次浏览
+        ("like", "点赞"),  # 1为like，0为dislike，可以多次操作
+        ("favorite", "收藏"),  # 1为收藏，0为取消收藏，可以多次操作
+        ("download", "下载"),  # 1为下载1次，可以多次下载
+        ("share", "分享"),  # 1为分享1次，可以多次分享
+        ("comment", "评论"),  # 1为评论1次，可以多次评论
+        ("rate", "评分"),  # 0～5，0为取消评分。可以多次操作，覆盖之前的值
     ]
     user = models.ForeignKey(User, on_delete=models.PROTECT, null=True, verbose_name="用户id")
     wall = models.ForeignKey(Wall, on_delete=models.DO_NOTHING, null=True, verbose_name="壁纸id")
+    device_id = models.CharField(max_length=100, blank=True, null=True, verbose_name="设备id")
     action_key = models.CharField(max_length=20, choices=ACTION_TYPES, verbose_name="操作类型")
     action_value = models.FloatField(default=0, verbose_name="操作值", blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
@@ -323,9 +325,19 @@ class UserActions(models.Model):
         verbose_name_plural = verbose_name
         db_table = "wallpaper_user_actions"
         db_table_comment = "用户操作日志表"
-        unique_together = ["user", "wall", "action_key"]  # 同一行为不重复记录
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "wall", "action_key"], condition=models.Q(user__isnull=False), name="unique_user_action"
+            ),
+            models.UniqueConstraint(
+                fields=["device_id", "wall", "action_key"],
+                condition=models.Q(device_id__isnull=False),
+                name="unique_device_action",
+            ),
+        ]
         indexes = [
             models.Index(fields=["user", "action_key", "-updated_at"]),
+            models.Index(fields=["device_id", "action_key", "-updated_at"]),
         ]
 
 
@@ -367,23 +379,37 @@ class UserActions(models.Model):
 #     pass
 
 
-# class Recommendations(models.Model):
-#     """用户推荐表"""
-#     user_id = models.IntegerField(verbose_name="用户id")
-#     wall_id = models.IntegerField(verbose_name="壁纸id")
-#     score = models.FloatField(verbose_name="推荐分数")
-#     reason = models.CharField(max_length=60, verbose_name="推荐原因")  # 表示推荐的原因，如：相似度、热门等
-#     updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
+class Recommendations(models.Model):
+    """用户推荐表"""
 
-#     class Meta:
-#         verbose_name = "用户推荐"
-#         verbose_name_plural = verbose_name
-#         db_table = "wallpaper_recommendations"
-#         db_table_comment = "存储预计算的推荐结果"
-#         # unique_together = ["user_id", "wall_id"]  # 同一用户同一壁纸不重复推荐
-#         indexes = [
-#             models.Index(fields=["user_id", "-score"]),
-#         ]
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, verbose_name="用户id")
+    device_id = models.CharField(max_length=100, verbose_name="设备id", blank=True, null=True)
+    wall_id = models.IntegerField(verbose_name="壁纸id")
+    score = models.FloatField(verbose_name="推荐分数")
+    reason = models.CharField(
+        max_length=60, verbose_name="推荐原因", blank=True, null=True
+    )  # 表示推荐的原因，如：相似度、热门等
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
+
+    class Meta:
+        verbose_name = "用户推荐"
+        verbose_name_plural = verbose_name
+        db_table = "wallpaper_recommendations"
+        db_table_comment = "存储预计算的推荐结果"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "wall_id"], condition=models.Q(user__isnull=False), name="unique_user_recommendation"
+            ),
+            models.UniqueConstraint(
+                fields=["device_id", "wall_id"],
+                condition=models.Q(device_id__isnull=False),
+                name="unique_device_recommendation",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["user", "-score"]),
+            models.Index(fields=["device_id", "-score"]),
+        ]
 
 
 class PageView(models.Model):

@@ -2,6 +2,7 @@ from datetime import datetime
 
 import numpy as np
 from django.core.management.base import BaseCommand
+from django.db.models import Q
 from loguru import logger
 from tqdm import tqdm
 from utils.feature_extractor import FeatureStorage
@@ -27,7 +28,7 @@ class Command(BaseCommand):
             # 计算指定壁纸的 TopN 相似度
             walls = [Wall.objects.get(id=wall_id)]
         elif not force:
-            walls = Wall.objects.filter(trends_score__isnull=True)
+            walls = Wall.objects.filter(Q(trends__isnull=True) | Q(trends=0))
         else:
             # 强制重新计算所有壁纸的趋势分数
             walls = Wall.objects.all()
@@ -39,17 +40,15 @@ class Command(BaseCommand):
         # 计算趋势分数
         logger.info(f"共 {len(walls)} 张 壁纸")
         for wall in tqdm(walls, desc=f"{datetime.now()} 正在计算趋势分数"):
-            wall.trends_score = wall.calc_trends_score()
-            wall.save()
+            # calc_trends_score returns (trends, normalized_trends)
+            trends, normalized_trends = wall.calc_trends_score(save=False)
+            wall.trends = trends
+            wall.normalized_trends = normalized_trends
 
-        # 批量写入数据库
-        upserted_objects = Wall.objects.bulk_create(
-            walls,  # 要插入的数据列表
-            update_conflicts=True,  # 遇到冲突时执行更新
-            unique_fields=[
-                "id",
-            ],  # 用于判断冲突的唯一字段（通常是主键或唯一约束字段）
-            update_fields=["trends_score"],  # 冲突时要更新的字段
+        # 批量更新数据库
+        Wall.objects.bulk_update(
+            walls,
+            fields=["trends", "normalized_trends"],
             batch_size=1000,
         )
-        self.stdout.write(self.style.SUCCESS(f"{datetime.now()}: 已写入/更新 {len(walls)} 条记录。"))
+        self.stdout.write(self.style.SUCCESS(f"{datetime.now()}: 已更新 {len(walls)} 条记录。"))

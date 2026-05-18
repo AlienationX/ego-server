@@ -24,27 +24,25 @@ class ApiModelView(CreateModelMixin, ListModelMixin, UpdateModelMixin, GenericVi
     queryset = UserActions.objects.all()
     serializer_class = UserActionsSerializer
     # authentication_classes = [JSONWebTokenAuthentication]  # JWT 认证, 已在settings中全局配置
-    permission_classes = [HasAccessKey, IsAuthenticated]
+    permission_classes = [HasAccessKey]
     pagination_class = CustomPageNumberPagination  # 使用自定义分页类
     renderer_classes = [CustomJSONRenderer]
 
     def list(self, request, *args, **kwargs):
         """获取用户对壁纸的操作记录列表，支持过滤和分页。"""
         user = request.user
+        device_id = request.headers.get("Device-Id")
         action_key = self.request.query_params.get("action_key")
 
+        if not user.is_authenticated and not device_id:
+            return Response({"error": "未登录且无设备标识"}, status=status.HTTP_401_UNAUTHORIZED)
+
         if action_key in ["view", "download", "like", "favorite", "share", "comment", "rate"]:
-            # actions = (
-            #     self.queryset.filter(user_id=user.id, action_key=action_key)
-            #     # .annotate(
-            #     #     row_number=Window(expression=RowNumber(), partition_by=[F("wall_id")], order_by=F("created_at").desc())
-            #     # )
-            #     # .filter(row_number=1)
-            #     .order_by("-created_at")
-            # )
-            actions = (
-                self.queryset.filter(user_id=user.id, action_key=action_key).filter(action_value__gt=0).order_by("-updated_at")
-            )
+            if user.is_authenticated:
+                actions = self.queryset.filter(user_id=user.id, action_key=action_key)
+            else:
+                actions = self.queryset.filter(device_id=device_id, action_key=action_key)
+            actions = actions.filter(action_value__gt=0).order_by("-updated_at")
         else:
             return Response({"error": "action_key参数错误"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -53,9 +51,9 @@ class ApiModelView(CreateModelMixin, ListModelMixin, UpdateModelMixin, GenericVi
         serialized_actions = self.serializer_class(actions, many=True).data
         for act in serialized_actions:
             if act.get("wall"):
-                wall_data = act["wall"].copy()  # 复制 wall 数据以避免修改原始数据
-                wall_data.pop("created_at")
-                wall_data.pop("updated_at")
+                wall_data = act.get("wall").copy()  # 复制 wall 数据以避免修改原始数据
+                wall_data.pop("created_at", None)
+                wall_data.pop("updated_at", None)
                 wall_data["my_score"] = act.get("action_value") if act.get("action_key") == "rate" else None
                 wall_data["action_updated_at"] = act.get("updated_at")
                 data.append(wall_data)
@@ -67,40 +65,43 @@ class ApiModelView(CreateModelMixin, ListModelMixin, UpdateModelMixin, GenericVi
 
         return Response(data)
 
-        # if ApiModelView.pagination_class is not None:
-        #     paginator = self.pagination_class()
-        #     paginated_data = paginator.paginate_queryset(data, request)
-        #     return paginator.get_paginated_response(paginated_data)
-        # return Response(data)
-
     def create(self, request, *args, **kwargs):
         """用户对壁纸的操作，如收藏、下载、评分等。"""
         user = request.user
+        device_id = request.headers.get("Device-Id")
         wall_id = request.data.get("wall_id")
+        action_key = request.data.get("action_key")
+        action_value = request.data.get("action_value")
 
         if not wall_id:
             return Response({"error": "缺少wall_id参数"}, status=status.HTTP_400_BAD_REQUEST)
 
+        if not user.is_authenticated:
+            if not device_id:
+                return Response({"error": "未登录且无设备标识"}, status=status.HTTP_401_UNAUTHORIZED)
+            if action_key not in ["view", "download", "share"]:
+                return Response({"error": "未登录用户只能浏览、下载和分享"}, status=status.HTTP_403_FORBIDDEN)
+
+        user_id = user.id if user.is_authenticated else None
+
         obj = {
-            "user_id": user.id,
+            "user_id": user_id,
+            "device_id": device_id if not user.is_authenticated else None,
             "wall_id": wall_id,
-            "action_key": request.data.get("action_key"),
-            "action_value": request.data.get("action_value"),
+            "action_key": action_key,
+            "action_value": action_value,
         }
 
         # 如果多张表同时更新数据，需要开启事务保存
         with transaction.atomic():
-            # 使用 user/wall 创建或查找记录
-            user_action, created = UserActions.objects.update_or_create(
-                user_id=user.id, wall_id=wall_id, action_key=request.data.get("action_key"), defaults=obj
-            )
-
-            # 如果评分被更新，重新计算该壁纸的平均分并保存。可能存在并发更新问题或者性能问题，每晚定时执行更新
-            # if "pic_score" in update_payload:
-            #     avg = (
-            #         UserActions.objects.filter(wall_id=wall_id, pic_score__isnull=False).aggregate(avg=Avg("pic_score")).get("avg")
-            #     )
-            #     Wall.objects.filter(pk=wall_id).update(score=avg)
+            if user.is_authenticated:
+                user_action, created = UserActions.objects.update_or_create(
+                    user_id=user_id, wall_id=wall_id, action_key=action_key, defaults=obj
+                )
+            else:
+                user_action, created = UserActions.objects.update_or_create(
+                    device_id=device_id, wall_id=wall_id, action_key=action_key, defaults=obj
+                )
 
         return Response(
             UserActionsSerializer(user_action).data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK
