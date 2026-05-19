@@ -32,8 +32,8 @@ class Command(BaseCommand):
         for wall in tqdm(walls, desc="更新壁纸哈希值"):
             # 更新哈希值
             # TODO 一次性更新所有壁纸的哈希值
-            wall.md5_hash = get_file_md5(Path(settings.MEDIA_ROOT, wall.picurl))
-            wall.content_hash = get_image_content_hash(Path(settings.MEDIA_ROOT, wall.picurl))
+            wall.md5_hash = get_file_md5(Path(settings.MEDIA_ROOT, "wallpaper", wall.picurl))
+            wall.content_hash = get_image_content_hash(Path(settings.MEDIA_ROOT, "wallpaper", wall.picurl))
             wall.save(update_fields=["md5_hash", "content_hash"])
 
         self.stdout.write(self.style.SUCCESS(f"{datetime.now()} 成功更新 {len(walls)} 条壁纸 的哈希值"))

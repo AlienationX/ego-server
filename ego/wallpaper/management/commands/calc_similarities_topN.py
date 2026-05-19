@@ -15,7 +15,7 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument("--wall-id", type=int, help="壁纸ID")
-        parser.add_argument("--topN", type=int, default=12, help="TopN相似度")
+        parser.add_argument("--topN", type=int, default=20, help="TopN相似度")
         parser.add_argument("--force", action="store_true", help="强制重新计算所有壁纸")  # 布尔值，还有store_false
 
     def handle(self, *args, **options):
