@@ -296,7 +296,7 @@ def _save_wallpaper(form_data, i):
         # "created_at": datetime.now(),
         # "updated_at": datetime.now(),
         "classify_id": classify_id,
-        "remark": "manual upload",
+        "remark": "upload",
         "width": width,
         "height": height,
     }
