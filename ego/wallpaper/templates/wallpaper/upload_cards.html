@@ -104,7 +104,7 @@
               <label class="label py-1">
                 <span class="label-text text-xs font-medium">标签</span>
               </label>
-              <div class="flex flex-wrap gap-1">
+              <div id="tags-badges-{{ forloop.counter0 }}" class="flex flex-wrap gap-1 pb-1">
                 {% for t in item.tags_list %}
                 <span class="badge badge-soft badge-secondary badge-sm">{{ t }}</span>
                 {% endfor %}
@@ -131,7 +131,7 @@
                 <div class="flex items-center gap-3 flex-shrink-0">
                   <label class="cursor-pointer flex items-center gap-1">
                     <span class="text-xs text-base-content/70">使用uuid</span>
-                    <input type="checkbox" name="use_uuid_{{ forloop.counter0 }}"
+                    <input type="checkbox" name="use_uuid_{{ forloop.counter0 }}" {% if item.use_uuid %}checked{% endif %}
                       class="checkbox checkbox-xs checkbox-primary" />
                   </label>
                 </div>
@@ -180,17 +180,28 @@
 
 <script>
   (function () {
+    // 标签 badges 跟随 input 框内容
+    const tagsInputs = document.querySelectorAll('input[name="tags"]');
+    tagsInputs.forEach(input => {
+      function updateBadges() {
+        const badgeContainer = input.closest('.form-control').querySelector('[id^="tags-badges-"]');
+        if (!badgeContainer) return;
+        const tagsList = input.value.split(',').filter(t => t.trim());
+        badgeContainer.innerHTML = tagsList.map(t => `<span class="badge badge-soft badge-secondary badge-sm">${t.trim()}</span>`).join('');
+      }
+      input.addEventListener('input', updateBadges);
+    });
+
     // UUID文件名切换逻辑
     const uuidCheckboxes = document.querySelectorAll('input[name^="use_uuid_"]');
     const uuidMap = new Map();
 
     uuidCheckboxes.forEach((checkbox) => {
       const index = checkbox.name.replace('use_uuid_', '');
-      // 为每个卡片预生成UUID(去掉横杠)
       uuidMap.set(index, crypto.randomUUID().replace(/-/g, ''));
 
-      checkbox.addEventListener('change', function () {
-        const idx = this.name.replace('use_uuid_', '');
+      function updateFilenameDisplay() {
+        const idx = index;
         const displayElement = document.getElementById(`filename-display-${idx}`);
         const filenameInput = document.getElementById(`filename-input-${idx}`);
         const originalInput = document.getElementById(`original-filename-${idx}`);
@@ -200,7 +211,7 @@
         const jpgExt = ext.toLowerCase() === '.jpeg' ? '.jpg' : ext;
         const uuidFilename = uuidMap.get(idx) + jpgExt;
 
-        if (this.checked) {
+        if (checkbox.checked) {
           displayElement.textContent = uuidFilename;
           displayElement.title = uuidFilename;
           filenameInput.value = uuidFilename;
@@ -209,7 +220,13 @@
           displayElement.title = originalFilename;
           filenameInput.value = originalFilename;
         }
-      });
+      }
+
+      checkbox.addEventListener('change', updateFilenameDisplay);
+
+      if (checkbox.checked) {
+        updateFilenameDisplay();
+      }
     });
 
     const saveButton = document.getElementById("save-all-btn");

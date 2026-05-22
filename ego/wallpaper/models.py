@@ -52,7 +52,7 @@ class Application(models.Model):
 class Classify(models.Model):
     name = models.CharField(max_length=100, unique=True, verbose_name="分类名称", db_comment="db_comment中显示的名称: 分类名称")
     name_en = models.CharField(max_length=100, unique=True, verbose_name="分类英文名称", blank=True, null=True)
-    sort = models.IntegerField(verbose_name="排序")
+    sort = models.FloatField(verbose_name="排序", blank=True, null=True)
     picurl = models.CharField(max_length=255, verbose_name="图片地址")
     pic_path_prefix = models.CharField(max_length=255, verbose_name="图片所在路径", blank=True, null=True)
     select = models.BooleanField(default=False, verbose_name="是否首页推荐")
@@ -75,7 +75,7 @@ class Subject(models.Model):
     name_en = models.CharField(max_length=100, unique=True, verbose_name="专题英文名称", blank=True, null=True)
     content = models.TextField(verbose_name="专题内容", blank=True, null=True)
     content_en = models.TextField(verbose_name="专题英文内容", blank=True, null=True)
-    sort = models.IntegerField(verbose_name="排序", blank=True, null=True)
+    sort = models.FloatField(verbose_name="排序", blank=True, null=True)
     picurl = models.CharField(max_length=255, verbose_name="图片地址")
     select = models.BooleanField(default=False, verbose_name="是否首页推荐")
     tags = models.CharField(max_length=200, verbose_name="标签", blank=True, null=True)
@@ -248,7 +248,7 @@ class Notice(models.Model):
 
 class Banner(models.Model):
     url = models.CharField(max_length=200, verbose_name="跳转链接地址")
-    sort = models.IntegerField(verbose_name="排序字段")
+    sort = models.FloatField(verbose_name="排序字段", blank=True, null=True)
     picurl = models.CharField(max_length=255, verbose_name="缩略图")
     target = models.CharField(max_length=60, verbose_name="跳转方式，默认：self，外站：miniProgram")
     appid = models.CharField(max_length=100, verbose_name="外部小程序的app-id", blank=True, null=True)

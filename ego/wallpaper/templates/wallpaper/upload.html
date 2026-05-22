@@ -134,7 +134,10 @@
         descriptionInputs.forEach(input => { input.value = globalDescription.value; });
       }
       if (globalTags && globalTags.value) {
-        tagsInputs.forEach(input => { input.value = globalTags.value; });
+        tagsInputs.forEach(input => {
+          input.value = globalTags.value;
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+        });
       }
       if (globalScore && globalScore.value) {
         scoreInputs.forEach(input => { input.value = globalScore.value; });

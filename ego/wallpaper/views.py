@@ -38,6 +38,7 @@ def upload(request):
         # 分类
         classify_objects = Classify.objects.all()
         classifies = [{"id": obj.id, "name": obj.name} for obj in classify_objects]
+        classifies.sort(key=lambda x: x["id"])
 
         # 如果是预览操作，处理上传的文件
         if action == "preview":
@@ -93,6 +94,8 @@ def upload(request):
                     info.update(ai_info)
                     info["tags_list"] = info["tags"].split(",")
                     info["score"] = round(random.uniform(4, 5), 1)
+                    info["resize"] = True
+                    info["use_uuid"] = True
                 else:
                     # 使用全局设置
                     info["description"] = global_description
@@ -100,10 +103,11 @@ def upload(request):
                     info["tags_list"] = global_tags.split(",") if global_tags else []
                     info["score"] = float(global_score) if global_score else round(random.uniform(4, 5), 1)
                     info["classify_id"] = int(global_classify_id) if global_classify_id else ""
+                    info["resize"] = global_resize
+                    info["use_uuid"] = global_use_uuid
 
                 info["publisher"] = "Admin"
                 info["is_locked"] = False
-                info["resize"] = global_resize
 
                 original_image = Image.open(save_path_tmp)
                 original_width, original_height = original_image.size
