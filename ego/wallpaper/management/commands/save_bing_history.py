@@ -2,6 +2,7 @@ import random
 from datetime import datetime
 from math import ceil
 from pathlib import Path
+from time import sleep
 
 import requests
 from django.conf import settings
@@ -100,6 +101,10 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument("--mkt", type=str, default="zh-CN", help=f"地区, 参数值{MKTS}, 默认为zh-CN")
+        parser.add_argument("--start-date", type=str, default="2010-01-01", help="开始日期, 格式YYYY-MM-DD, 默认为2010-01-01")
+        parser.add_argument(
+            "--end-date", type=str, default=datetime.now().strftime("%Y-%m-%d"), help="结束日期, 格式YYYY-MM-DD, 默认为当前日期"
+        )
 
     def handle(self, *args, **options):
         mkt = options.get("mkt")
@@ -112,6 +117,9 @@ class Command(BaseCommand):
             mkt_list = MKTS
         else:
             mkt_list = [mkt]
+
+        self.start_date = options.get("start_date")
+        self.end_date = options.get("end_date")
 
         # step1：下载 image 到本地
         local_bing_path = Path(settings.MEDIA_ROOT) / "wallpaper/pics/classify_bing/"
@@ -154,6 +162,8 @@ class Command(BaseCommand):
                 new_records.append(new_record)
 
             # 批量插入
+            # for record in new_records[:10]:
+            #     print(record)
             Wall.objects.bulk_create(
                 [
                     Wall(
@@ -166,8 +176,8 @@ class Command(BaseCommand):
                         is_locked=False,
                         md5_hash=record["md5_hash"],
                         content_hash=record["content_hash"],
-                        created_at=datetime(2026, 1, 1, 0, 0, 0),
-                        updated_at=datetime(2026, 1, 1, 0, 0, 0),
+                        created_at=datetime.strptime(record["date"], "%Y%m%d"),
+                        updated_at=datetime.strptime(record["date"], "%Y%m%d"),
                         classify_id=30,
                         remark=f"{record['image_url']},{location}",
                         width=record["width"],
@@ -195,6 +205,11 @@ class Command(BaseCommand):
             records = self._download_bing_image(local_bing_path, page=page, limit=limit, mkt=mkt)
             batch_records.extend(records)
 
+            logger.info(f"{mkt} Page {page} Downloaded {len(records)} records, Total {len(batch_records)} records")
+            if not records:
+                sleep(10)
+                logger.info(f"{mkt} Page {page} Sleep 10 seconds")
+
         return batch_records
 
     def _download_bing_image(self, local_bing_path, page=1, limit=30, order="asc", w=1080, h=1920, mkt="zh_CN"):
@@ -204,12 +219,13 @@ class Command(BaseCommand):
         response.raise_for_status()
         # data = json.loads(response.text)
         data = response.json()
-        images = data["data"]
+        # 过滤日期范围
+        images = [d for d in data["data"] if d["datetime"] >= self.start_date and d["datetime"] <= self.end_date]
 
         records = []
-        # 反转列表，顺序下载确保最新的壁纸在最后处理
         for image in tqdm(images, desc=f"Downloading {mkt} page {page}"):
-            file_name = image["datetime"] + "-" + image["title"]
+            image_date = image["datetime"].replace("-", "")
+            file_name = image_date + "-" + image["title"]
 
             # 下载图片
             image_data = requests.get(image["url"]).content
@@ -226,7 +242,7 @@ class Command(BaseCommand):
             # 保存数据
             record = {
                 "file_name": f"{file_name}.jpg",
-                "date": image["datetime"],
+                "date": image_date,
                 "title": image["title"],
                 "description": image["copyright"],
                 "image_url": image["url"],

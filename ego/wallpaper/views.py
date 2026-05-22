@@ -2,11 +2,14 @@ import base64
 import json
 import logging
 import random
+import shutil
 from pathlib import Path
 
 import requests
 from django.conf import settings
+from django.http import HttpResponse
 from django.shortcuts import render
+from django.template.loader import render_to_string
 from PIL import Image
 from utils.compare_image import get_file_md5, get_file_shape, get_image_content_hash
 
@@ -24,7 +27,6 @@ def index(request):
 
 
 def upload(request):
-    # GET 请求：渲染上传页面
     if request.method == "GET":
         return render(request, "wallpaper/upload.html")
 
@@ -46,6 +48,15 @@ def upload(request):
             if not uploaded_files:
                 data = {"items": [], "msg": "请上传文件", "alert_type": "alert-warning"}
                 return render(request, "wallpaper/upload_cards.html", data)
+
+            # 获取全局设置
+            use_ai = request.POST.get("use_ai") == "on"
+            global_classify_id = request.POST.get("global_classify")
+            global_score = request.POST.get("global_score", "")
+            global_description = request.POST.get("global_description", "")
+            global_tags = request.POST.get("global_tags", "")
+            global_resize = request.POST.get("global_resize") == "on"
+            global_use_uuid = request.POST.get("global_use_uuid") == "on"
 
             items = []
             for uploaded_file in uploaded_files:
@@ -69,17 +80,30 @@ def upload(request):
                     data = {"items": [], "msg": error_msg, "alert_type": "alert-warning"}
                     return render(request, "wallpaper/upload_cards.html", data)
 
-                # 0. 生成图片描述、标签、分类
-                info = _generate_info_with_llm(img_base)
-                if "error" in info:
-                    data = {"items": [], "msg": info["error"], "alert_type": "alert-warning"}
-                    return render(request, "wallpaper/upload_cards.html", data)
+                # 初始化信息字典
+                info = {}
 
-                info["tags"] = info["tags"]
-                info["tags_list"] = info["tags"].split(",")
-                info["score"] = round(random.uniform(4, 5), 1)
+                # 根据是否使用AI来生成信息
+                if use_ai:
+                    # 使用AI生成图片描述、标签、分类
+                    ai_info = _generate_info_with_llm(img_base)
+                    if "error" in ai_info:
+                        data = {"items": [], "msg": ai_info["error"], "alert_type": "alert-warning"}
+                        return render(request, "wallpaper/upload_cards.html", data)
+                    info.update(ai_info)
+                    info["tags_list"] = info["tags"].split(",")
+                    info["score"] = round(random.uniform(4, 5), 1)
+                else:
+                    # 使用全局设置
+                    info["description"] = global_description
+                    info["tags"] = global_tags
+                    info["tags_list"] = global_tags.split(",") if global_tags else []
+                    info["score"] = float(global_score) if global_score else round(random.uniform(4, 5), 1)
+                    info["classify_id"] = int(global_classify_id) if global_classify_id else ""
+
                 info["publisher"] = "Admin"
                 info["is_locked"] = False
+                info["resize"] = global_resize
 
                 original_image = Image.open(save_path_tmp)
                 original_width, original_height = original_image.size
@@ -94,11 +118,19 @@ def upload(request):
             logger.info({k: v for k, v in items[0].items() if settings.ENV == "dev" and k not in ("picurl_tmp")})
 
             data = {"items": items, "classifies": classifies}
-            return render(request, "wallpaper/upload_cards.html", data)
+            cards_html = render_to_string("wallpaper/upload_cards.html", data, request=request)
+
+            global_form_html = ""
+            if not use_ai:
+                global_form_html = render_to_string(
+                    "wallpaper/upload_global_form.html", {"classifies": classifies}, request=request
+                )
+
+            response = HttpResponse(cards_html + global_form_html)
+            return response
 
         # 如果是保存操作，处理表单数据
         elif action == "save":
-            # 获取表单数据
             form_data = request.POST
             filenames = form_data.getlist("filename")
             logger.debug(form_data)
@@ -217,10 +249,22 @@ def _save_wallpaper(form_data, i):
     # 处理 is_locked：checkbox 未勾选时不会提交，按行索引读取更稳定
     is_locked = form_data.get(f"is_locked_{i}") == "on"
 
-    # 重置图片尺寸
+    # 处理 resize：checkbox 未勾选时不会提交，按行索引读取更稳定
+    resize = form_data.get(f"resize_{i}") == "on"
+
+    # 重置图片尺寸或直接复制
     file_path = Path(f"{settings.MEDIA_ROOT}/wallpaper/{record_picurl}")
-    resize_path = resize_image(Path(save_path_tmp), file_path)
-    logger.debug(f"重置图片尺寸: {pic_path_prefix, resize_path}")
+    file_path.parent.mkdir(parents=True, exist_ok=True)
+
+    if resize:
+        # 勾选了重置尺寸，调用 resize_image
+        resize_path = resize_image(Path(save_path_tmp), file_path)
+        logger.debug(f"重置图片尺寸: {pic_path_prefix, resize_path}")
+    else:
+        # 未勾选重置尺寸，直接复制文件
+        shutil.copy2(save_path_tmp, file_path)
+        resize_path = file_path
+        logger.debug(f"直接复制文件: {pic_path_prefix, resize_path}")
 
     # 生成缩略图
     # 生成 small 缩略图

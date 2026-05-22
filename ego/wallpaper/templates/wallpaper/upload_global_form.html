@@ -1,0 +1,52 @@
+<div id="global-form-container" hx-swap-oob="outerHTML:#global-form-container" class="mt-2 p-4 bg-base-100 border rounded-lg">
+  <!-- <div class="divider"></div> -->
+  <h4 class="text-sm font-medium my-2">全局设置（应用到所有图片）</h4>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+    <div class="form-control">
+      <label class="label py-1">
+        <span class="label-text text-xs">分类</span>
+      </label>
+      <select id="global_classify" name="global_classify" class="select select-bordered select-sm w-full">
+        <option value="">请选择分类</option>
+        {% for item in classifies %}
+        <option value="{{ item.id }}">{{ item.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    
+    <div class="form-control">
+      <label class="label py-1">
+        <span class="label-text text-xs">评分</span>
+      </label>
+      <input id="global_score" name="global_score" type="number" value="" min="0" max="5" step="0.1"
+        class="input input-bordered input-sm w-full" />
+    </div>
+    
+    <div class="form-control">
+      <label class="label py-1">
+        <span class="label-text text-xs">描述</span>
+      </label>
+      <input id="global_description" name="global_description" type="text" value="" placeholder="请输入描述"
+        class="input input-bordered input-sm w-full" />
+    </div>
+    
+    <div class="form-control">
+      <label class="label py-1">
+        <span class="label-text text-xs">标签</span>
+      </label>
+      <input id="global_tags" name="global_tags" type="text" value="" placeholder="标签，逗号分隔"
+        class="input input-bordered input-sm w-full" />
+    </div>
+  </div>
+  
+  <div class="flex flex-wrap gap-4 mt-4">
+    <label class="flex items-center gap-2 cursor-pointer">
+      <input type="checkbox" id="global_resize" name="global_resize" class="checkbox checkbox-sm checkbox-primary" />
+      <span class="text-xs">重置尺寸</span>
+    </label>
+    <label class="flex items-center gap-2 cursor-pointer">
+      <input type="checkbox" id="global_use_uuid" name="global_use_uuid" class="checkbox checkbox-sm checkbox-primary" />
+      <span class="text-xs">使用UUID生成文件名</span>
+    </label>
+  </div>
+</div>

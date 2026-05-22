@@ -76,17 +76,25 @@
               <select name="classify_id" class="select select-bordered select-sm w-full">
                 <option disabled>请选择分类</option>
                 {% for classify in classifies %}
-                <option value="{{ classify.id }}" {% if classify.id == item.classify_id %}selected{% endif %}>{{classify.name }}</option>
+                <option value="{{ classify.id }}" {% if classify.id == item.classify_id %}selected{% endif %}>
+                  {{classify.name }}</option>
                 {% endfor %}
               </select>
             </div>
 
             <div class="form-control w-full">
-              <label class="label py-1">
-                <span class="label-text text-xs font-medium">描述</span>
-                <span class="text-xs text-base-content/50 flex-1 overflow-hidden whitespace-nowrap text-ellipsis">
-                  {{ item.size }}
-                </span>
+              <label class="label py-1 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="label-text text-xs font-medium">描述</span>
+                  <span class="text-xs text-base-content/50 flex-shrink-0 whitespace-nowrap">
+                    {{ item.size }}
+                  </span>
+                </div>
+                <label class="flex items-center gap-1 cursor-pointer">
+                  <span class="text-xs text-base-content/70">重置尺寸</span>
+                  <input type="checkbox" name="resize_{{ forloop.counter0 }}" {% if item.resize %}checked{% endif %}
+                    class="toggle toggle-xs toggle-primary" />
+                </label>
               </label>
               <input name="description" type="text" value="{{ item.description }}" placeholder="请输入描述"
                 class="input input-bordered input-sm w-full" />
@@ -96,7 +104,7 @@
               <label class="label py-1">
                 <span class="label-text text-xs font-medium">标签</span>
               </label>
-              <div class="flex flex-wrap gap-1 mb-2">
+              <div class="flex flex-wrap gap-1">
                 {% for t in item.tags_list %}
                 <span class="badge badge-soft badge-secondary badge-sm">{{ t }}</span>
                 {% endfor %}
@@ -114,20 +122,19 @@
             </div>
 
             <div class="form-control w-full mt-auto pt-2">
-              <!-- <label class="label py-0">
-                <span class="label-text text-xs font-medium">文件名</span>
-              </label> -->
-              <div class="flex items-center justify-between gap-2 mt-1">
+              <div class="flex flex-wrap items-center gap-2 mt-1">
                 <div id="filename-display-{{ forloop.counter0 }}"
                   class="text-xs text-base-content/70 overflow-hidden whitespace-nowrap text-ellipsis flex-1"
                   title="{{ item.filename }}">
                   {{ item.filename }}
                 </div>
-                <label class="cursor-pointer flex items-center gap-1 flex-shrink-0">
-                  <span class="text-xs text-base-content/70">使用uuid</span>
-                  <input type="checkbox" name="use_uuid_{{ forloop.counter0 }}"
-                    class="checkbox checkbox-xs checkbox-primary" />
-                </label>
+                <div class="flex items-center gap-3 flex-shrink-0">
+                  <label class="cursor-pointer flex items-center gap-1">
+                    <span class="text-xs text-base-content/70">使用uuid</span>
+                    <input type="checkbox" name="use_uuid_{{ forloop.counter0 }}"
+                      class="checkbox checkbox-xs checkbox-primary" />
+                  </label>
+                </div>
               </div>
               <input type="hidden" name="filename" id="filename-input-{{ forloop.counter0 }}"
                 value="{{ item.filename }}" />

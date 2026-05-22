@@ -35,6 +35,7 @@
       enctype="multipart/form-data"
     >
       {% csrf_token %}
+      <input type="hidden" id="use_ai_input" name="use_ai" value="on" />
       <div class="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
         <input name="images" type="file" multiple accept="image/*"
           class="file-input file-input-bordered file-input-sm w-full sm:w-auto">
@@ -66,6 +67,14 @@
         </div>
 
       </div>
+
+      <label class="flex items-center gap-2 cursor-pointer mt-4">
+        <input type="checkbox" id="use_ai_checkbox" checked="checked" class="checkbox checkbox-sm checkbox-primary" />
+        <span class="text-sm">使用AI识别图片内容</span>
+      </label>
+
+      <!-- 全局表单占位符 - 点击上传解析后根据AI复选框状态动态加载 -->
+      <div id="global-form-container"></div>
     </form>
 
   </div>
@@ -88,10 +97,77 @@
 
 <script>
   (function () {
+    const useAiCheckbox = document.getElementById("use_ai_checkbox");
+    const useAiInput = document.getElementById("use_ai_input");
     const uploadButton = document.getElementById("upload-preview-btn");
     const timer = document.getElementById("upload-timer");
     const timerValue = document.getElementById("upload-timer-value");
     const uploadCards = document.getElementById("upload-cards");
+
+    if (useAiCheckbox && useAiInput) {
+      useAiCheckbox.addEventListener('change', function() {
+        useAiInput.value = this.checked ? 'on' : '';
+      });
+    }
+
+    let syncedContainer = null;
+
+    function syncGlobalToCards() {
+      const globalClassify = document.getElementById("global_classify");
+      const globalDescription = document.getElementById("global_description");
+      const globalTags = document.getElementById("global_tags");
+      const globalScore = document.getElementById("global_score");
+      const globalResize = document.getElementById("global_resize");
+      const globalUseUuid = document.getElementById("global_use_uuid");
+
+      const classifySelects = document.querySelectorAll('select[name="classify_id"]');
+      const descriptionInputs = document.querySelectorAll('input[name="description"]');
+      const tagsInputs = document.querySelectorAll('input[name="tags"]');
+      const scoreInputs = document.querySelectorAll('input[name="score"]');
+      const resizeCheckboxes = document.querySelectorAll('input[name^="resize_"]');
+      const uuidCheckboxes = document.querySelectorAll('input[name^="use_uuid_"]');
+
+      if (globalClassify && globalClassify.value) {
+        classifySelects.forEach(select => { select.value = globalClassify.value; });
+      }
+      if (globalDescription && globalDescription.value) {
+        descriptionInputs.forEach(input => { input.value = globalDescription.value; });
+      }
+      if (globalTags && globalTags.value) {
+        tagsInputs.forEach(input => { input.value = globalTags.value; });
+      }
+      if (globalScore && globalScore.value) {
+        scoreInputs.forEach(input => { input.value = globalScore.value; });
+      }
+      if (globalResize) {
+        resizeCheckboxes.forEach(checkbox => { checkbox.checked = globalResize.checked; });
+      }
+      if (globalUseUuid) {
+        uuidCheckboxes.forEach(checkbox => {
+          checkbox.checked = globalUseUuid.checked;
+          checkbox.dispatchEvent(new Event('change'));
+        });
+      }
+    }
+
+    function setupGlobalFormSyncListener() {
+      const globalFormContainer = document.getElementById("global-form-container");
+      if (!globalFormContainer) return;
+      if (globalFormContainer === syncedContainer) return;
+
+      const globalInputs = globalFormContainer.querySelectorAll('input, select, textarea');
+      globalInputs.forEach(input => {
+        input.addEventListener('change', syncGlobalToCards);
+        input.addEventListener('input', syncGlobalToCards);
+      });
+
+      syncedContainer = globalFormContainer;
+      syncGlobalToCards();
+    }
+
+    document.body.addEventListener("htmx:afterSettle", function () {
+      setupGlobalFormSyncListener();
+    });
 
     if (!uploadButton || !timer || !timerValue) return;
 
