@@ -31,6 +31,7 @@ class ApiModelView(ListModelMixin, CreateModelMixin, GenericViewSet):
         # 一次查询获取所有壁纸，包含分类信息，加载到内存中
         walls = Wall.objects.select_related("classify").filter(is_active=True, classify__enable=True).all()
 
+        # 每个 .filter(...).first() 都是一次独立的数据库查询，总共触发了 5 次 SQL。如果数据量不大，可以一次全量加载到内存再过滤
         bing_wall = walls.filter(classify_id=30).order_by("-created_at").first()
 
         pokemon_wall = walls.filter(classify_id=62).order_by("?").first()
@@ -39,66 +40,103 @@ class ApiModelView(ListModelMixin, CreateModelMixin, GenericViewSet):
         snoopy_id = random.choice(snoopy_ids)
         snoopy_wall = walls.filter(id=snoopy_id).first()
 
-        random_wall = walls.filter(is_active=True).order_by("?").first()
+        random_wall = walls.order_by("?").first()
 
         girl_wall = walls.filter(id=1056).first()
 
-        # "picurl": str(bing_wall.picurl).replace(".jpg", "_small.webp"),
-        data = [
+        data = []
+
+        if bing_wall:
+            data.append(
+                {
+                    "id": 1,
+                    "url": "/pages/app/classlist?id=30&name=必应每日壁纸",
+                    "sort": 1,
+                    "picurl": bing_wall.picurl,
+                    "description": bing_wall.description,
+                    "target": "self",
+                    "appid": None,
+                    "wall": None,
+                }
+            )
+
+        if pokemon_wall:
+            data.append(
+                {
+                    "id": 2,
+                    "url": "/pages/app/classlist?id=62&name=宝可梦睡眠",
+                    "sort": 2,
+                    "picurl": pokemon_wall.picurl,
+                    "description": pokemon_wall.description,
+                    "target": "self",
+                    "appid": None,
+                    "wall": None,
+                }
+            )
+
+        if snoopy_wall:
+            data.append(
+                {
+                    "id": 3,
+                    "url": "/pages/app/search?keyword=snoopy",
+                    "sort": 3,
+                    "picurl": snoopy_wall.picurl,
+                    "description": snoopy_wall.description,
+                    "target": "self",
+                    "appid": None,
+                    "wall": None,
+                }
+            )
+
+        if random_wall:
+            data.append(
+                {
+                    "id": 4,
+                    "url": f"/pages/app/preview?id={random_wall.id}&mode=recommend",
+                    "sort": 4,
+                    "picurl": random_wall.picurl,
+                    "description": random_wall.description,
+                    "target": "self",
+                    "appid": None,
+                    # subjects字段无法序列化，需要排除
+                    "wall": model_to_dict(
+                        random_wall, exclude=["subjects", "md5_hash", "content_hash", "created_at", "updated_at", "remark"]
+                    )
+                    | {"classify_id": random_wall.classify.id, "classify_name": random_wall.classify.name},
+                }
+            )
+
+        if girl_wall:
+            data.append(
+                {
+                    "id": 5,
+                    "url": f"/pages/app/preview?id={girl_wall.id}&mode=recommend",
+                    "sort": 5,
+                    "picurl": girl_wall.picurl,
+                    "description": girl_wall.description,
+                    "target": "self",
+                    "appid": None,
+                    # 字典合并，包含壁纸信息和分类信息
+                    "wall": model_to_dict(
+                        girl_wall, exclude=["subjects", "md5_hash", "content_hash", "created_at", "updated_at", "remark"]
+                    )
+                    | {"classify_id": girl_wall.classify.id, "classify_name": girl_wall.classify.name},
+                }
+            )
+
+        # 最后增加小程序的跳转
+        data.append(
             {
-                "id": 1,
-                "url": "/pages/app/classlist?id=30&name=必应每日壁纸",
-                "sort": 1,
-                "picurl": bing_wall.picurl,
-                "description": bing_wall.description,
-                "target": "self",
-                "appid": None,
-                "wall": None,
-            },
-            {
-                "id": 2,
-                "url": "/pages/app/classlist?id=62&name=宝可梦睡眠",
-                "sort": 2,
-                "picurl": pokemon_wall.picurl,
-                "description": pokemon_wall.description,
-                "target": "self",
-                "appid": None,
-                "wall": None,
-            },
-            {
-                "id": 3,
-                "url": "/pages/app/search/?keyword=snoopy",
-                "sort": 5,
-                "picurl": snoopy_wall.picurl,
-                "description": snoopy_wall.description,
+                "id": 6,
+                "url": None,
+                "sort": 6,
+                "picurl": "banner/to_wechat.jpg",
+                "description": "微信小程序",
                 "target": "miniProgram",
-                "appid": "wxbd89d0ba67f6b6a4",
+                "appid": "wx74c392f8525b9268",
                 "wall": None,
-            },
-            {
-                "id": 4,
-                "url": f"/pages/app/preview?id={random_wall.id}&mode=recommend",
-                "sort": 4,
-                "picurl": random_wall.picurl,
-                "description": random_wall.description,
-                "target": "self",
-                "appid": None,
-                "wall": model_to_dict(random_wall)
-                | {"classify_id": random_wall.classify.id, "classify_name": random_wall.classify.name},
-            },
-            {
-                "id": 5,
-                "url": f"/pages/app/preview?id={girl_wall.id}&mode=recommend",
-                "sort": 4,
-                "picurl": girl_wall.picurl,
-                "description": girl_wall.description,
-                "target": "self",
-                "appid": None,
-                # 字典合并，包含壁纸信息和分类信息
-                "wall": model_to_dict(girl_wall)
-                | {"classify_id": girl_wall.classify.id, "classify_name": girl_wall.classify.name},
-            },
-        ]
+            }
+        )
 
         # 增加缓存，缓存时间为 10 分钟
         cache.set(cache_key, data, timeout=10 * 60)

@@ -175,12 +175,9 @@ class Wall(models.Model):
         verbose_name_plural = "壁纸信息"
         db_table_comment = "壁纸信息，存储壁纸的基本信息"
         indexes = [
-            models.Index(fields=["-updated_at"]),
-            models.Index(fields=["-score"]),
-            models.Index(fields=["-trends"]),
             models.Index(fields=["is_active", "-updated_at"]),
             # 联合索引：先按分类排序，再按更新时间倒序
-            models.Index(fields=["classify", "-updated_at"]),
+            models.Index(fields=["is_active", "classify", "-updated_at"]),
             # 自定义索引名
             # models.Index(fields=['title', 'author'], name='idx_title_author'),
         ]
@@ -312,9 +309,9 @@ class UserActions(models.Model):
         ("comment", "评论"),  # 1为评论1次，可以多次评论
         ("rate", "评分"),  # 0～5，0为取消评分。可以多次操作，覆盖之前的值
     ]
-    user = models.ForeignKey(User, on_delete=models.PROTECT, null=True, verbose_name="用户id")
-    wall = models.ForeignKey(Wall, on_delete=models.DO_NOTHING, null=True, verbose_name="壁纸id")
-    device_id = models.CharField(max_length=100, blank=True, null=True, verbose_name="设备id")
+    device_id = models.CharField(max_length=100, verbose_name="设备id", blank=True, null=True)
+    user = models.ForeignKey(User, on_delete=models.DO_NOTHING, verbose_name="用户id", blank=True, null=True)
+    wall = models.ForeignKey(Wall, on_delete=models.DO_NOTHING, verbose_name="壁纸id", blank=True, null=True)
     action_key = models.CharField(max_length=20, choices=ACTION_TYPES, verbose_name="操作类型")
     action_value = models.FloatField(default=0, verbose_name="操作值", blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
@@ -326,18 +323,16 @@ class UserActions(models.Model):
         db_table = "wallpaper_user_actions"
         db_table_comment = "用户操作日志表"
         constraints = [
+            # 注意：一个设备可以有多个用户操作，一个用户也可以在多个设备上操作
             models.UniqueConstraint(
-                fields=["user", "wall", "action_key"], condition=models.Q(user__isnull=False), name="unique_user_action"
-            ),
-            models.UniqueConstraint(
-                fields=["device_id", "wall", "action_key"],
-                condition=models.Q(device_id__isnull=False),
-                name="unique_device_action",
+                fields=["device_id", "user", "wall", "action_key"],
+                condition=models.Q(device_id__isnull=False, wall__isnull=False, action_key__isnull=False),
+                name="unique_device_user_action",
             ),
         ]
         indexes = [
-            models.Index(fields=["user", "action_key", "-updated_at"]),
             models.Index(fields=["device_id", "action_key", "-updated_at"]),
+            models.Index(fields=["user", "action_key", "-updated_at"]),
         ]
 
 

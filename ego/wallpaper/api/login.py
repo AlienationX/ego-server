@@ -3,6 +3,7 @@ import logging
 import requests
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.db import transaction
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import action
@@ -92,14 +93,25 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
         if user:
             if not user.is_active:
                 raise AuthenticationFailed("User is not active")
+            # 更新用户的 last_login 字段
+            user.last_login = timezone.now()
+            user.save(update_fields=["last_login"])
         else:
             username = f"wechat_{openid}"
             # password = User.objects.make_random_password()
-            source = "wechat"
-            user = User.objects.create_user(username=username)  # 创建User表数据
-            Profile.objects.create(
-                user=user, wechat_openid=openid, ip_address=ip_address, region=region, channel="wechat", source=source
-            )  # 创建Profile表数据
+            with transaction.atomic():
+                # 创建User表数据
+                user = User.objects.create_user(username=username, last_login=timezone.now())
+                # 创建Profile表数据
+                Profile.objects.create(
+                    user=user,
+                    wechat_openid=openid,
+                    ip=ip_address,
+                    nickname=generate_nickname(),
+                    region=region,
+                    channel="wechat",
+                    source="wechat",
+                )
 
         # 4. 生成JWT
         refresh = RefreshToken.for_user(user)

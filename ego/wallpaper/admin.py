@@ -19,7 +19,7 @@ class ClassifyAdmin(admin.ModelAdmin):
     #     (None,               {'fields': ['question_text']}),
     #     ('Date information', {'fields': ['pub_date'], 'classes': ['collapse']}),
     # ]
-    list_display = ("id", "name", "name_en", "sort", "select", "enable", "is_locked", "pic_path_prefix")  # 显示的字段
+    list_display = ("id", "name", "name_en", "sort", "enable", "is_locked", "select", "pic_path_prefix")  # 显示的字段
     list_filter = ("enable",)
 
     # 在编辑页也显示图片预览, fields是编辑页面展示的字段
@@ -166,7 +166,7 @@ class AccessAdmin(admin.ModelAdmin):
             formatted = json.dumps(data, indent=2, ensure_ascii=False)
             return mark_safe(f'<pre style="white-space: pre-wrap">{formatted}</pre>')
         except TypeError:
-            return "Invalid JSON: " + obj.remark
+            return "Invalid JSON: " + str(obj.remark)
 
     remark_json.short_description = "备注JSON"  # 表头显示名
     # remark_json.allow_tags = True

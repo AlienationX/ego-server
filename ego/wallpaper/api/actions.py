@@ -3,7 +3,7 @@ import random
 
 from django.db import connection, transaction
 from django.db.models import Avg, F, Window
-from django.db.models.functions import RowNumber
+from django.db.models.functions import Rank, RowNumber
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.mixins import CreateModelMixin, ListModelMixin, UpdateModelMixin
@@ -34,15 +34,22 @@ class ApiModelView(CreateModelMixin, ListModelMixin, UpdateModelMixin, GenericVi
         device_id = request.headers.get("Device-Id")
         action_key = self.request.query_params.get("action_key")
 
-        if not user.is_authenticated and not device_id:
-            return Response({"error": "未登录且无设备标识"}, status=status.HTTP_401_UNAUTHORIZED)
+        if not user.is_authenticated:
+            return Response({"error": "未登录"}, status=status.HTTP_401_UNAUTHORIZED)
 
+        # 目前接口只查询 favorite、download、rate 三个操作的数据，且必须是登录用户的数据
         if action_key in ["view", "download", "like", "favorite", "share", "comment", "rate"]:
-            if user.is_authenticated:
-                actions = self.queryset.filter(user_id=user.id, action_key=action_key)
-            else:
-                actions = self.queryset.filter(device_id=device_id, action_key=action_key)
-            actions = actions.filter(action_value__gt=0).order_by("-updated_at")
+            actions = (
+                UserActions.objects.annotate(
+                    rank=Window(
+                        expression=RowNumber(),
+                        partition_by=[F("user"), F("wall"), F("action_key")],
+                        order_by=F("updated_at").desc(),
+                    )
+                )
+                .filter(rank=1, action_value__gt=0)
+                .order_by("-updated_at")
+            )
         else:
             return Response({"error": "action_key参数错误"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -73,20 +80,21 @@ class ApiModelView(CreateModelMixin, ListModelMixin, UpdateModelMixin, GenericVi
         action_key = request.data.get("action_key")
         action_value = request.data.get("action_value")
 
+        if not device_id:
+            return Response({"error": "无设备标识"}, status=status.HTTP_400_BAD_REQUEST)
+
         if not wall_id:
             return Response({"error": "缺少wall_id参数"}, status=status.HTTP_400_BAD_REQUEST)
 
         if not user.is_authenticated:
-            if not device_id:
-                return Response({"error": "未登录且无设备标识"}, status=status.HTTP_401_UNAUTHORIZED)
             if action_key not in ["view", "download", "share"]:
                 return Response({"error": "未登录用户只能浏览、下载和分享"}, status=status.HTTP_403_FORBIDDEN)
 
         user_id = user.id if user.is_authenticated else None
 
         obj = {
+            "device_id": device_id,
             "user_id": user_id,
-            "device_id": device_id if not user.is_authenticated else None,
             "wall_id": wall_id,
             "action_key": action_key,
             "action_value": action_value,
@@ -94,14 +102,9 @@ class ApiModelView(CreateModelMixin, ListModelMixin, UpdateModelMixin, GenericVi
 
         # 如果多张表同时更新数据，需要开启事务保存
         with transaction.atomic():
-            if user.is_authenticated:
-                user_action, created = UserActions.objects.update_or_create(
-                    user_id=user_id, wall_id=wall_id, action_key=action_key, defaults=obj
-                )
-            else:
-                user_action, created = UserActions.objects.update_or_create(
-                    device_id=device_id, wall_id=wall_id, action_key=action_key, defaults=obj
-                )
+            user_action, created = UserActions.objects.update_or_create(
+                device_id=device_id, user_id=user_id, wall_id=wall_id, action_key=action_key, defaults=obj
+            )
 
         return Response(
             UserActionsSerializer(user_action).data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK

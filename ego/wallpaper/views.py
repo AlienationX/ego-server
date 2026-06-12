@@ -142,9 +142,17 @@ def upload(request):
             success_count = 0
             error_count = 0
             update_count = 0
+            duplicate_ids = []
 
             for i in range(len(filenames)):
                 try:
+                    # 检查图片是否存在
+                    save_path_tmp = form_data.getlist("save_path_tmp")[i]
+                    content_hash = get_image_content_hash(save_path_tmp)
+                    if Wall.objects.filter(content_hash=content_hash).first():
+                        duplicate_ids.append(i)
+                        continue
+
                     obj, created = _save_wallpaper(form_data, i)
 
                     logger.debug(f"保存第 {i + 1} 张图片: {obj.picurl}")
@@ -160,8 +168,15 @@ def upload(request):
                 msg += f"成功 {success_count} 条记录{f'（包括更新 {update_count} 条记录）' if update_count > 0 else ''}。"
             if error_count > 0:
                 msg += f"失败 {error_count} 条记录。"
+            if duplicate_ids:
+                msg += f"重复 {len(duplicate_ids)} 条记录，已跳过。"
+                msg += f"重复记录ID：{', '.join([str(i) for i in duplicate_ids])}"
 
-            data = {"items": [], "msg": msg, "alert_type": "alert-success" if error_count == 0 else "alert-warning"}
+            data = {
+                "items": [],
+                "msg": msg,
+                "alert_type": "alert-success" if error_count == 0 and not duplicate_ids else "alert-warning",
+            }
             return render(request, "wallpaper/upload_cards.html", data)
 
         # 其他情况，返回错误
