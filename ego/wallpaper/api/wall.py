@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 
 from django.core.cache import cache
 from django.db.models import F, Func, Q, Value
@@ -158,6 +159,11 @@ class ApiModelView(ListModelMixin, CreateModelMixin, GenericViewSet):
     def random_daily(self, request):
         # detail=True 表示这个动作是针对单个对象的，如果设置为 False，则表示这个动作是针对所有对象的。
 
+        cache_key = f"walls_rand_daily_{datetime.today().strftime('%Y%m%d')}"
+        data = cache.get(cache_key)
+        if data is not None:
+            return Response(data)
+
         # 获取所有的对象，且classify.enable为True的数据
         queryset = self.get_queryset()
 
@@ -168,25 +174,23 @@ class ApiModelView(ListModelMixin, CreateModelMixin, GenericViewSet):
         # import random
         # random_queryset = random.sample(list(queryset), 12)  # 使用 list() 转换为列表进行随机选择
 
-        # 将随机选择的数据序列化
+        # 缓存序列化后的数据，避免直接缓存 QuerySet
         serializer = self.get_serializer(random_queryset, many=True)
-        return Response(serializer.data)
+        data = serializer.data
+        cache.set(cache_key, data, timeout=10 * 60)  # 缓存10分钟
+        return Response(data)
 
     @action(detail=False, methods=["get"])
     def random_recommend(self, request):
+        cache_key = f"walls_rand_recommend_{datetime.today().strftime('%Y%m%d')}"
+        data = cache.get(cache_key)
+        if data is not None:
+            return Response(data)
+
         # 获取所有的对象，且classify.enable为True的数据
         queryset = self.get_queryset()
 
-        result_data = []
-        # result_data.append(
-        #     {
-        #         "id": 0,
-        #         "name": "每日推荐",
-        #         "name_en": "Daily Recommend",
-        #         "data": self.get_serializer(queryset.order_by("?")[:12], many=True).data,
-        #     }
-        # )
-
+        data = []
         # 获取查询参数中的 classify_ids
         classify_ids = self.request.query_params.get("classify_ids")
         if classify_ids:
@@ -197,7 +201,7 @@ class ApiModelView(ListModelMixin, CreateModelMixin, GenericViewSet):
                 classified_queryset = queryset.filter(classify_id=classify_id).order_by("?")[:12]
                 first_wall = classified_queryset.first()
                 if first_wall:  # 只有当有数据时才添加
-                    result_data.append(
+                    data.append(
                         {
                             "id": first_wall.classify.id,
                             "name": first_wall.classify.name,
@@ -206,7 +210,8 @@ class ApiModelView(ListModelMixin, CreateModelMixin, GenericViewSet):
                         }
                     )
 
-        return Response(result_data)
+        cache.set(cache_key, data, timeout=10 * 60)  # 缓存10分钟
+        return Response(data)
 
     @action(detail=False, methods=["get"])
     def search(self, request):

@@ -31,7 +31,6 @@ class ApiModelView(CreateModelMixin, ListModelMixin, UpdateModelMixin, GenericVi
     def list(self, request, *args, **kwargs):
         """获取用户对壁纸的操作记录列表，支持过滤和分页。"""
         user = request.user
-        device_id = request.headers.get("Device-Id")
         action_key = self.request.query_params.get("action_key")
 
         if not user.is_authenticated:
@@ -39,17 +38,18 @@ class ApiModelView(CreateModelMixin, ListModelMixin, UpdateModelMixin, GenericVi
 
         # 目前接口只查询 favorite、download、rate 三个操作的数据，且必须是登录用户的数据
         if action_key in ["view", "download", "like", "favorite", "share", "comment", "rate"]:
-            actions = (
-                UserActions.objects.annotate(
-                    rank=Window(
-                        expression=RowNumber(),
-                        partition_by=[F("user"), F("wall"), F("action_key")],
-                        order_by=F("updated_at").desc(),
-                    )
-                )
-                .filter(rank=1, action_value__gt=0)
-                .order_by("-updated_at")
-            )
+            # actions = (
+            #     UserActions.objects.annotate(
+            #         rank=Window(
+            #             expression=RowNumber(),
+            #             partition_by=[F("user"), F("wall"), F("action_key")],
+            #             order_by=F("updated_at").desc(),
+            #         )
+            #     )
+            #     .filter(user=user, action_key=action_key, action_value__gt=0, rank=1)
+            #     .order_by("-updated_at")
+            # )
+            actions = UserActions.objects.filter(user=user, action_key=action_key, action_value__gt=0).order_by("-updated_at")
         else:
             return Response({"error": "action_key参数错误"}, status=status.HTTP_400_BAD_REQUEST)
 
