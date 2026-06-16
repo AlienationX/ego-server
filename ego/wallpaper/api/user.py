@@ -91,17 +91,24 @@ class ApiModelView(RetrieveModelMixin, GenericViewSet):
         try:
             profile = user.profile
 
-            old_avatar_path = ""
-            if profile.avatar:
+            # 只有本次请求确实上传了新头像，才记录旧路径准备替换
+            old_avatar_path = None
+            if uploaded_file and profile.avatar:
                 old_avatar_path = Path(settings.MEDIA_ROOT) / "wallpaper" / Path(profile.avatar)
 
             # 更新数据，类似于 profile.avatar = avatar_url, profile.name = name
+            update_fields = list(data.keys())
             for attr, value in data.items():
                 setattr(profile, attr, value)
-            profile.save(update_fields=list(data.keys()))  # 仅更新变化的字段
 
-            # 可选：上传文件成功且数据库更新后，才删除旧的头像文件以释放空间
-            if uploaded_file and old_avatar_path and old_avatar_path.exists():
+            # 同步更新 updated_at（auto_now 字段需要通过 save() 触发，无需显式列出）
+            if "updated_at" not in update_fields:
+                update_fields.append("updated_at")
+
+            profile.save(update_fields=update_fields)
+
+            # 上传新头像且数据库更新成功后，才删除旧的头像文件
+            if old_avatar_path and old_avatar_path.exists():
                 old_avatar_path.unlink()
 
         except Exception as e:
