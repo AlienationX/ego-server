@@ -75,7 +75,11 @@ class ApiModelView(RetrieveModelMixin, GenericViewSet):
         data = request.data.copy()
         data.pop("email", None)  # 移除email字段 (不允许更新)
 
-        uploaded_file = request.FILES.get("avatar")  # 'avatar' 是前端表单中文件字段的name，postman字段类型不是string，而是file
+        # QueryDict 的值是列表，转成普通 dict 取单值，避免 setattr 写入列表
+        data = {k: (v[0] if isinstance(v, list) and len(v) == 1 else v) for k, v in data.items()}
+
+        uploaded_file = request.FILES.get("avatar")
+        file_save_path = None  # 初始化，避免异常捕获时 NameError
         if uploaded_file:
             try:
                 avatar_url, file_save_path = self._update_avatar(uploaded_file, user.id)
@@ -89,7 +93,7 @@ class ApiModelView(RetrieveModelMixin, GenericViewSet):
 
             old_avatar_path = ""
             if profile.avatar:
-                old_avatar_path = Path(settings.MEDIA_ROOT) / Path(profile.avatar)
+                old_avatar_path = Path(settings.MEDIA_ROOT) / "wallpaper" / Path(profile.avatar)
 
             # 更新数据，类似于 profile.avatar = avatar_url, profile.name = name
             for attr, value in data.items():
@@ -102,7 +106,7 @@ class ApiModelView(RetrieveModelMixin, GenericViewSet):
 
         except Exception as e:
             # 如果更新数据库失败，可以考虑删除刚上传的文件
-            if file_save_path.exists():
+            if file_save_path and file_save_path.exists():
                 file_save_path.unlink()
             return Response({"error": f"更新数据库失败: {e}"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -134,7 +138,7 @@ class ApiModelView(RetrieveModelMixin, GenericViewSet):
 
         dt = int(time.time())  # 当前10位时间戳
         avatar_url = f"avatars/user_{user_id}_{dt}{ext}"
-        file_save_path = Path(settings.MEDIA_ROOT) / Path(avatar_url)
+        file_save_path = Path(settings.MEDIA_ROOT) / "wallpaper" / Path(avatar_url)
 
         # 保存文件到服务器
         try:
