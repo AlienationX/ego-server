@@ -101,7 +101,7 @@ class ApiModelView(RetrieveModelMixin, GenericViewSet):
             profile.save(update_fields=list(data.keys()))  # 仅更新变化的字段
 
             # 可选：上传文件成功且数据库更新后，才删除旧的头像文件以释放空间
-            if old_avatar_path and old_avatar_path.exists():
+            if uploaded_file and old_avatar_path and old_avatar_path.exists():
                 old_avatar_path.unlink()
 
         except Exception as e:
