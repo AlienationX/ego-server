@@ -84,7 +84,6 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
                 return Response(error_data, status=response.status_code)
 
             result = response.json()
-            logger.debug(json.dumps(result, indent=2, ensure_ascii=False))
 
             content = result["choices"][0]["message"]["content"].strip()
             return Response({"content": content})
@@ -152,6 +151,8 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
                 if response.status_code != 200:
                     # 返回 API 的原始错误信息
                     error_data = response.json()
+                    logger.debug("======== error_data: %s", json.dumps(error_data, indent=2, ensure_ascii=False))
+
                     # yield f"data: {json.dumps(error_data)}\n\n"
                     yield f"data: {json.dumps({'content': error_data.get('error', {}).get('message', '')})}\n\n"
                     yield f"data: {json.dumps({'done': True})}\n\n"
@@ -160,7 +161,7 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
                 for line in response.iter_lines():
                     if line:
                         line = line.decode("utf-8")
-                        # print("Discover Stream line:", line)
+                        # logger.debug("======== Discover Stream line: %s", line)
 
                         # SSE 格式以 "data: " 开头
                         if line.startswith("data: "):
