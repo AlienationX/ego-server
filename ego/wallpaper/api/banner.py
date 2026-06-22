@@ -50,10 +50,11 @@ class ApiModelView(ListModelMixin, CreateModelMixin, GenericViewSet):
             data.append(
                 {
                     "id": 1,
-                    "url": "/pages/app/classlist?id=30&name=必应每日壁纸",
+                    "url": "/pages/app/classlist?id=30&name=必应每日壁纸&name_en=Bing Daily Wallpaper",
                     "sort": 1,
                     "picurl": bing_wall.picurl,
                     "description": bing_wall.description,
+                    "description_en": bing_wall.description_en,
                     "target": "self",
                     "appid": None,
                     "wall": None,
@@ -64,10 +65,11 @@ class ApiModelView(ListModelMixin, CreateModelMixin, GenericViewSet):
             data.append(
                 {
                     "id": 2,
-                    "url": "/pages/app/classlist?id=62&name=宝可梦睡眠",
+                    "url": "/pages/app/classlist?id=62&name=宝可梦睡眠&name_en=Pokemon Sleep",
                     "sort": 2,
                     "picurl": pokemon_wall.picurl,
                     "description": pokemon_wall.description,
+                    "description_en": pokemon_wall.description_en,
                     "target": "self",
                     "appid": None,
                     "wall": None,
@@ -82,6 +84,7 @@ class ApiModelView(ListModelMixin, CreateModelMixin, GenericViewSet):
                     "sort": 3,
                     "picurl": snoopy_wall.picurl,
                     "description": snoopy_wall.description,
+                    "description_en": snoopy_wall.description_en,
                     "target": "self",
                     "appid": None,
                     "wall": None,
@@ -96,13 +99,14 @@ class ApiModelView(ListModelMixin, CreateModelMixin, GenericViewSet):
                     "sort": 4,
                     "picurl": random_wall.picurl,
                     "description": random_wall.description,
+                    "description_en": random_wall.description_en,
                     "target": "self",
                     "appid": None,
                     # subjects字段无法序列化，需要排除
                     "wall": model_to_dict(
                         random_wall, exclude=["subjects", "md5_hash", "content_hash", "created_at", "updated_at", "remark"]
                     )
-                    | {"classify_id": random_wall.classify.id, "classify_name": random_wall.classify.name},
+                    | {"classify_id": random_wall.classify.id, "classify_name": random_wall.classify.name, "classify_name_en": random_wall.classify.name_en},
                 }
             )
 
@@ -114,13 +118,14 @@ class ApiModelView(ListModelMixin, CreateModelMixin, GenericViewSet):
                     "sort": 5,
                     "picurl": girl_wall.picurl,
                     "description": girl_wall.description,
+                    "description_en": girl_wall.description_en,
                     "target": "self",
                     "appid": None,
                     # 字典合并，包含壁纸信息和分类信息
                     "wall": model_to_dict(
                         girl_wall, exclude=["subjects", "md5_hash", "content_hash", "created_at", "updated_at", "remark"]
                     )
-                    | {"classify_id": girl_wall.classify.id, "classify_name": girl_wall.classify.name},
+                    | {"classify_id": girl_wall.classify.id, "classify_name": girl_wall.classify.name, "classify_name_en": girl_wall.classify.name_en},
                 }
             )
 
@@ -132,6 +137,7 @@ class ApiModelView(ListModelMixin, CreateModelMixin, GenericViewSet):
                 "sort": 6,
                 "picurl": "banner/to_wechat.jpg",
                 "description": "微信小程序",
+                "description_en": "WeChat Mini Program",
                 "target": "miniProgram",
                 "appid": "wx74c392f8525b9268",
                 "wall": None,

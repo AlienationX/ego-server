@@ -115,6 +115,7 @@ class Wall(models.Model):
 
     # 这个字段其实可以设计成 ManyToManyField，其实就是列表存储，使用add方法添加
     tags = models.CharField(max_length=200, verbose_name="标签", blank=True, null=True)
+    tags_en = models.CharField(max_length=200, verbose_name="英文标签", blank=True, null=True)
     # 缓存计数与热度分（应通过信号或定时任务更新）
     score = models.FloatField(verbose_name="图片分数", blank=True, null=True)
     views = models.IntegerField(default=0, db_default=0, verbose_name="浏览量", blank=True, null=True)
@@ -223,7 +224,9 @@ class WallSimilarities(models.Model):
 
 class Notice(models.Model):
     title = models.CharField(max_length=200, verbose_name="公告标题")
+    title_en = models.CharField(max_length=200, verbose_name="公告标题-英文", blank=True, null=True)
     content = models.TextField(verbose_name="公告详情")
+    content_en = models.TextField(verbose_name="公告详情-英文", blank=True, null=True)
     select = models.BooleanField(default=False, verbose_name="是否置顶")
     author = models.CharField(max_length=60, verbose_name="发布者")
     article_status = models.BooleanField(default=True, verbose_name="公告状态")

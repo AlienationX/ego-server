@@ -15,3 +15,6 @@ $PYTHON -u manage.py extract_features &>> $log_file
 
 # 增量预计算壁纸的TopN相似度
 $PYTHON -u manage.py calc_similarities_topN &>> $log_file
+
+# 增量翻译壁纸的description和tags
+$PYTHON -u manage.py translate_walls &>> $log_file

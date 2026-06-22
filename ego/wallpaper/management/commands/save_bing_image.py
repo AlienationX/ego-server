@@ -7,6 +7,7 @@ from django.conf import settings
 from django.core.management.base import BaseCommand
 from loguru import logger
 from utils.compare_image import get_file_md5, get_file_shape, get_image_content_hash
+
 from wallpaper.management.commands.upload_cos import upload_file_to_cos
 from wallpaper.management.commands.upload_s3 import upload_file_to_s3
 from wallpaper.management.commands.utils import generate_thumbs, send_dingtalk
@@ -76,7 +77,8 @@ class Command(BaseCommand):
                 picurl=f"pics/classify_bing/{record['file_name']}",
                 defaults={
                     "description": f"{record['date']} - {record['title']}: {record['description']}",
-                    "tags": "必应,每日壁纸,风景,Bing,微软",
+                    "tags": "必应,每日壁纸,风景,微软",
+                    "tags_en": "Bing,Daily Wallpaper,Nature,Landscape,Microsoft",
                     "score": round(random.uniform(4, 5), 1),
                     "publisher": "Bing",
                     "is_active": True,

@@ -23,6 +23,7 @@ dependencies = [
     "tenacity>=9.1.2",
     "torch>=2.11.0",
     "torchvision>=0.26.0",
+    "translators>=6.0.4",
 ]
 
 [[tool.uv.index]]

@@ -103,7 +103,7 @@ class ApiModelView(ListModelMixin, CreateModelMixin, GenericViewSet):
 
             # 白名单过滤，防止恶意修改 views/downloads 等计数字段
             # 允许通过 create 接口更新的字段白名单
-            # ALLOWED_UPDATE_FIELDS = {"description", "description_en", "tags", "classify_id", "remark", "score"}
+            ALLOWED_UPDATE_FIELDS = {"description", "description_en", "tags", "tags_en", "classify_id", "remark", "score"}
             # update_data = {k: v for k, v in data.items() if k in ALLOWED_UPDATE_FIELDS}
             # if not update_data:
             #     return Response({"error": "没有可更新的字段"}, status=status.HTTP_400_BAD_REQUEST)
@@ -216,8 +216,13 @@ class ApiModelView(ListModelMixin, CreateModelMixin, GenericViewSet):
         # 12、create_time__mouth="10" #查出某一月的
         # 13、create_time__day="17" #查出每个月17号的
 
-        # 进行过滤，description 字段包含kw关键字，或者 tags字段包含kw关键字
-        queryset = self.get_queryset().filter(Q(description__icontains=keyword) | Q(tags__icontains=keyword))
+        # 进行过滤，中英文 description 字段包含kw关键字，或者中英文 tags 字段包含kw关键字
+        queryset = self.get_queryset().filter(
+            Q(description__icontains=keyword)
+            | Q(description_en__icontains=keyword)
+            | Q(tags__icontains=keyword)
+            | Q(tags_en__icontains=keyword)
+        )
         sortord = request.query_params.get("sortord")
 
         if sortord == "random":
