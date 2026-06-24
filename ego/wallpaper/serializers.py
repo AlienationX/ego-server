@@ -46,7 +46,6 @@ class WallSerializer(ModelSerializer):
             "is_active",
             "md5_hash",
             "content_hash",
-            "updated_at",
             "remark",
             "trends",
             "normalized_trends",

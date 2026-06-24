@@ -13,7 +13,7 @@ class Command(BaseCommand):
     help = "批量翻译壁纸的 description 和 tags"
 
     def add_arguments(self, parser):
-        parser.add_argument("--wall-id", type=int, help="壁纸ID")
+        parser.add_argument("--wall-id", type=str, help="壁纸ID")
         parser.add_argument("--force", action="store_true", help="强制重新计算所有壁纸")  # 布尔值，还有store_false
 
     def handle(self, *args, **options):
@@ -25,7 +25,7 @@ class Command(BaseCommand):
         force = options.get("force", False)
 
         if wall_id:
-            walls = Wall.objects.filter(id=wall_id)
+            walls = Wall.objects.filter(id__in=[wall.strip() for wall in wall_id.split(",")])
         elif not force:
             walls = Wall.objects.filter(Q(description_en__isnull=True) | Q(tags_en__isnull=True))
         else:
@@ -41,7 +41,7 @@ class Command(BaseCommand):
             changed = False
 
             # 1. 翻译 description
-            if wall.description and not wall.description_en:
+            if wall.description:
                 en_desc = self.translate_text(wall.description)
                 if en_desc:
                     wall.description_en = en_desc
