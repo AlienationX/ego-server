@@ -61,7 +61,11 @@ class ApiModelView(ListModelMixin, CreateModelMixin, GenericViewSet):
         cache_key = f"walls_rand_{keyword or 'blank'}_{classify_id}"
         data = cache.get_or_set(
             cache_key,
-            lambda: list(queryset.annotate(classify_name=F("classify__name")).order_by("?").values()),
+            lambda: list(
+                queryset.annotate(classify_name=F("classify__name"), classify_name_en=F("classify__name_en"))
+                .order_by("?")
+                .values()
+            ),
             timeout=10 * 60,
         )
         return data
@@ -80,12 +84,11 @@ class ApiModelView(ListModelMixin, CreateModelMixin, GenericViewSet):
             return Response(data)
 
         # 非随机排序：直接利用数据库排序和分页，不加载全量数据到内存
-        queryset = queryset.annotate(classify_name=F("classify__name"))
         queryset = self._apply_sort_order(queryset)
-        page = self.paginate_queryset(queryset.values())
+        page = self.paginate_queryset(queryset)
         if page is not None:
-            return self.get_paginated_response(page)
-        return Response(list(queryset.values()))
+            return self.get_paginated_response(self.get_serializer(page, many=True).data)
+        return Response(self.get_serializer(queryset, many=True).data)
 
     def create(self, request, *args, **kwargs):
         """更新壁纸相关信息，如名称、描述、分类等。使用字段白名单防止越权修改"""
@@ -103,7 +106,7 @@ class ApiModelView(ListModelMixin, CreateModelMixin, GenericViewSet):
 
             # 白名单过滤，防止恶意修改 views/downloads 等计数字段
             # 允许通过 create 接口更新的字段白名单
-            ALLOWED_UPDATE_FIELDS = {"description", "description_en", "tags", "tags_en", "classify_id", "remark", "score"}
+            # ALLOWED_UPDATE_FIELDS = {"description", "description_en", "tags", "tags_en", "classify_id", "remark", "score"}
             # update_data = {k: v for k, v in data.items() if k in ALLOWED_UPDATE_FIELDS}
             # if not update_data:
             #     return Response({"error": "没有可更新的字段"}, status=status.HTTP_400_BAD_REQUEST)
@@ -233,12 +236,11 @@ class ApiModelView(ListModelMixin, CreateModelMixin, GenericViewSet):
             return Response(data)
 
         # 非随机排序：直接利用数据库排序和分页
-        queryset = queryset.annotate(classify_name=F("classify__name"))
         queryset = self._apply_sort_order(queryset)
-        page = self.paginate_queryset(queryset.values())
+        page = self.paginate_queryset(queryset)
         if page is not None:
-            return self.get_paginated_response(page)
-        return Response(list(queryset.values()))
+            return self.get_paginated_response(self.get_serializer(page, many=True).data)
+        return Response(self.get_serializer(queryset, many=True).data)
 
     @action(detail=False, methods=["get"])
     def top(self, request):

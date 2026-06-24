@@ -78,7 +78,7 @@ class Command(BaseCommand):
         if not clean_text:
             return True
         en_chars = len(re.findall(r"[a-zA-Z]", clean_text))
-        return en_chars / len(clean_text) > 0.5
+        return en_chars / len(clean_text) > 0.9
 
     def translate_text(self, text):
         if not text or self.is_english(text):
@@ -87,7 +87,7 @@ class Command(BaseCommand):
             # 使用 google 或 bing 翻译，避免封禁加了一点延迟
             time.sleep(0.5)
             # 你也可以换成你自己调用的第三方大模型 API
-            return ts.translate_text(text, translator="google", from_language="zh-CN", to_language="en")
+            return ts.translate_text(text, translator="bing", from_language="zh-CN", to_language="en")
         except Exception as e:
             self.stderr.write(f"翻译失败: {text} - Error: {e}")
             return None

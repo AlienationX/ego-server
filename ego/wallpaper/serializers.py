@@ -36,12 +36,22 @@ class ClassifySerializer(ModelSerializer):
 class WallSerializer(ModelSerializer):
     classify_id = PrimaryKeyRelatedField(source="classify", read_only=True)  # 显示外键表的主键值id
     classify_name = CharField(source="classify.name", read_only=True)
-    tabs = CharField(source="tags", read_only=True)  # 历史遗留问题，数据库命名错误导致
+    classify_name_en = CharField(source="classify.name_en", read_only=True)
 
     class Meta:
         model = Wall
-        fields = "__all__"
-        # exclude = ["classify", "subjects"]
+        # fields = "__all__"
+        exclude = [
+            "classify",
+            "is_active",
+            "md5_hash",
+            "content_hash",
+            "updated_at",
+            "remark",
+            "trends",
+            "normalized_trends",
+            "subjects",
+        ]
 
 
 class NoticeSerializer(ModelSerializer):
