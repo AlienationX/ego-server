@@ -169,7 +169,8 @@ class Command(BaseCommand):
                     Wall(
                         picurl=f"pics/classify_bing/{record['file_name']}",
                         description=f"{record['date']} - {record['title']}: {record['description']}",
-                        tags="必应,每日壁纸,风景,Bing,微软",
+                        tags="必应,每日壁纸,风景,微软",
+                        tags_en="Bing,Daily Wallpaper,Nature,Landscape,Microsoft",
                         score=round(random.uniform(4, 5), 1),
                         publisher="Bing",
                         is_active=True,
