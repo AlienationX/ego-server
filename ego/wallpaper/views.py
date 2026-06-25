@@ -71,6 +71,7 @@ def upload(request):
                 # 1. 保存文件到服务器临时目录
                 new_filename = uploaded_file.name.replace(" ", "_").replace("/", "_")
                 picurl_tmp = f"wallpaper/upload_tmp/{new_filename}"
+                # img_url = "https://api.wp.ego8.space/static/wallpaper/media/pics/classify_10/1712470293317_8.jpg"
                 img_url = f"{settings.NGINX_MEDIA_URL}/{picurl_tmp}"
                 save_path_tmp = f"{settings.MEDIA_ROOT}/{picurl_tmp}"
                 try:
@@ -202,7 +203,7 @@ def _generate_info_with_llm(img_url):
     }}
     """
 
-    prompt = """用自然柔和的语言描述图片内容，30字以内。"""
+    # prompt = """用自然柔和的语言描述图片内容，30字以内。"""
 
     url = "https://open.bigmodel.cn/api/paas/v4/chat/completions"
     headers = {"Authorization": f"Bearer {settings.DECOUPLE_CONFIG('ZHIPU_API_KEY')}", "Content-Type": "application/json"}
