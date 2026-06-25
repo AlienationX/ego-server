@@ -71,6 +71,7 @@ def upload(request):
                 # 1. 保存文件到服务器临时目录
                 new_filename = uploaded_file.name.replace(" ", "_").replace("/", "_")
                 picurl_tmp = f"wallpaper/upload_tmp/{new_filename}"
+                img_url = f"{settings.NGINX_MEDIA_URL}/{picurl_tmp}"
                 save_path_tmp = f"{settings.MEDIA_ROOT}/{picurl_tmp}"
                 try:
                     with open(save_path_tmp, "wb+") as f:
@@ -88,6 +89,7 @@ def upload(request):
                 if use_ai:
                     # 使用AI生成图片描述、标签、分类
                     ai_info = _generate_info_with_llm(img_base)
+                    # ai_info = _generate_info_with_llm(img_url)
                     if "error" in ai_info:
                         data = {"items": [], "msg": ai_info["error"], "alert_type": "alert-warning"}
                         return render(request, "wallpaper/upload_cards.html", data)
@@ -114,8 +116,7 @@ def upload(request):
                 info["filename"] = new_filename
                 info["size"] = f"{original_width} x {original_height}"
                 info["save_path_tmp"] = save_path_tmp
-                # info["picurl_tmp"] = img_base if settings.ENV == "dev" else f"{settings.NGINX_MEDIA_URL}/{picurl_tmp}"
-                info["picurl_tmp"] = img_base
+                info["picurl_tmp"] = img_base if settings.ENV == "dev" else img_url
 
                 items.append(info)
 
@@ -191,15 +192,17 @@ def _generate_info_with_llm(img_url):
 
     prompt = f"""根据图片内容，回答以下问题：
     1. 用自然柔和的语言，生成图片描述，如果识别出图片中的人物，需要包含人物的名称。30字以内。
-    2. 生成3到6个中英文标签，用英文逗号分隔，逗号之间不要有空格。
+    2. 生成3到6个中文标签，用英文逗号分隔，逗号之间不要有空格。
     3. 在以下分类中选择最合适的一个作为图片分类：{", ".join(classcfy_name)}。
     请按照以下 JSON 格式返回分析结果（不要有任何样式或格式化）：
     {{
         "description": "报纸纹理的动漫角色，蓝色调，侧身姿态，文字元素点缀",
-        "tags": "海贼王,路飞,anime",
+        "tags": "海贼王,路飞,动漫,二次元",
         "classify_name": "动漫二次元"
     }}
     """
+
+    prompt = """用自然柔和的语言描述图片内容，30字以内。"""
 
     url = "https://open.bigmodel.cn/api/paas/v4/chat/completions"
     headers = {"Authorization": f"Bearer {settings.DECOUPLE_CONFIG('ZHIPU_API_KEY')}", "Content-Type": "application/json"}
@@ -227,22 +230,28 @@ def _generate_info_with_llm(img_url):
                 ],
             }
         ],
+        "response_format": {"type": "json_object"},
         # "thinking": {"type": "enabled"},
     }
 
     try:
-        response = requests.post(url, headers=headers, json=data, timeout=60)
-        # 不使用 raise_for_status()，方法会在 HTTP 状态码为 4xx 或 5xx 时抛出异常
+        response = requests.post(url, headers=headers, json=data, timeout=180)
+        # 不使用 raise_for_status()，方法会在 HTTP 状态码为 4xx 或 5xx 时抛出异常。429 其实是正常返回，错误需要特殊处理
         # response.raise_for_status()
 
+        # 处理 5xx 错误，返回原始响应文本，避免解析 JSON 失败
+        if response.status_code >= 500:
+            # logger.error(f"BigModel API 错误: {response.status_code} - {response.text}")
+            return {"error": response.text}
+
+        result = response.json()
         # 避免 429 错误抛出异常，显示业务错误信息 https://docs.bigmodel.cn/cn/faq/api-code
         if response.status_code != 200:
             # 返回 API 的原始错误信息
             # {'error': {'code': '1305', 'message': '该模型当前访问量过大，请您稍后再试'}}
-            error_data = response.json()
-            return error_data
+            # logger.error(f"BigModel API 错误: {response.status_code} - {result}")
+            return result
 
-        result = response.json()
         logger.debug(json.dumps(result, indent=2, ensure_ascii=False))
 
         content = result["choices"][0]["message"]["content"].strip()

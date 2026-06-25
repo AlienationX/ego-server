@@ -177,6 +177,20 @@ class Command(BaseCommand):
                         is_locked=False,
                         md5_hash=record["md5_hash"],
                         content_hash=record["content_hash"],
+                        # -- created_at 和 updated_at 这里设置没用，与数据库默认值冲突
+                        # select t.created_at, t.updated_at,
+                        #        (substr(t.description,1,8)::date::varchar || ' ' || substr(t.created_at::varchar,12,12))::timestamptz,
+                        #        t.*
+                        # from wp.wallpaper_wall t
+                        # where t.classify_id = 30
+                        # and substr(t.description,1,8)::date::varchar <> substr(t.created_at::varchar,1,10)
+                        # order by t.description desc;
+                        # -- 手动更新 created_at 和 updated_at
+                        # update wp.wallpaper_wall t
+                        # set created_at = (substr(t.description,1,8)::date::varchar || ' ' || substr(t.created_at::varchar,12,12))::timestamptz,
+                        #     updated_at = (substr(t.description,1,8)::date::varchar || ' ' || substr(t.created_at::varchar,12,12))::timestamptz
+                        # where classify_id = 30
+                        # and substr(description,1,8)::date::varchar <> substr(created_at::varchar,1,10);
                         created_at=datetime.strptime(record["date"], "%Y%m%d"),
                         updated_at=datetime.strptime(record["date"], "%Y%m%d"),
                         classify_id=30,
@@ -208,8 +222,8 @@ class Command(BaseCommand):
 
             logger.info(f"{mkt} Page {page} Downloaded {len(records)} records, Total {len(batch_records)} records")
             if not records:
-                sleep(10)
-                logger.info(f"{mkt} Page {page} Sleep 10 seconds")
+                sleep(2)
+                logger.info(f"{mkt} Page {page} Sleep 2 seconds")
 
         return batch_records
 

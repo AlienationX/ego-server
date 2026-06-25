@@ -184,7 +184,7 @@ MEDIA_ROOT = BASE_DIR / "media"
 # FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
 # 限制整个请求体大小（防止大文件导致内存溢出）
 # DATA_UPLOAD_MAX_MEMORY_SIZE = 20 * 1024 * 1024  # 20MB
-# NGINX_MEDIA_URL = "https://api.wp.ego8.space/static/wallpaper/media"
+NGINX_MEDIA_URL = "https://api.wp.ego8.space/media" if ENV == "prod" else "http://127.0.0.1:8000/media"
 
 # 以上直接访问即可，不需要配置urls。通过配置urls可以映射到应用的地址上
 # http://127.0.0.1:8000/static/pokemon_library/images/0001-妙蛙种子.png 映射到 http://127.0.0.1:8000/pokemon_library/static/images/0001-妙蛙种子.png
