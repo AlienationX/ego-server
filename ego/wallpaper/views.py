@@ -88,8 +88,8 @@ def upload(request):
                 # 根据是否使用AI来生成信息
                 if use_ai:
                     # 使用AI生成图片描述、标签、分类
-                    ai_info = _generate_info_with_llm(img_base)
-                    # ai_info = _generate_info_with_llm(img_url)
+                    # ai_info = _generate_info_with_llm(img_base)
+                    ai_info = _generate_info_with_llm(img_url)
                     if "error" in ai_info:
                         data = {"items": [], "msg": ai_info["error"], "alert_type": "alert-warning"}
                         return render(request, "wallpaper/upload_cards.html", data)
