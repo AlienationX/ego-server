@@ -7,7 +7,6 @@ from django.conf import settings
 from django.core.management.base import BaseCommand
 from loguru import logger
 from utils.compare_image import get_file_md5, get_file_shape, get_image_content_hash
-
 from wallpaper.management.commands.upload_cos import upload_file_to_cos
 from wallpaper.management.commands.upload_s3 import upload_file_to_s3
 from wallpaper.management.commands.utils import generate_thumbs, send_dingtalk
@@ -120,7 +119,9 @@ class Command(BaseCommand):
         records = []
         # 反转列表，顺序下载确保最新的壁纸在最后处理
         for image in reversed(data["images"]):
-            file_name = image["enddate"] + "-" + image["title"]
+            # 清理文件名：移除 URL 不安全字符（? / \ : * " < > | 等），保留中文、字母、数字、连字符、下划线
+            safe_title = str(image["title"]).replace("/", "_").replace("\\", "_").replace("?", "").replace(" ", "_")
+            file_name = image["enddate"] + "-" + safe_title
             # 解析并拼接图片URL
             image_url = "https://www.bing.com" + image["url"]
             # image_url = image_url.replace("1920x1080", "UHD")  # 改为超高清分辨率

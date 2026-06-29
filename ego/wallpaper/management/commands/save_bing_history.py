@@ -240,7 +240,9 @@ class Command(BaseCommand):
         records = []
         for image in tqdm(images, desc=f"Downloading {mkt} page {page}"):
             image_date = image["datetime"].replace("-", "")
-            file_name = image_date + "-" + image["title"]
+            # 清理文件名：移除 URL 不安全字符（? / \ : * " < > | 等），保留中文、字母、数字、连字符、下划线
+            safe_title = str(image["title"]).replace("/", "_").replace("\\", "_").replace("?", "").replace(" ", "_")
+            file_name = image_date + "-" + safe_title
 
             # 下载图片
             image_data = requests.get(image["url"]).content

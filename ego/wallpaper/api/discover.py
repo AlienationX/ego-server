@@ -109,12 +109,14 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
             我将给你一张我特别喜欢的图片。请你从色彩心理学、构图焦点、象征元素、整体氛围等多个维度，
             分析这张图片可能反映出喜爱者（也就是我）怎样的性格特质、潜在爱好和当前的情感或精神需求，
             最后结合基于弗洛伊德的本我、自我、超我理论，给出一个综合的分析结果。
+            字数尽量多，但是不要超过1000字。
             """
         else:
             prompt = """Please act as a psychologist, art critic, and human insight analyzer.
             I will give you a picture I particularly like. Please analyze this picture from multiple dimensions,
             including color psychology, composition focus, symbolic elements, and overall atmosphere.
             Finally, combine the results with the Self-Affective Theory (SAT) to provide a comprehensive analysis.
+            Try to use as many words as possible, but do not exceed 1000 words.
             """
 
         url = "https://open.bigmodel.cn/api/paas/v4/chat/completions"
