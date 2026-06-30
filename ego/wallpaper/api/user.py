@@ -5,6 +5,7 @@ from pathlib import Path
 import requests
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.utils import timezone
 from PIL import Image
 from rest_framework import status
 from rest_framework.decorators import action
@@ -16,7 +17,7 @@ from rest_framework.viewsets import GenericViewSet, ModelViewSet, ViewSet
 from rest_framework_simplejwt.exceptions import AuthenticationFailed
 
 from ..business_status import BusinessStatus
-from ..models import Profile, UserActions
+from ..models import Profile, UserActions, EnergyLog
 from ..paginations import CustomPageNumberPagination
 from ..permissions import HasAccessKey
 from ..renderers import CustomJSONRenderer
@@ -198,6 +199,84 @@ class ApiModelView(RetrieveModelMixin, GenericViewSet):
         user.is_active = False
         user.save()
         return Response({"msg": "用户已停用"})
+
+    @action(detail=False, methods=["post"])
+    def consume_energy(self, request):
+        # 下载壁纸消费能量接口
+        user = request.user
+        wall_id = request.data.get("wall_id")
+        
+        try:
+            profile = user.profile
+            if profile.energy > 0:
+                profile.energy -= 1
+                profile.save(update_fields=["energy"])
+                
+                EnergyLog.objects.create(
+                    user=user,
+                    action_type="consume_download",
+                    energy_change=-1,
+                    wall_id=wall_id
+                )
+                return Response({"energy": profile.energy})
+            else:
+                return Response({"error": "能量不足"}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            logger.error(f"扣除能量失败: {e}")
+            return Response({"error": f"扣除能量失败: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=["post"])
+    def earn_energy(self, request):
+        # 观看广告等获取能量接口
+        user = request.user
+        action_type = request.data.get("action_type")
+        amount = request.data.get("amount", 0)
+        
+        if not action_type:
+            return Response({"error": "action_type不能为空"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        try:
+            amount = int(amount)
+        except (ValueError, TypeError):
+            return Response({"error": "amount必须是整数"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        if amount <= 0:
+            return Response({"error": "amount必须大于0"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        
+        # 防刷限制
+        if action_type == "share_image":
+            count = EnergyLog.objects.filter(user=user, action_type=action_type, created_at__gte=today_start).count()
+            if count >= 3:
+                return Response({"energy": user.profile.energy, "msg": "今日分享图片次数已达上限"})
+        elif action_type == "share_timeline":
+            count = EnergyLog.objects.filter(user=user, action_type=action_type, created_at__gte=today_start).count()
+            if count >= 3:
+                return Response({"energy": user.profile.energy, "msg": "今日分享朋友圈次数已达上限"})
+        elif action_type == "app_rate":
+            exists = EnergyLog.objects.filter(user=user, action_type=action_type).exists()
+            if exists:
+                return Response({"energy": user.profile.energy, "msg": "已经评价过App"})
+        elif action_type == "check_in":
+            exists = EnergyLog.objects.filter(user=user, action_type=action_type, created_at__gte=today_start).exists()
+            if exists:
+                return Response({"energy": user.profile.energy, "msg": "今日已签到"})
+        
+        try:
+            profile = user.profile
+            profile.energy += amount
+            profile.save(update_fields=["energy"])
+            
+            EnergyLog.objects.create(
+                user=user,
+                action_type=action_type,
+                energy_change=amount
+            )
+            return Response({"energy": profile.energy})
+        except Exception as e:
+            logger.error(f"获取能量失败: {e}")
+            return Response({"error": f"获取能量失败: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     # 类似me接口，但是做权限控制。故暂时不开放，后续再考虑是否需要
     # def retrieve(self, request, *args, **kwargs):

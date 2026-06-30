@@ -475,3 +475,22 @@ class Versions(models.Model):
     class Meta:
         verbose_name = "版本信息"
         verbose_name_plural = "版本信息"
+
+
+class EnergyLog(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="用户")
+    action_type = models.CharField(max_length=60, verbose_name="操作类型")
+    energy_change = models.IntegerField(verbose_name="能量变化")
+    wall_id = models.IntegerField(verbose_name="壁纸id", blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
+
+    def __str__(self):
+        return f"{self.user.username} - {self.action_type} - {self.energy_change}"
+
+    class Meta:
+        verbose_name = "能量流水记录"
+        verbose_name_plural = "能量流水记录"
+        db_table = "wallpaper_energy_log"
+        indexes = [
+            models.Index(fields=["user", "action_type", "-created_at"]),
+        ]
