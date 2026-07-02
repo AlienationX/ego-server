@@ -5,12 +5,46 @@ from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
 # Register your models here.
-from .models import Access, Application, Banner, Classify, Feedback, Notice, Profile, Subject, UserActions, Versions, Wall
+from .models import (
+    Access,
+    Application,
+    Banner,
+    Classify,
+    EnergyLog,
+    Feedback,
+    Notice,
+    Profile,
+    Subject,
+    UserActions,
+    Versions,
+    Wall,
+)
 
 # ROOT_PIC_URL = "https://mp-36059119-7390-44c6-8190-cc3527d1e745.cdn.bspapp.com/wallpaper"
 # ROOT_PIC_URL = "https://wallpaper-kpze6c.s3.eu-north-1.amazonaws.com"
 # ROOT_PIC_URL = "https://wp-1328701250.cos.ap-beijing.myqcloud.com"
 ROOT_PIC_URL = "https://api.wp.ego8.space/static/wallpaper/media"
+
+
+class TimeStampAdminMixin:
+    """统一格式化 created_at 和 updated_at 的 Mixin"""
+
+    # 定义格式化方法
+    def formatted_created_at(self, obj):
+        if obj.created_at:
+            return obj.created_at.strftime("%Y-%m-%d %H:%M:%S")
+        return "-"
+
+    formatted_created_at.short_description = "创建时间"  # 列标题
+    formatted_created_at.admin_order_field = "created_at"  # 支持排序
+
+    def formatted_updated_at(self, obj):
+        if obj.updated_at:
+            return obj.updated_at.strftime("%Y-%m-%d %H:%M:%S")
+        return "-"
+
+    formatted_updated_at.short_description = "更新时间"
+    formatted_updated_at.admin_order_field = "updated_at"
 
 
 class ClassifyAdmin(admin.ModelAdmin):
@@ -69,7 +103,7 @@ class WallAdmin(admin.ModelAdmin):
         "description",
     )
     list_filter = ("classify",)
-    search_fields = ("description", "publisher", "tags")
+    search_fields = ("id", "description", "publisher", "tags")
     filter_horizontal = ("subjects",)  # 优化多对多字段选择界面
     date_hierarchy = "created_at"  # 按创建日期分层筛选
 
@@ -198,6 +232,31 @@ class VersionsAdmin(admin.ModelAdmin):
     readonly_fields = ("created_at",)
 
 
+@admin.register(UserActions)
+class UserActionsAdmin(admin.ModelAdmin, TimeStampAdminMixin):
+    list_display = (
+        "id",
+        "device_id",
+        "user__email",
+        "wall__id",
+        "action_key",
+        "action_value",
+        "formatted_created_at",
+        "formatted_updated_at",
+    )
+    fields = ("device_id", "user", "wall", "action_key", "action_value", "created_at", "updated_at")
+    search_fields = ("id", "device_id", "user__email", "wall__id")
+    readonly_fields = fields
+
+
+@admin.register(EnergyLog)
+class EnergyLogAdmin(admin.ModelAdmin, TimeStampAdminMixin):
+    list_display = ("id", "user__email", "action_type", "energy_change", "formatted_created_at")
+    fields = ("user", "action_type", "energy_change", "wall_id", "created_at")
+    search_fields = ("id", "user__id")
+    readonly_fields = fields
+
+
 admin.site.register(Classify, ClassifyAdmin)
 admin.site.register(Subject, SubjectAdmin)
 admin.site.register(Wall, WallAdmin)
@@ -207,5 +266,6 @@ admin.site.register(Banner, BannerAdmin)
 # admin.site.register(Feedback, FeedbackAdmin)
 # admin.site.register(Profile, PrifileAdmin)
 # admin.site.register(Versions, VersionsAdmin)
-admin.site.register(UserActions)
+# admin.site.register(UserActions, UserActionsAdmin)
+# admin.site.register(EnergyLog, EnergyLogAdmin)
 admin.site.register(Application)

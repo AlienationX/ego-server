@@ -260,7 +260,7 @@ class Banner(models.Model):
 
     class Meta:
         verbose_name = "首页横幅"
-        verbose_name_plural = "首页横幅"
+        verbose_name_plural = verbose_name
 
 
 class Profile(models.Model):
@@ -320,9 +320,12 @@ class UserActions(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
+    def __str__(self):
+        return f"{self.user} - {self.action_key} - {self.action_value} - {self.created_at}"
+
     class Meta:
         verbose_name = "用户操作日志"
-        verbose_name_plural = verbose_name
+        verbose_name_plural = "用户操作日志_plural"
         db_table = "wallpaper_user_actions"
         db_table_comment = "用户操作日志表"
         constraints = [
@@ -485,11 +488,11 @@ class EnergyLog(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
 
     def __str__(self):
-        return f"{self.user.username} - {self.action_type} - {self.energy_change}"
+        return f"{self.user} - {self.action_type} - {self.energy_change}"
 
     class Meta:
         verbose_name = "能量流水记录"
-        verbose_name_plural = "能量流水记录"
+        verbose_name_plural = "能量流水记录_plural"
         db_table = "wallpaper_energy_log"
         indexes = [
             models.Index(fields=["user", "action_type", "-created_at"]),
