@@ -18,3 +18,6 @@ $PYTHON -u manage.py calc_similarities_topN &>> $log_file
 
 # 增量翻译壁纸的description和tags
 $PYTHON -u manage.py translate_walls &>> $log_file
+
+# 全量计算壁纸的趋势分数
+$PYTHON -u manage.py calc_trends_score --force &>> $log_file

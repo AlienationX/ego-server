@@ -22,8 +22,6 @@ class Command(BaseCommand):
         wall_id = options.get("wall_id")
         force = options.get("force", False)
 
-        start_time = datetime.now()
-
         if wall_id:
             # 计算指定壁纸的 TopN 相似度
             walls = [Wall.objects.get(id=wall_id)]
