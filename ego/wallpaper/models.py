@@ -313,6 +313,7 @@ class UserActions(models.Model):
         ("rate", "评分"),  # 0～5，0为取消评分。可以多次操作，覆盖之前的值
     ]
     device_id = models.CharField(max_length=100, verbose_name="设备id", blank=True, null=True)
+    channel = models.CharField(max_length=60, verbose_name="渠道", blank=True, null=True)
     user = models.ForeignKey(User, on_delete=models.DO_NOTHING, verbose_name="用户id", blank=True, null=True)
     wall = models.ForeignKey(Wall, on_delete=models.DO_NOTHING, verbose_name="壁纸id", blank=True, null=True)
     action_key = models.CharField(max_length=20, choices=ACTION_TYPES, verbose_name="操作类型")

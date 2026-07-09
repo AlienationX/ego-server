@@ -1,6 +1,7 @@
 import json
 
 from django.contrib import admin
+from django.utils import timezone
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
@@ -32,7 +33,7 @@ class TimeStampAdminMixin:
     # 定义格式化方法
     def formatted_created_at(self, obj):
         if obj.created_at:
-            return obj.created_at.strftime("%Y-%m-%d %H:%M:%S")
+            return timezone.localtime(obj.created_at).strftime("%Y-%m-%d %H:%M:%S")
         return "-"
 
     formatted_created_at.short_description = "创建时间"  # 列标题
@@ -40,7 +41,7 @@ class TimeStampAdminMixin:
 
     def formatted_updated_at(self, obj):
         if obj.updated_at:
-            return obj.updated_at.strftime("%Y-%m-%d %H:%M:%S")
+            return timezone.localtime(obj.updated_at).strftime("%Y-%m-%d %H:%M:%S")
         return "-"
 
     formatted_updated_at.short_description = "更新时间"
@@ -238,6 +239,7 @@ class UserActionsAdmin(admin.ModelAdmin, TimeStampAdminMixin):
     list_display = (
         "id",
         "device_id",
+        "channel",
         "user__email",
         "wall__id",
         "action_key",
@@ -245,8 +247,9 @@ class UserActionsAdmin(admin.ModelAdmin, TimeStampAdminMixin):
         "formatted_created_at",
         "formatted_updated_at",
     )
-    fields = ("device_id", "user", "wall", "action_key", "action_value", "created_at", "updated_at")
+    fields = ("device_id", "channel", "user", "wall", "action_key", "action_value", "created_at", "updated_at")
     search_fields = ("id", "device_id", "user__email", "wall__id")
+    list_filter = ("channel",)
     readonly_fields = fields
 
 
