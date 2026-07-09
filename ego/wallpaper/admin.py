@@ -249,7 +249,7 @@ class UserActionsAdmin(admin.ModelAdmin, TimeStampAdminMixin):
     )
     fields = ("device_id", "channel", "user", "wall", "action_key", "action_value", "created_at", "updated_at")
     search_fields = ("id", "device_id", "user__email", "wall__id")
-    list_filter = ("channel",)
+    list_filter = ("channel", "action_key")
     readonly_fields = fields
 
 
