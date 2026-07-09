@@ -219,13 +219,18 @@ class ApiModelView(ListModelMixin, CreateModelMixin, GenericViewSet):
         # 12、create_time__mouth="10" #查出某一月的
         # 13、create_time__day="17" #查出每个月17号的
 
-        # 进行过滤，中英文 description 字段包含kw关键字，或者中英文 tags 字段包含kw关键字
-        queryset = self.get_queryset().filter(
-            Q(description__icontains=keyword)
-            | Q(description_en__icontains=keyword)
-            | Q(tags__icontains=keyword)
-            | Q(tags_en__icontains=keyword)
-        )
+        if keyword.startswith("#") and keyword[1:].isdigit():
+            # 如果kw以#开头且为数字，则按ID查询
+            wall_id = int(keyword[1:])
+            queryset = self.get_queryset().filter(id=wall_id)
+        else:
+            # 进行过滤，中英文 description 字段包含kw关键字，或者中英文 tags 字段包含kw关键字
+            queryset = self.get_queryset().filter(
+                Q(description__icontains=keyword)
+                | Q(description_en__icontains=keyword)
+                | Q(tags__icontains=keyword)
+                | Q(tags_en__icontains=keyword)
+            )
         sortord = request.query_params.get("sortord")
 
         if sortord == "random":
