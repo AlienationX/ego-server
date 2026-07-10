@@ -6,7 +6,7 @@ from django.db.models import Avg, F, Window
 from django.db.models.functions import Rank, RowNumber
 from rest_framework import status
 from rest_framework.decorators import action
-from rest_framework.mixins import CreateModelMixin, ListModelMixin, UpdateModelMixin
+from rest_framework.mixins import CreateModelMixin, ListModelMixin
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ModelViewSet, ViewSet
@@ -20,7 +20,7 @@ from ..serializers import UserActionsSerializer, WallSerializer
 logger = logging.getLogger(__name__)
 
 
-class ApiModelView(CreateModelMixin, ListModelMixin, UpdateModelMixin, GenericViewSet):
+class ApiModelView(CreateModelMixin, ListModelMixin, GenericViewSet):
     queryset = UserActions.objects.all()
     serializer_class = UserActionsSerializer
     # authentication_classes = [JSONWebTokenAuthentication]  # JWT 认证, 已在settings中全局配置
@@ -76,6 +76,7 @@ class ApiModelView(CreateModelMixin, ListModelMixin, UpdateModelMixin, GenericVi
         """用户对壁纸的操作，如收藏、下载、评分等。"""
         user = request.user
         device_id = request.headers.get("Device-Id")
+        channel = request.data.get("channel", "")
         wall_id = request.data.get("wall_id")
         action_key = request.data.get("action_key")
         action_value = request.data.get("action_value")
@@ -94,6 +95,7 @@ class ApiModelView(CreateModelMixin, ListModelMixin, UpdateModelMixin, GenericVi
 
         obj = {
             "device_id": device_id,
+            "channel": channel,
             "user_id": user_id,
             "wall_id": wall_id,
             "action_key": action_key,
