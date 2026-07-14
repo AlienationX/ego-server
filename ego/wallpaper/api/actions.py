@@ -104,9 +104,29 @@ class ApiModelView(CreateModelMixin, ListModelMixin, GenericViewSet):
 
         # 如果多张表同时更新数据，需要开启事务保存
         with transaction.atomic():
-            user_action, created = UserActions.objects.update_or_create(
-                device_id=device_id, user_id=user_id, wall_id=wall_id, action_key=action_key, defaults=obj
-            )
+            filter_kwargs = {"wall_id": wall_id, "action_key": action_key}
+            if user_id:
+                filter_kwargs["user_id"] = user_id
+            else:
+                filter_kwargs["device_id"] = device_id
+                filter_kwargs["user_id"] = None
+
+            try:
+                user_action, created = UserActions.objects.update_or_create(
+                    **filter_kwargs, defaults=obj
+                )
+            except UserActions.MultipleObjectsReturned:
+                # 处理由于之前以 device_id 匹配导致的历史重复脏数据
+                actions = list(UserActions.objects.filter(**filter_kwargs).order_by("-updated_at"))
+                user_action = actions[0]
+                # 删除多余的记录
+                for old_action in actions[1:]:
+                    old_action.delete()
+                # 更新最新的一条记录
+                for k, v in obj.items():
+                    setattr(user_action, k, v)
+                user_action.save()
+                created = False
 
         return Response(
             UserActionsSerializer(user_action).data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK
