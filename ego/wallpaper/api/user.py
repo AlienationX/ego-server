@@ -202,7 +202,11 @@ class ApiModelView(RetrieveModelMixin, GenericViewSet):
 
     @action(detail=False, methods=["post"])
     def consume_energy(self, request):
-        # 下载壁纸消费能量接口
+        """
+        消耗能量接口：用于免广告下载壁纸。
+        每次成功扣除 1 点能量，能量不足时返回 400 错误。
+        记录流水类型为：'consume_download'。
+        """
         user = request.user
         wall_id = request.data.get("wall_id")
         
@@ -227,7 +231,15 @@ class ApiModelView(RetrieveModelMixin, GenericViewSet):
 
     @action(detail=False, methods=["post"])
     def earn_energy(self, request):
-        # 观看广告等获取能量接口
+        """
+        获取能量接口：用于通过观看广告、分享、签到、评分等途径奖励能量（需要登录）。
+        防刷限制规则：
+        - share_image (分享图片给好友+1)：每天最多获取 3 次奖励
+        - share_timeline (分享到朋友圈+3)：每天最多获取 3 次奖励
+        - app_rate (App内评价+5)：每个用户终生仅限获取 1 次奖励
+        - check_in (每日签到+1)：每天最多获取 1 次奖励
+        - watch_ad (观看激励视频广告+3)：目前暂时不限制单日获取次数
+        """
         user = request.user
         action_type = request.data.get("action_type")
         amount = request.data.get("amount", 0)
