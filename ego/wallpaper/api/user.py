@@ -203,12 +203,13 @@ class ApiModelView(RetrieveModelMixin, GenericViewSet):
     @action(detail=False, methods=["post"])
     def consume_energy(self, request):
         """
-        消耗能量接口：用于免广告下载壁纸。
+        消耗能量接口：用于免广告下载壁纸或使用高级功能。
         每次成功扣除 1 点能量，能量不足时返回 400 错误。
-        记录流水类型为：'consume_download'。
+        记录流水类型默认为：'consume_download'，可传入自定义 action_type。比如 'consume_preview_style'
         """
         user = request.user
         wall_id = request.data.get("wall_id")
+        action_type = request.data.get("action_type", "consume_download")
         
         try:
             profile = user.profile
@@ -218,7 +219,7 @@ class ApiModelView(RetrieveModelMixin, GenericViewSet):
                 
                 EnergyLog.objects.create(
                     user=user,
-                    action_type="consume_download",
+                    action_type=action_type,
                     energy_change=-1,
                     wall_id=wall_id
                 )

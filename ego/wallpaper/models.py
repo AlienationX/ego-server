@@ -264,8 +264,15 @@ class Banner(models.Model):
 
 
 class Profile(models.Model):
+    GENDER_CHOICES = (
+        (0, '保密'),
+        (1, '男'),
+        (2, '女'),
+    )
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile", primary_key=True)
     nickname = models.CharField(max_length=60, verbose_name="用户昵称", blank=True, null=True)
+    gender = models.IntegerField(choices=GENDER_CHOICES, default=0, verbose_name="性别")
+    birthday = models.DateField(blank=True, null=True, verbose_name="生日")
     description = models.CharField(max_length=255, verbose_name="个人简介", blank=True, null=True)
     avatar = models.CharField(max_length=150, verbose_name="头像", blank=True, null=True)
     phone_number = models.CharField(max_length=20, verbose_name="电话号码", blank=True, null=True)
