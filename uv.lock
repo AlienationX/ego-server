@@ -162,6 +162,19 @@ wheels = [
 ]
 
 [[package]]
+name = "alipay-sdk-python"
+version = "3.7.1160"
+source = { registry = "https://pypi.tuna.tsinghua.edu.cn/simple" }
+dependencies = [
+    { name = "pycryptodome" },
+    { name = "rsa" },
+]
+sdist = { url = "https://pypi.tuna.tsinghua.edu.cn/packages/4a/b9/7d83da91d1be1a37ffc393e20a50dfbd9fca2ff42564ab9c28d991d4e02b/alipay_sdk_python-3.7.1160.tar.gz", hash = "sha256:faced20dcef553de5b9eb0c0a4e29fddc77f21d6262416523940b2fdc7e6b8c3", size = 9972139, upload-time = "2026-05-14T10:09:53.624Z" }
+wheels = [
+    { url = "https://pypi.tuna.tsinghua.edu.cn/packages/a2/83/d0b074313f183f63856ff5b7bab57191aa4b0ed75441cddda57b1323805b/alipay_sdk_python-3.7.1160-py3-none-any.whl", hash = "sha256:ccc947dcbbca380039185781ed3fb6d215483185b45ee05136ec5fd34e971e35", size = 31140981, upload-time = "2026-05-14T10:09:43.434Z" },
+]
+
+[[package]]
 name = "anyio"
 version = "4.14.0"
 source = { registry = "https://pypi.tuna.tsinghua.edu.cn/simple" }
@@ -685,6 +698,7 @@ name = "ego-server"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "alipay-sdk-python" },
     { name = "boto3" },
     { name = "cos-python-sdk-v5" },
     { name = "django" },
@@ -714,6 +728,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "alipay-sdk-python", specifier = ">=3.7.1160" },
     { name = "boto3", specifier = ">=1.42.6" },
     { name = "cos-python-sdk-v5", specifier = ">=1.9.40" },
     { name = "django", specifier = "==5.2" },
@@ -1826,6 +1841,15 @@ wheels = [
 ]
 
 [[package]]
+name = "pyasn1"
+version = "0.6.4"
+source = { registry = "https://pypi.tuna.tsinghua.edu.cn/simple" }
+sdist = { url = "https://pypi.tuna.tsinghua.edu.cn/packages/a4/9a/23310166d960def5897e91fe20e5b724601b02a22e84ba1f94232c0b7f67/pyasn1-0.6.4.tar.gz", hash = "sha256:9c447d8431c947fe4c8febc4ed9e760bc29011a5b01e5c74b67025bd9fb8ce81", size = 151262, upload-time = "2026-07-09T01:12:33.988Z" }
+wheels = [
+    { url = "https://pypi.tuna.tsinghua.edu.cn/packages/9a/3b/6163796d69c3977d1e4287bea4a6979161cbbdd170ebb430511e8e1999ce/pyasn1-0.6.4-py3-none-any.whl", hash = "sha256:deda9277cfd454080ec40b207fb6df82206a3a2688735233cdcd8d3d565f088b", size = 84410, upload-time = "2026-07-09T01:12:32.92Z" },
+]
+
+[[package]]
 name = "pycparser"
 version = "3.0"
 source = { registry = "https://pypi.tuna.tsinghua.edu.cn/simple" }
@@ -2073,6 +2097,18 @@ dependencies = [
 sdist = { url = "https://pypi.tuna.tsinghua.edu.cn/packages/f3/61/d7545dafb7ac2230c70d38d31cbfe4cc64f7144dc41f6e4e4b78ecd9f5bb/requests-toolbelt-1.0.0.tar.gz", hash = "sha256:7681a0a3d047012b5bdc0ee37d7f8f07ebe76ab08caeccfc3921ce23c88d5bc6", size = 206888, upload-time = "2023-05-01T04:11:33.229Z" }
 wheels = [
     { url = "https://pypi.tuna.tsinghua.edu.cn/packages/3f/51/d4db610ef29373b879047326cbf6fa98b6c1969d6f6dc423279de2b1be2c/requests_toolbelt-1.0.0-py2.py3-none-any.whl", hash = "sha256:cccfdd665f0a24fcf4726e690f65639d272bb0637b9b92dfd91a5568ccf6bd06", size = 54481, upload-time = "2023-05-01T04:11:28.427Z" },
+]
+
+[[package]]
+name = "rsa"
+version = "4.7.2"
+source = { registry = "https://pypi.tuna.tsinghua.edu.cn/simple" }
+dependencies = [
+    { name = "pyasn1" },
+]
+sdist = { url = "https://pypi.tuna.tsinghua.edu.cn/packages/db/b5/475c45a58650b0580421746504b680cd2db4e81bc941e94ca53785250269/rsa-4.7.2.tar.gz", hash = "sha256:9d689e6ca1b3038bc82bf8d23e944b6b6037bc02301a574935b2dd946e0353b9", size = 39711, upload-time = "2021-02-24T10:55:05.846Z" }
+wheels = [
+    { url = "https://pypi.tuna.tsinghua.edu.cn/packages/e9/93/0c0f002031f18b53af7a6166103c02b9c0667be528944137cc954ec921b3/rsa-4.7.2-py3-none-any.whl", hash = "sha256:78f9a9bf4e7be0c5ded4583326e7461e3a3c5aae24073648b4bdfa797d78c9d2", size = 34505, upload-time = "2021-02-24T10:55:03.55Z" },
 ]
 
 [[package]]
