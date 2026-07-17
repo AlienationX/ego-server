@@ -14,6 +14,8 @@ from .models import (
     EnergyLog,
     Feedback,
     Notice,
+    Order,
+    Product,
     Profile,
     Subject,
     UserActions,
@@ -218,13 +220,21 @@ class FeedbackAdmin(admin.ModelAdmin):
 @admin.register(Profile)
 class ProfileAdmin(admin.ModelAdmin):
     # 列表显示
-    list_display = ("user__id", "user__email", "nickname", "is_vip", "energy", "channel", "source", "region", "wechat_openid")
+    list_display = ("user__id", "user__email", "nickname", "is_vip", "vip_expire_time", "energy", "channel", "source", "region", "wechat_openid")
     # 搜索字段
     search_fields = ("nickname", "user__email")
     # 过滤器
-    list_filter = ("is_vip", "channel", "source")
+    list_filter = ("channel", "source", "region")
     # 日期层次
     date_hierarchy = "updated_at"
+
+    def is_vip(self, obj):
+        if obj.vip_expire_time and obj.vip_expire_time > timezone.now():
+            return "是"
+        else:
+            return "否"
+
+    is_vip.short_description = "是否会员"
 
 
 @admin.register(Versions)
@@ -259,6 +269,21 @@ class EnergyLogAdmin(admin.ModelAdmin, TimeStampAdminMixin):
     fields = ("user", "action_type", "energy_change", "wall_id", "created_at")
     search_fields = ("id", "user__id")
     readonly_fields = fields
+
+
+@admin.register(Product)
+class ProductAdmin(admin.ModelAdmin, TimeStampAdminMixin):
+    list_display = ("id", "name", "name_en", "code", "price", "original_price", "currency", "period_days", "recommended", "is_active", "formatted_created_at")
+    list_filter = ("recommended", "is_active", "currency")
+    search_fields = ("name", "code")
+
+
+@admin.register(Order)
+class OrderAdmin(admin.ModelAdmin, TimeStampAdminMixin):
+    list_display = ("order_no", "user", "product_name", "amount", "currency", "platform", "payment_method", "status", "formatted_created_at")
+    list_filter = ("status", "platform", "payment_method", "currency")
+    search_fields = ("order_no", "user__email", "transaction_id")
+    readonly_fields = ("order_no", "user", "product", "product_name", "price", "original_price", "currency", "period_days", "amount", "platform", "payment_method", "status", "transaction_id", "created_at", "paid_at")
 
 
 admin.site.register(Classify, ClassifyAdmin)

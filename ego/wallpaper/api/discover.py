@@ -156,7 +156,14 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
                     logger.debug("======== error_data: %s", json.dumps(error_data, indent=2, ensure_ascii=False))
 
                     # yield f"data: {json.dumps(error_data)}\n\n"
-                    yield f"data: {json.dumps({'content': error_data.get('error', {}).get('message', '')})}\n\n"
+
+                    content = error_data.get('error', {}).get('message', '')
+                    
+                    # "该模型当前访问量过大，请您稍后再试" 为业务固定错误，需要转译成不同英语
+                    if not lang.startswith("zh") and lang != "cn":
+                        content = "The model is currently experiencing high traffic, please try again later."
+
+                    yield f"data: {json.dumps({'content': content})}\n\n"
                     yield f"data: {json.dumps({'done': True})}\n\n"
                     return
 

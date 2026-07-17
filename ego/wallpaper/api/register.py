@@ -65,7 +65,7 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
             serializer = self.get_serializer(data=data)
             serializer.is_valid(raise_exception=True)
 
-            # 手动调用perform_create以确保信号等被正确触发
+            # 使用事务包起来，如果 Profile 写入失败，User 也会回滚
             self.perform_create(serializer)
 
             return Response(

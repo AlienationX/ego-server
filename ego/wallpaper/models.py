@@ -271,12 +271,12 @@ class Profile(models.Model):
     )
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile", primary_key=True)
     nickname = models.CharField(max_length=60, verbose_name="用户昵称", blank=True, null=True)
-    gender = models.IntegerField(choices=GENDER_CHOICES, default=0, verbose_name="性别")
+    gender = models.IntegerField(choices=GENDER_CHOICES, default=0, blank=True, null=True, verbose_name="性别")
     birthday = models.DateField(blank=True, null=True, verbose_name="生日")
     description = models.CharField(max_length=255, verbose_name="个人简介", blank=True, null=True)
     avatar = models.CharField(max_length=150, verbose_name="头像", blank=True, null=True)
     phone_number = models.CharField(max_length=20, verbose_name="电话号码", blank=True, null=True)
-    is_vip = models.BooleanField(default=False, verbose_name="是否vip")
+    vip_expire_time = models.DateTimeField(blank=True, null=True, verbose_name="VIP过期时间")
     energy = models.IntegerField(default=0, verbose_name="用户能量值")
     channel = models.CharField(max_length=60, verbose_name="渠道", blank=True, null=True)
     source = models.CharField(max_length=60, verbose_name="来源", blank=True, null=True)
@@ -352,7 +352,7 @@ class UserActions(models.Model):
 
 # class UserBehaviors(models.Model):
 #     # TODO: 用户行为，待优化，埋点数据，需要统计分析和推荐算法
-#     user = models.ForeignKey(User, on_delete=models.PROTECT, null=True, verbose_name="用户id")
+#     user = models.ForeignKey(User, on_delete=models.DO_NOTHING, null=True, verbose_name="用户id")
 #     # -- 上下文信息 --
 #     referer = models.CharField(max_length=500, verbose_name="来源页面")
 #     updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
@@ -489,7 +489,7 @@ class Versions(models.Model):
 
 
 class EnergyLog(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="用户")
+    user = models.ForeignKey(User, on_delete=models.DO_NOTHING, verbose_name="用户")
     action_type = models.CharField(max_length=60, verbose_name="操作类型")
     energy_change = models.IntegerField(verbose_name="能量变化")
     wall_id = models.IntegerField(verbose_name="壁纸id", blank=True, null=True)
@@ -505,3 +505,55 @@ class EnergyLog(models.Model):
         indexes = [
             models.Index(fields=["user", "action_type", "-created_at"]),
         ]
+
+class Product(models.Model):
+    name = models.CharField(max_length=100, verbose_name="套餐名称")
+    name_en = models.CharField(max_length=100, verbose_name="套餐名称(英文)")
+    code = models.CharField(max_length=50, unique=True, verbose_name="套餐编码标识")
+    price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="现价")
+    original_price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="原价")
+    currency = models.CharField(max_length=10, default="CNY", verbose_name="币种")
+    period_days = models.IntegerField(verbose_name="有效天数")
+    description = models.CharField(max_length=255, verbose_name="营销文案", blank=True, null=True)
+    description_en = models.CharField(max_length=255, verbose_name="营销文案(英文)", blank=True, null=True)
+    recommended = models.BooleanField(default=False, verbose_name="是否推荐")
+    is_active = models.BooleanField(default=True, verbose_name="上下架状态")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
+
+    def __str__(self):
+        return f"{self.name} - {self.price} {self.currency}"
+
+    class Meta:
+        verbose_name = "商品信息"
+        verbose_name_plural = verbose_name
+
+
+class Order(models.Model):
+    order_no = models.CharField(max_length=64, unique=True, verbose_name="系统单号")
+    device_id = models.CharField(max_length=128, verbose_name="设备ID")
+    user = models.ForeignKey(User, on_delete=models.DO_NOTHING, verbose_name="用户")
+    product = models.ForeignKey(Product, on_delete=models.DO_NOTHING, null=True, verbose_name="关联商品")
+    
+    # 快照字段
+    product_name = models.CharField(max_length=100, verbose_name="商品名称(快照)")
+    price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="现价(快照)")
+    original_price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="原价(快照)")
+    currency = models.CharField(max_length=10, default="CNY", verbose_name="币种(快照)")
+    period_days = models.IntegerField(verbose_name="有效天数(快照)")
+    
+    amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="实际支付金额")
+    platform = models.CharField(max_length=50, verbose_name="支付来源")
+    payment_method = models.CharField(max_length=50, default="alipay", verbose_name="支付方式")
+    status = models.CharField(max_length=20, default="pending", verbose_name="状态") # pending, paid, failed, refunded
+    transaction_id = models.CharField(max_length=128, blank=True, null=True, verbose_name="三方流水单号")
+    
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
+    paid_at = models.DateTimeField(blank=True, null=True, verbose_name="支付成功时间")
+
+    def __str__(self):
+        return f"{self.order_no} - {self.amount} {self.currency} - {self.status}"
+
+    class Meta:
+        verbose_name = "交易订单"
+        verbose_name_plural = verbose_name

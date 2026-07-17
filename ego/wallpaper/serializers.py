@@ -1,4 +1,5 @@
 from django.contrib.auth.models import User
+from django.db import transaction
 from rest_framework.serializers import (
     CharField,
     EmailField,
@@ -18,6 +19,8 @@ from .models import (
     UserActions,
     Versions,
     Wall,
+    Product,
+    Order
 )
 
 
@@ -117,18 +120,20 @@ class UserProfileSerializer(ModelSerializer):
         return attrs
 
     def create(self, validated_data):
+        
         # 提取Profile相关数据
         profile_data = validated_data.pop("profile", {})
         # 提取密码
         password = validated_data.pop("password")
 
-        # 创建User对象
-        user = User(**validated_data)
-        user.set_password(password)
-        user.save()
+        with transaction.atomic():
+            # 创建User对象
+            user = User(**validated_data)
+            user.set_password(password)
+            user.save()
 
-        # 无论是否传手机号，都确保存在Profile记录
-        Profile.objects.update_or_create(user=user, defaults=profile_data)
+            # 无论是否传手机号，都确保存在Profile记录
+            Profile.objects.update_or_create(user=user, defaults=profile_data)
 
         return user
 
@@ -170,3 +175,15 @@ class UserActionsSerializer(ModelSerializer):
         model = UserActions
         fields = "__all__"
         # exclude = ["user", "wall"]
+
+
+class ProductSerializer(ModelSerializer):
+    class Meta:
+        model = Product
+        fields = "__all__"
+        
+
+class OrderSerializer(ModelSerializer):
+    class Meta:
+        model = Order
+        fields = "__all__"

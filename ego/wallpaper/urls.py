@@ -60,7 +60,7 @@ urlpatterns = [
     # path('yasg-swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     # path('yasg-redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
     # 在这里配置无效，只能在项目根目录的url中配置？
-    # # drf-spectacular
+    # drf-spectacular
     # path('schema/', SpectacularAPIView.as_view(), name='schema'),
     # # 为 Swagger UI 添加路径
     # path('spe-swagger/', SpectacularSwaggerView.as_view(url_name='schema'), name='spe-swagger'),

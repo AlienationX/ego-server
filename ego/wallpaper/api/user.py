@@ -63,6 +63,8 @@ class ApiModelView(RetrieveModelMixin, GenericViewSet):
                 "download_count": download_count,
                 "rate_count": rate_count,
             }
+
+            data["profile"]["is_vip"] = bool(user.profile.vip_expire_time and user.profile.vip_expire_time > timezone.now())
             return Response(data)
         except Exception as e:
             logger.error(f"获取用户信息失败: {e}")
