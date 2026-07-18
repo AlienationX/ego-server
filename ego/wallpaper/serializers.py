@@ -20,7 +20,8 @@ from .models import (
     Versions,
     Wall,
     Product,
-    Order
+    Order,
+    Subject
 )
 
 
@@ -33,6 +34,12 @@ class ApplicationSerializer(ModelSerializer):
 class ClassifySerializer(ModelSerializer):
     class Meta:
         model = Classify
+        fields = "__all__"
+
+
+class SubjectSerializer(ModelSerializer):
+    class Meta:
+        model = Subject
         fields = "__all__"
 
 

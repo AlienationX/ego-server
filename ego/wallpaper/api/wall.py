@@ -31,11 +31,15 @@ class ApiModelView(ListModelMixin, CreateModelMixin, GenericViewSet):
     def get_queryset(self):
         # 获取所有数据，且classify.enable为True的数据
         queryset = Wall.objects.select_related("classify").filter(is_active=True)
-
         # 获取查询参数中的 classify_id ，如果参数存在，则过滤查询集
         classify_id = self.request.query_params.get("classify_id")
         if classify_id:
             queryset = queryset.filter(classify_id=classify_id)
+
+        # 获取查询参数中的 subject_id，如果参数存在，则过滤查询集
+        subject_id = self.request.query_params.get("subject_id")
+        if subject_id:
+            queryset = queryset.filter(subjects__id=subject_id)
 
         # 获取查询参数中的 classify_enable
         classify_enable = self.request.query_params.get("classify_enable", "true").lower()
