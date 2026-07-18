@@ -6,6 +6,7 @@ from rest_framework.serializers import (
     ModelSerializer,
     PrimaryKeyRelatedField,
     ValidationError,
+    SerializerMethodField,
 )
 
 from .models import (
@@ -38,9 +39,26 @@ class ClassifySerializer(ModelSerializer):
 
 
 class SubjectSerializer(ModelSerializer):
+    cover_url = SerializerMethodField()
+    preview_walls = SerializerMethodField()
+    wall_count = SerializerMethodField()
+
     class Meta:
         model = Subject
         fields = "__all__"
+
+    def get_cover_url(self, obj):
+        first_wall = obj.walls.filter(is_active=True).first()
+        if first_wall:
+            return first_wall.picurl
+        return ""
+
+    def get_preview_walls(self, obj):
+        walls = obj.walls.filter(is_active=True)[:3]
+        return [w.picurl for w in walls]
+
+    def get_wall_count(self, obj):
+        return obj.walls.filter(is_active=True).count()
 
 
 class WallSerializer(ModelSerializer):
