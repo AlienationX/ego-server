@@ -15,7 +15,7 @@ class ApiModelView(ListModelMixin, RetrieveModelMixin, GenericViewSet):
     renderer_classes = [CustomJSONRenderer]
 
     def get_queryset(self):
-        return self.queryset.order_by("sort", "id")
+        return self.queryset.order_by("-updated_at", "-id")
 
     def list(self, request, *args, **kwargs):
         # 默认仅查询启用的专题

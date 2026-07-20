@@ -75,8 +75,6 @@ class Subject(models.Model):
     name_en = models.CharField(max_length=100, unique=True, verbose_name="专题英文名称", blank=True, null=True)
     content = models.TextField(verbose_name="专题内容", blank=True, null=True)
     content_en = models.TextField(verbose_name="专题英文内容", blank=True, null=True)
-    sort = models.FloatField(verbose_name="排序", blank=True, null=True)
-    picurl = models.CharField(max_length=255, verbose_name="图片地址")
     select = models.BooleanField(default=False, verbose_name="是否首页推荐")
     tags = models.CharField(max_length=200, verbose_name="标签", blank=True, null=True)
     is_active = models.BooleanField(default=True, verbose_name="是否启用")
