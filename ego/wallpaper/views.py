@@ -75,28 +75,43 @@ def upload(request):
                 # img_base = base64.b64encode(uploaded_file.read()).decode("utf-8")
 
                 # 1. 保存文件到服务器临时目录
-                new_filename = uploaded_file.name.replace(" ", "_").replace("/", "_")
+                original_name = Path(uploaded_file.name.replace(" ", "_").replace("/", "_"))
+
+                # 统一转为 .jpg 后缀
+                if original_name.suffix.lower() in [".jpeg", ".jpg"]:
+                    new_filename = f"{original_name.stem}.jpg"
+                else:
+                    new_filename = f"{original_name.stem}.jpg"
+
                 picurl_tmp = f"wallpaper/upload_tmp/{new_filename}"
                 # img_url = "https://api.wp.ego8.space/static/wallpaper/media/pics/classify_10/1712470293317_8.jpg"
                 img_url = f"{settings.NGINX_MEDIA_URL}/{picurl_tmp}"
-                save_path_tmp = f"{settings.MEDIA_ROOT}/{picurl_tmp}"
+                save_path_tmp = Path(settings.MEDIA_ROOT) / picurl_tmp
+
                 try:
-                    with open(save_path_tmp, "wb+") as f:
-                        for chunk in uploaded_file.chunks():
-                            f.write(chunk)
+                    save_path_tmp.parent.mkdir(parents=True, exist_ok=True)
+                    original_image = Image.open(uploaded_file)
+
+                    if original_image.format != "JPEG":
+                        # 转换为RGB格式并保存为JPG
+                        rgb_im = original_image.convert("RGB")
+                        rgb_im.save(save_path_tmp, "JPEG")
+                    else:
+                        # 已经是JPEG，直接保存原始字节以保留质量
+                        uploaded_file.seek(0)
+                        save_path_tmp.write_bytes(uploaded_file.read())
                 except IOError as e:
-                    error_msg = f"{new_filename} 文件保存失败，{e}"
+                    error_msg = f"{new_filename} 文件保存临时目录失败，{e}"
                     data = {"items": [], "msg": error_msg, "alert_type": "alert-warning"}
                     return render(request, "wallpaper/upload_cards.html", data)
 
                 # 初始化信息字典
                 info = {}
                 info["filename"] = new_filename
-                info["save_path_tmp"] = save_path_tmp
+                info["save_path_tmp"] = str(save_path_tmp)
                 info["picurl_tmp"] = img_base if settings.ENV == "dev" else img_url
                 # info["picurl_tmp"] = img_url
 
-                original_image = Image.open(save_path_tmp)
                 original_width, original_height = original_image.size
                 info["size"] = f"{original_width} x {original_height}"
                 info["publisher"] = "Admin"

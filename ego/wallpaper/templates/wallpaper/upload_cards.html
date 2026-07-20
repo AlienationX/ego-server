@@ -74,9 +74,7 @@
         const originalInput = document.getElementById(`original-filename-${idx}`);
 
         const originalFilename = originalInput.value;
-        const ext = originalFilename.substring(originalFilename.lastIndexOf('.'));
-        const jpgExt = ext.toLowerCase() === '.jpeg' ? '.jpg' : ext;
-        const uuidFilename = uuidMap.get(idx) + jpgExt;
+        const uuidFilename = uuidMap.get(idx) + '.jpg';
 
         if (checkbox.checked) {
           displayElement.textContent = uuidFilename;
