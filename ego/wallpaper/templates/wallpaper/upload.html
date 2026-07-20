@@ -7,80 +7,88 @@
 
 {% block extra_css %}
 <style>
-/* 默认状态：显示正常文本，隐藏加载状态 */
-.btn-text-normal {
-  display: inline;
-}
-.btn-text-loading {
-  display: none;
-}
+  /* 默认状态：显示正常文本，隐藏加载状态 */
+  .btn-text-normal {
+    display: inline;
+  }
 
-/* HTMX 请求状态：隐藏正常文本，显示加载状态 */
-.htmx-request .btn-text-normal {
-  display: none;
-}
-.htmx-request .btn-text-loading {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-}
+  .btn-text-loading {
+    display: none;
+  }
+
+  /* HTMX 请求状态：隐藏正常文本，显示加载状态 */
+  .htmx-request .btn-text-normal {
+    display: none;
+  }
+
+  .htmx-request .btn-text-loading {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="card bg-base-100 shadow mb-6" x-data="{ useAi: true }">
-  <div class="card-body">
-    <p class="text-sm text-gray-500">功能：支持多文件上传、显示为卡片列表，点击“生成分类”生成（伪）分类/描述/标签，支持手动修改并提交。</p>
+<div class="card bg-base-100 shadow-sm border border-base-200 mb-6" x-data="{ useAi: true }">
+  <div class="card-body p-6">
+    <div class="flex items-center gap-3">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-primary font-bold" fill="none" viewBox="0 0 24 24"
+        stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+      </svg>
+      <h2 class="card-title text-xl font-bold m-0">批量上传壁纸</h2>
+    </div>
+    <p class="text-sm text-base-content/70">
+      支持多文件上传。您可以选择开启 AI 自动解析，让大模型为您自动生成分类、描述和标签。
+    </p>
 
-    <form 
-      id="upload-form"
-      class="mt-4"
-      method="post"
-      enctype="multipart/form-data"
-    >
+    <form id="upload-form" class="rounded-xl" method="post" enctype="multipart/form-data">
       {% csrf_token %}
       <input type="hidden" name="use_ai" :value="useAi ? 'on' : ''" />
-      <div class="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
-        <input name="images" type="file" multiple accept="image/*"
-          class="file-input file-input-bordered file-input-sm w-full sm:w-auto">
-        </input>
 
-        <!-- enctype="multipart/form-data" 无法使用hx-vals增加参数，这里使用隐藏元素增加action参数 -->
-        <!-- TODO 无法获取 hx-vals数据，暂时使用隐藏元素传递action参数 -->
-        <!-- <input type="hidden" name="action" value="preview"> -->
-        <button 
-          id="upload-preview-btn"
-          type="button"
-          class="btn btn-sm btn-primary w-28" 
-          hx-post="{% url 'wallpaper:upload' %}" 
-          hx-encoding="multipart/form-data"
-          hx-include="#upload-form"
-          hx-vals='{ "action": "preview" }'
-          hx-target="#upload-cards" 
-          hx-swap="innerHTML"
-        >
-          <span class="btn-text-normal">上传解析</span>
-          <span class="btn-text-loading">
-            <span class="loading loading-spinner loading-xs"></span>
-            上传中...
-          </span>
-        </button>
-
-        <div id="upload-timer" class="hidden text-sm tabular-nums whitespace-nowrap text-success">
-          耗时 <span id="upload-timer-value">0.0</span>s
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+        <!-- 1行1列：文件选择框 -->
+        <div class="w-full">
+          <input name="images" type="file" multiple accept="image/*"
+            class="file-input file-input-bordered file-input-primary w-full" />
         </div>
 
+        <!-- 1行2列：上传解析按钮、倒计时 -->
+        <div class="flex items-center gap-4 w-full">
+          <button id="upload-preview-btn" type="button" class="btn btn-primary shadow-sm min-w-[120px]"
+            hx-post="{% url 'wallpaper:upload' %}" hx-encoding="multipart/form-data" hx-include="#upload-form"
+            hx-vals='{ "action": "preview" }' hx-target="#upload-cards" hx-swap="innerHTML">
+            <span class="btn-text-normal flex items-center gap-1">
+              上传解析
+            </span>
+            <span class="btn-text-loading">
+              <span class="loading loading-spinner loading-sm"></span>
+              上传中...
+            </span>
+          </button>
+
+          <div id="upload-timer"
+            class="hidden text-sm font-mono whitespace-nowrap text-success flex items-center gap-1">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span id="upload-timer-value">0.0</span>s
+          </div>
+        </div>
       </div>
 
-      <label class="flex items-center gap-2 cursor-pointer mt-4">
+      <label class="flex items-center gap-2 cursor-pointer mt-5 mb-1 w-max">
         <input type="checkbox" id="use_ai_checkbox" x-model="useAi" class="checkbox checkbox-sm checkbox-primary" />
-        <span class="text-sm">使用AI识别图片内容</span>
+        <span class="text-sm font-medium">使用AI识别图片内容</span>
       </label>
 
       <!-- 全局表单占位符 - 点击上传解析后根据AI复选框状态动态加载 -->
       <div id="global-form-container" x-show="!useAi"></div>
     </form>
-
   </div>
 </div>
 

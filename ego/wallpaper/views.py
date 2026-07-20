@@ -94,6 +94,7 @@ def upload(request):
                 info["filename"] = new_filename
                 info["save_path_tmp"] = save_path_tmp
                 info["picurl_tmp"] = img_base if settings.ENV == "dev" else img_url
+                # info["picurl_tmp"] = img_url
 
                 original_image = Image.open(save_path_tmp)
                 original_width, original_height = original_image.size
@@ -102,8 +103,10 @@ def upload(request):
 
                 # 预检：查重
                 content_hash = get_image_content_hash(save_path_tmp)
-                if Wall.objects.filter(content_hash=content_hash).exists():
+                existing_wall = Wall.objects.filter(content_hash=content_hash).first()
+                if existing_wall:
                     info["status"] = "duplicate"
+                    info["duplicate_id"] = existing_wall.id
                     items.append(info)
                     continue
 
@@ -160,6 +163,7 @@ def upload(request):
             picurls = form_data.getlist("picurl_tmp")
             pic_path_prefixes = form_data.getlist("pic_path_prefix")
             error_msgs = form_data.getlist("error_msg")
+            duplicate_ids_field = form_data.getlist("duplicate_id")
 
             items = []
             for i in range(len(filenames)):
@@ -174,6 +178,7 @@ def upload(request):
                     "pic_path_prefix": pic_path_prefixes[i] if pic_path_prefixes and len(pic_path_prefixes) > i else "",
                     "status": status,
                     "error_msg": error_msgs[i] if error_msgs and len(error_msgs) > i else "",
+                    "duplicate_id": duplicate_ids_field[i] if duplicate_ids_field and len(duplicate_ids_field) > i else "",
                     "size": form_data.getlist("size")[i] if form_data.getlist("size") else "",
                 }
 
@@ -217,6 +222,7 @@ def upload(request):
             picurls = form_data.getlist("picurl_tmp")
             pic_path_prefixes = form_data.getlist("pic_path_prefix")
             error_msgs = form_data.getlist("error_msg")
+            duplicate_ids_field = form_data.getlist("duplicate_id")
 
             success_count = 0
             error_count = 0
@@ -237,6 +243,7 @@ def upload(request):
                     "pic_path_prefix": pic_path_prefix,
                     "status": status,
                     "error_msg": error_msgs[i] if error_msgs and len(error_msgs) > i else "",
+                    "duplicate_id": duplicate_ids_field[i] if duplicate_ids_field and len(duplicate_ids_field) > i else "",
                     "size": form_data.getlist("size")[i] if form_data.getlist("size") else "",
                 }
 
@@ -247,9 +254,11 @@ def upload(request):
                 try:
                     # 检查图片是否存在
                     content_hash = get_image_content_hash(save_path_tmp)
-                    if Wall.objects.filter(content_hash=content_hash).first():
+                    existing_wall = Wall.objects.filter(content_hash=content_hash).first()
+                    if existing_wall:
                         duplicate_ids.append(i)
                         info["status"] = "duplicate"
+                        info["duplicate_id"] = existing_wall.id
                         failed_items.append(info)
                         continue
 

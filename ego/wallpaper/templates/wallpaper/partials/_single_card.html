@@ -42,7 +42,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
               </svg>
               <h3 class="font-bold text-lg mb-1">已存在</h3>
-              <p class="text-sm text-base-content/70">该图片在数据库中已存在。</p>
+              <p class="text-sm text-base-content/70">该图片在数据库中已存在{% if item.duplicate_id %} (ID: {{ item.duplicate_id }}){% endif %}。</p>
             </div>
             {% elif item.status == 'save_error' %}
             <div class="absolute inset-0 bg-base-200/90 backdrop-blur-[2px] z-20 flex flex-col items-center justify-center p-6 text-center">
@@ -58,6 +58,7 @@
             <input type="hidden" name="save_path_tmp" value="{{ item.save_path_tmp }}" />
             <input type="hidden" name="picurl_tmp" value="{{ item.picurl_tmp }}" />
             <input type="hidden" name="error_msg" value="{{ item.error_msg|default:'' }}" />
+            <input type="hidden" name="duplicate_id" value="{{ item.duplicate_id|default:'' }}" />
 
             <!-- <div class="form-control w-full">
               <label class="label py-1">
