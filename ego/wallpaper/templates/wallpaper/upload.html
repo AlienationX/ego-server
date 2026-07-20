@@ -110,6 +110,7 @@
 
     function syncGlobalToCards() {
       const globalClassify = document.getElementById("global_classify");
+      const globalSubject = document.getElementById("global_subject");
       const globalDescription = document.getElementById("global_description");
       const globalTags = document.getElementById("global_tags");
       const globalScore = document.getElementById("global_score");
@@ -118,6 +119,7 @@
       const globalIsLocked = document.getElementById("global_is_locked");
 
       const classifySelects = document.querySelectorAll('select[name="classify_id"]');
+      const subjectSelects = document.querySelectorAll('select[name="subject_id"]');
       const descriptionInputs = document.querySelectorAll('input[name="description"]');
       const tagsInputs = document.querySelectorAll('input[name="tags"]');
       const scoreInputs = document.querySelectorAll('input[name="score"]');
@@ -127,6 +129,9 @@
 
       if (globalClassify && globalClassify.value) {
         classifySelects.forEach(select => { select.value = globalClassify.value; });
+      }
+      if (globalSubject && globalSubject.value) {
+        subjectSelects.forEach(select => { select.value = globalSubject.value; });
       }
       if (globalDescription && globalDescription.value) {
         descriptionInputs.forEach(input => { input.value = globalDescription.value; });
@@ -218,24 +223,46 @@
     document.body.addEventListener("htmx:beforeRequest", function (event) {
       if (event.target === uploadButton) {
         startTimer();
+      } else if (event.target.classList.contains('retry-btn')) {
+        // 单个或批量重试时，复用顶部的计时器
+        if (!timerId) startTimer();
       }
     });
 
     document.body.addEventListener("htmx:afterRequest", function (event) {
       if (event.target === uploadButton) {
         stopTimer();
+      } else if (event.target.classList.contains('retry-btn')) {
+        // 由于可能批量发起了多个，检查如果页面上不再有 htmx-request，则停止
+        setTimeout(() => {
+          if (document.querySelectorAll('.htmx-request').length === 0) {
+            stopTimer();
+          }
+        }, 50);
       }
     });
 
     document.body.addEventListener("htmx:responseError", function (event) {
       if (event.target === uploadButton) {
         stopTimer();
+      } else if (event.target.classList.contains('retry-btn')) {
+        setTimeout(() => {
+          if (document.querySelectorAll('.htmx-request').length === 0) {
+            stopTimer();
+          }
+        }, 50);
       }
     });
 
     document.body.addEventListener("htmx:sendError", function (event) {
       if (event.target === uploadButton) {
         stopTimer();
+      } else if (event.target.classList.contains('retry-btn')) {
+        setTimeout(() => {
+          if (document.querySelectorAll('.htmx-request').length === 0) {
+            stopTimer();
+          }
+        }, 50);
       }
     });
   })();

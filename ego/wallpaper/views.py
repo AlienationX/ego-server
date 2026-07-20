@@ -17,7 +17,7 @@ from wallpaper.management.commands.upload_cos import upload_file_to_cos
 from wallpaper.management.commands.upload_s3 import upload_file_to_s3
 from wallpaper.management.commands.utils import generate_thumbs, resize_image
 
-from .models import Classify, Wall
+from .models import Classify, Subject, Wall
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +40,10 @@ def upload(request):
         classifies = [{"id": obj.id, "name": obj.name} for obj in classify_objects]
         classifies.sort(key=lambda x: x["id"])
 
+        # 主题
+        subject_objects = Subject.objects.all().order_by("-created_at", "-id")
+        subjects = [{"id": obj.id, "name": obj.name} for obj in subject_objects]
+
         # 如果是预览操作，处理上传的文件
         if action == "preview":
             logger.info(f"FILES: {request.FILES}")
@@ -59,6 +63,7 @@ def upload(request):
             global_resize = request.POST.get("global_resize") == "on"
             global_use_uuid = request.POST.get("global_use_uuid") == "on"
             global_is_locked = request.POST.get("global_is_locked") == "on"
+            global_subject_id = request.POST.get("global_subject")
 
             items = []
             for uploaded_file in uploaded_files:
@@ -86,20 +91,39 @@ def upload(request):
 
                 # 初始化信息字典
                 info = {}
+                info["filename"] = new_filename
+                info["save_path_tmp"] = save_path_tmp
+                info["picurl_tmp"] = img_base if settings.ENV == "dev" else img_url
+
+                original_image = Image.open(save_path_tmp)
+                original_width, original_height = original_image.size
+                info["size"] = f"{original_width} x {original_height}"
+                info["publisher"] = "Admin"
+
+                # 预检：查重
+                content_hash = get_image_content_hash(save_path_tmp)
+                if Wall.objects.filter(content_hash=content_hash).exists():
+                    info["status"] = "duplicate"
+                    items.append(info)
+                    continue
+
+                info["status"] = "pending"
 
                 # 根据是否使用AI来生成信息
                 if use_ai:
-                    # 使用AI生成图片描述、标签、分类
-                    # ai_info = _generate_info_with_llm(img_base)
                     ai_info = _generate_info_with_llm(img_url)
                     if "error" in ai_info:
-                        data = {"items": [], "msg": ai_info["error"], "alert_type": "alert-warning"}
-                        return render(request, "wallpaper/upload_cards.html", data)
-                    info.update(ai_info)
-                    info["tags_list"] = info["tags"].split(",")
-                    info["score"] = round(random.uniform(4, 5), 1)
-                    info["resize"] = True
-                    info["use_uuid"] = True
+                        info["status"] = "llm_error"
+                        info["error_msg"] = ai_info["error"]
+                        info["tags_list"] = []
+                    else:
+                        info.update(ai_info)
+                        info["tags_list"] = info["tags"].split(",") if info.get("tags") else []
+                        info["score"] = round(random.uniform(4, 5), 1)
+                        info["resize"] = True
+                        info["use_uuid"] = True
+                        info["is_locked"] = False
+                        info["subject_id"] = ""
                 else:
                     # 使用全局设置
                     info["description"] = global_description
@@ -109,83 +133,157 @@ def upload(request):
                     info["classify_id"] = int(global_classify_id) if global_classify_id else ""
                     info["resize"] = global_resize
                     info["use_uuid"] = global_use_uuid
-
-                info["publisher"] = "Admin"
-                if use_ai:
-                    info["is_locked"] = False
-                else:
                     info["is_locked"] = global_is_locked
-
-                original_image = Image.open(save_path_tmp)
-                original_width, original_height = original_image.size
-                info["filename"] = new_filename
-                info["size"] = f"{original_width} x {original_height}"
-                info["save_path_tmp"] = save_path_tmp
-                info["picurl_tmp"] = img_base if settings.ENV == "dev" else img_url
+                    info["subject_id"] = int(global_subject_id) if global_subject_id else ""
 
                 items.append(info)
 
             logger.info({k: v for k, v in items[0].items() if settings.ENV == "dev" and k not in ("picurl_tmp")})
 
-            data = {"items": items, "classifies": classifies}
+            data = {"items": items, "classifies": classifies, "subjects": subjects}
             cards_html = render_to_string("wallpaper/upload_cards.html", data, request=request)
 
             global_form_html = render_to_string(
-                "wallpaper/upload_global_form.html", {"classifies": classifies}, request=request
+                "wallpaper/upload_global_form.html",
+                {"classifies": classifies, "subjects": subjects, "use_ai": use_ai},
+                request=request,
             )
 
             response = HttpResponse(cards_html + global_form_html)
             return response
 
+        elif action == "retry_all":
+            form_data = request.POST
+            filenames = form_data.getlist("filename")
+            statuses = form_data.getlist("status")
+            save_paths = form_data.getlist("save_path_tmp")
+            picurls = form_data.getlist("picurl_tmp")
+            pic_path_prefixes = form_data.getlist("pic_path_prefix")
+            error_msgs = form_data.getlist("error_msg")
+
+            items = []
+            for i in range(len(filenames)):
+                status = statuses[i] if statuses and len(statuses) > i else "pending"
+                save_path_tmp = save_paths[i] if save_paths and len(save_paths) > i else ""
+                picurl_tmp = picurls[i] if picurls and len(picurls) > i else ""
+
+                info = {
+                    "filename": filenames[i],
+                    "save_path_tmp": save_path_tmp,
+                    "picurl_tmp": picurl_tmp,
+                    "pic_path_prefix": pic_path_prefixes[i] if pic_path_prefixes and len(pic_path_prefixes) > i else "",
+                    "status": status,
+                    "error_msg": error_msgs[i] if error_msgs and len(error_msgs) > i else "",
+                    "size": form_data.getlist("size")[i] if form_data.getlist("size") else "",
+                }
+
+                # Only retry the cards that were in error state
+                if status in ["llm_error", "save_error"]:
+                    original_image = Image.open(save_path_tmp)
+                    original_width, original_height = original_image.size
+                    info["size"] = f"{original_width} x {original_height}"
+                    info["publisher"] = "Admin"
+
+                    ai_info = _generate_info_with_llm(picurl_tmp)
+                    if "error" in ai_info:
+                        info["status"] = "llm_error"
+                        info["error_msg"] = ai_info["error"]
+                        info["tags_list"] = []
+                    else:
+                        info.update(ai_info)
+                        info["status"] = "pending"
+                        info["tags_list"] = info["tags"].split(",") if info.get("tags") else []
+                        info["score"] = round(random.uniform(4, 5), 1)
+                        info["resize"] = True
+                        info["use_uuid"] = True
+                        info["is_locked"] = False
+                        info["subject_id"] = ""
+                else:
+                    # Pass through normal cards properties using the form values
+                    # To be robust, if it's already generated, we should keep its status and other info if available
+                    pass
+
+                items.append(info)
+
+            data = {"items": items, "classifies": classifies, "subjects": subjects}
+            return render(request, "wallpaper/upload_cards.html", data)
+
         # 如果是保存操作，处理表单数据
         elif action == "save":
             form_data = request.POST
             filenames = form_data.getlist("filename")
-            logger.debug(form_data)
+            statuses = form_data.getlist("status")
+            save_paths = form_data.getlist("save_path_tmp")
+            picurls = form_data.getlist("picurl_tmp")
+            pic_path_prefixes = form_data.getlist("pic_path_prefix")
+            error_msgs = form_data.getlist("error_msg")
 
             success_count = 0
             error_count = 0
             update_count = 0
             duplicate_ids = []
+            failed_items = []
 
             for i in range(len(filenames)):
+                status = statuses[i] if statuses and len(statuses) > i else "pending"
+                save_path_tmp = save_paths[i] if save_paths and len(save_paths) > i else ""
+                picurl_tmp = picurls[i] if picurls and len(picurls) > i else ""
+                pic_path_prefix = pic_path_prefixes[i] if pic_path_prefixes and len(pic_path_prefixes) > i else ""
+
+                info = {
+                    "filename": filenames[i],
+                    "save_path_tmp": save_path_tmp,
+                    "picurl_tmp": picurl_tmp,
+                    "pic_path_prefix": pic_path_prefix,
+                    "status": status,
+                    "error_msg": error_msgs[i] if error_msgs and len(error_msgs) > i else "",
+                    "size": form_data.getlist("size")[i] if form_data.getlist("size") else "",
+                }
+
+                if status in ["duplicate", "llm_error"]:
+                    failed_items.append(info)
+                    continue
+
                 try:
                     # 检查图片是否存在
-                    save_path_tmp = form_data.getlist("save_path_tmp")[i]
                     content_hash = get_image_content_hash(save_path_tmp)
                     if Wall.objects.filter(content_hash=content_hash).first():
                         duplicate_ids.append(i)
+                        info["status"] = "duplicate"
+                        failed_items.append(info)
                         continue
 
                     obj, created = _save_wallpaper(form_data, i)
 
                     logger.debug(f"保存第 {i + 1} 张图片: {obj.picurl}")
                     success_count += 1
-                    update_count += 1 if not created else 0
-                except Exception:
-                    logger.exception(f"保存第 {i + 1} 张图片失败")
+                    if not created:
+                        update_count += 1
+                except Exception as e:
+                    logger.exception(f"保存第 {i + 1} 张图片失败: {e}")
                     error_count += 1
+                    info["status"] = "save_error"
+                    info["error_msg"] = str(e)
+                    failed_items.append(info)
 
-            # 返回成功消息（items 为空，清空表单）
-            msg = ""
-            if success_count > 0:
-                msg += f"成功 {success_count} 条记录{f'（包括更新 {update_count} 条记录）' if update_count > 0 else ''}。"
+            msg = f"成功保存 {success_count} 条记录。"
+            if update_count > 0:
+                msg += f"其中更新了 {update_count} 条记录。"
             if error_count > 0:
                 msg += f"失败 {error_count} 条记录。"
-            if duplicate_ids:
-                msg += f"重复 {len(duplicate_ids)} 条记录，已跳过。"
-                msg += f"重复记录ID：{', '.join([str(i) for i in duplicate_ids])}"
+                alert_type = "alert-error"
+            elif duplicate_ids:
+                msg += f"其中有 {len(duplicate_ids)} 条记录已存在，未重复添加。"
+                alert_type = "alert-warning"
+            else:
+                alert_type = "alert-success"
 
-            data = {
-                "items": [],
-                "msg": msg,
-                "alert_type": "alert-success" if error_count == 0 and not duplicate_ids else "alert-warning",
-            }
+            data = {"msg": msg, "alert_type": alert_type}
+            if failed_items:
+                data["items"] = failed_items
+                data["classifies"] = classifies
+                data["subjects"] = subjects
             return render(request, "wallpaper/upload_cards.html", data)
-
-        # 其他情况，返回错误
-        else:
-            return render(request, "wallpaper/upload_cards.html", {"items": [], "msg": "未知的操作类型"})
 
 
 def _generate_info_with_llm(img_url):
@@ -344,5 +442,11 @@ def _save_wallpaper(form_data, i):
         for key, value in record.items():
             setattr(obj, key, value)
         obj.save()
+
+    subject_id = form_data.getlist("subject_id")[i] if "subject_id" in form_data else None
+    if subject_id:
+        obj.subjects.set([subject_id])
+    else:
+        obj.subjects.clear()
 
     return obj, created

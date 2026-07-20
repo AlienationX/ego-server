@@ -1,0 +1,183 @@
+      <div id="card-{{ index }}" class="card bg-base-100 shadow-md hover:shadow-lg transition-shadow min-w-0">
+        <div class="card-body flex flex-col sm:flex-row gap-0 p-0 min-w-0">
+          <figure class="relative w-full sm:w-2/5 flex-shrink-0 cursor-pointer"
+            onclick="document.getElementById('preview-modal-{{ index1 }}').showModal()">
+            <img src="{{ item.picurl_tmp }}" alt="{{ item.filename }}"
+              class="w-full h-48 sm:h-full object-cover rounded-t-lg sm:rounded-l-lg sm:rounded-tr-none hover:opacity-90 transition-opacity" />
+            <span class="absolute top-2 right-2 px-2 py-0.5 bg-black/60 text-white/90 text-[10px] font-medium rounded shadow-sm backdrop-blur-sm z-10 pointer-events-none">
+              {{ item.size }}
+            </span>
+          </figure>
+
+          <!-- 图片预览模态框 -->
+          <dialog id="preview-modal-{{ index1 }}" class="modal">
+            <div class="modal-box p-0 bg-transparent shadow-none flex items-center justify-center">
+              <div class="relative inline-block">
+                <img src="{{ item.picurl_tmp }}" alt="{{ item.filename }}"
+                  class="max-h-[90vh] max-w-[90vw] object-contain rounded-lg" />
+                <form method="dialog" class="absolute right-0 top-0 z-20">
+                  <button class="btn btn-sm btn-circle btn-ghost bg-base-100/80 hover:bg-base-100 m-2">✕</button>
+                </form>
+              </div>
+            </div>
+            <!-- 点击背景关闭模态框效果 backdrop -->
+            <form method="dialog" class="modal-backdrop">
+              <button class="hidden">关闭</button>
+            </form>
+          </dialog>
+
+          <div class="card-body p-4 gap-3 flex-1 min-w-0 overflow-hidden relative">
+            {% if item.status == 'llm_error' %}
+            <div class="absolute inset-0 bg-base-200/90 backdrop-blur-[2px] z-20 flex flex-col items-center justify-center p-6 text-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-error mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <h3 class="font-bold text-lg mb-1">AI 解析失败</h3>
+              <p class="text-sm text-base-content/70 mb-4">{{ item.error_msg }}</p>
+
+            </div>
+            {% elif item.status == 'duplicate' %}
+            <div class="absolute inset-0 bg-base-200/90 backdrop-blur-[2px] z-20 flex flex-col items-center justify-center p-6 text-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-warning mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
+              </svg>
+              <h3 class="font-bold text-lg mb-1">已存在</h3>
+              <p class="text-sm text-base-content/70">该图片在数据库中已存在。</p>
+            </div>
+            {% elif item.status == 'save_error' %}
+            <div class="absolute inset-0 bg-base-200/90 backdrop-blur-[2px] z-20 flex flex-col items-center justify-center p-6 text-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-error mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <h3 class="font-bold text-lg mb-1">入库失败</h3>
+              <p class="text-sm text-base-content/70 mb-4">{{ item.error_msg }}</p>
+            </div>
+            {% endif %}
+            <input type="hidden" name="status" value="{{ item.status|default:'pending' }}" />
+            <input type="hidden" name="pic_path_prefix" value="{{ item.pic_path_prefix }}" />
+            <input type="hidden" name="save_path_tmp" value="{{ item.save_path_tmp }}" />
+            <input type="hidden" name="picurl_tmp" value="{{ item.picurl_tmp }}" />
+            <input type="hidden" name="error_msg" value="{{ item.error_msg|default:'' }}" />
+
+            <!-- <div class="form-control w-full">
+              <label class="label py-1">
+                <span class="label-text text-xs font-medium">文件名</span>
+              </label>
+              <div class="text-xs text-base-content/50 mt-auto overflow-hidden whitespace-nowrap text-ellipsis">
+                {{ item.filename }}
+              </div>
+            </div> -->
+
+            <!-- <div class="form-control w-full flex items-center gap-2">
+              <label class="label py-1 flex-shrink-0">
+                <span class="label-text text-xs font-medium">尺寸:</span>
+              </label>
+              <div class="text-xs text-base-content/50 flex-1 overflow-hidden whitespace-nowrap text-ellipsis">
+                {{ item.size }}
+              </div>
+            </div> -->
+
+            <div class="grid grid-cols-2 gap-3">
+              <div class="form-control w-full">
+                <label class="label py-1">
+                  <span class="label-text text-xs font-medium">发布者</span>
+                </label>
+                <input name="publisher" type="text" value="{{ item.publisher }}" placeholder="发布者"
+                  class="input input-bordered input-sm w-full" />
+              </div>
+
+              <div class="form-control w-full">
+                <label class="label py-1">
+                  <span class="label-text text-xs font-medium">评分</span>
+                </label>
+                <input name="score" type="number" value="{{ item.score }}" placeholder="评分" min="0" max="5" step="0.1"
+                  class="input input-bordered input-sm w-full" />
+              </div>
+            </div>
+
+            <div class="form-control w-full">
+              <label class="label py-1">
+                <span class="label-text text-xs font-medium">分类</span>
+              </label>
+              <select name="classify_id" class="select select-bordered select-sm w-full">
+                <option disabled>请选择分类</option>
+                {% for classify in classifies %}
+                <option value="{{ classify.id }}" {% if classify.id == item.classify_id %}selected{% endif %}>
+                  {{classify.name }} (ID:{{ classify.id }})</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="form-control w-full">
+              <label class="label py-1">
+                <span class="label-text text-xs font-medium">专题</span>
+              </label>
+              <select name="subject_id" class="select select-bordered select-sm w-full">
+                <option value="">请选择专题</option>
+                {% for subject in subjects %}
+                <option value="{{ subject.id }}" {% if subject.id == item.subject_id %}selected{% endif %}>
+                  {{subject.name }} (ID:{{ subject.id }})</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="form-control w-full">
+              <label class="label py-1">
+                <span class="label-text text-xs font-medium">描述</span>
+              </label>
+              <input name="description" type="text" value="{{ item.description }}" placeholder="请输入描述"
+                class="input input-bordered input-sm w-full" />
+            </div>
+
+            <div class="form-control w-full">
+              <label class="label py-1">
+                <span class="label-text text-xs font-medium">标签</span>
+              </label>
+              <div id="tags-badges-{{ index }}" class="flex flex-wrap gap-1 pb-1">
+                {% for t in item.tags_list %}
+                <span class="badge badge-soft badge-secondary badge-sm">{{ t }}</span>
+                {% endfor %}
+              </div>
+              <input name="tags" type="text" value="{{ item.tags }}" placeholder="标签，逗号分隔"
+                class="input input-bordered input-sm w-full" />
+            </div>
+
+            <div class="form-control w-full">
+              <label class="label py-1 flex items-center justify-between">
+                <span class="label-text text-xs font-medium">是否需要解锁</span>
+                <input type="checkbox" name="is_locked_{{ index }}" {% if item.is_locked %}checked{% endif %}
+                  class="toggle toggle-xs toggle-primary" />
+              </label>
+            </div>
+            
+            <div class="form-control w-full">
+              <label class="label py-1 flex items-center justify-between">
+                <span class="label-text text-xs font-medium">重置尺寸</span>
+                <input type="checkbox" name="resize_{{ index }}" {% if item.resize %}checked{% endif %}
+                  class="toggle toggle-xs toggle-primary" />
+              </label>
+            </div>
+
+            <div class="form-control w-full mt-auto pt-2">
+              <div class="flex flex-wrap items-center gap-2 mt-1">
+                <div id="filename-display-{{ index }}"
+                  class="text-xs text-base-content/70 overflow-hidden whitespace-nowrap text-ellipsis flex-1"
+                  title="{{ item.filename }}">
+                  {{ item.filename }}
+                </div>
+                <div class="flex items-center gap-3 flex-shrink-0">
+                  <label class="cursor-pointer flex items-center gap-1">
+                    <span class="text-xs text-base-content/70">使用uuid</span>
+                    <input type="checkbox" name="use_uuid_{{ index }}" {% if item.use_uuid %}checked{% endif %}
+                      class="checkbox checkbox-xs checkbox-primary" />
+                  </label>
+                </div>
+              </div>
+              <input type="hidden" name="filename" id="filename-input-{{ index }}"
+                value="{{ item.filename }}" />
+              <input type="hidden" id="original-filename-{{ index }}" value="{{ item.filename }}" />
+            </div>
+
+          </div>
+        </div>
+      </div>
