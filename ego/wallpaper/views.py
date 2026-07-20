@@ -58,6 +58,7 @@ def upload(request):
             global_tags = request.POST.get("global_tags", "")
             global_resize = request.POST.get("global_resize") == "on"
             global_use_uuid = request.POST.get("global_use_uuid") == "on"
+            global_is_locked = request.POST.get("global_is_locked") == "on"
 
             items = []
             for uploaded_file in uploaded_files:
@@ -110,7 +111,10 @@ def upload(request):
                     info["use_uuid"] = global_use_uuid
 
                 info["publisher"] = "Admin"
-                info["is_locked"] = False
+                if use_ai:
+                    info["is_locked"] = False
+                else:
+                    info["is_locked"] = global_is_locked
 
                 original_image = Image.open(save_path_tmp)
                 original_width, original_height = original_image.size
@@ -126,11 +130,9 @@ def upload(request):
             data = {"items": items, "classifies": classifies}
             cards_html = render_to_string("wallpaper/upload_cards.html", data, request=request)
 
-            global_form_html = ""
-            if not use_ai:
-                global_form_html = render_to_string(
-                    "wallpaper/upload_global_form.html", {"classifies": classifies}, request=request
-                )
+            global_form_html = render_to_string(
+                "wallpaper/upload_global_form.html", {"classifies": classifies}, request=request
+            )
 
             response = HttpResponse(cards_html + global_form_html)
             return response

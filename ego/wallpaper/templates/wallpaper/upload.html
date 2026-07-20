@@ -1,6 +1,10 @@
 {% extends 'wallpaper/base.html' %}
 {% block title %}上传 - 本我壁纸{% endblock %}
 
+{% block extra_head %}
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+{% endblock %}
+
 {% block extra_css %}
 <style>
 /* 默认状态：显示正常文本，隐藏加载状态 */
@@ -24,7 +28,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="card bg-base-100 shadow mb-6">
+<div class="card bg-base-100 shadow mb-6" x-data="{ useAi: true }">
   <div class="card-body">
     <p class="text-sm text-gray-500">功能：支持多文件上传、显示为卡片列表，点击“生成分类”生成（伪）分类/描述/标签，支持手动修改并提交。</p>
 
@@ -35,7 +39,7 @@
       enctype="multipart/form-data"
     >
       {% csrf_token %}
-      <input type="hidden" id="use_ai_input" name="use_ai" value="on" />
+      <input type="hidden" name="use_ai" :value="useAi ? 'on' : ''" />
       <div class="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
         <input name="images" type="file" multiple accept="image/*"
           class="file-input file-input-bordered file-input-sm w-full sm:w-auto">
@@ -69,12 +73,12 @@
       </div>
 
       <label class="flex items-center gap-2 cursor-pointer mt-4">
-        <input type="checkbox" id="use_ai_checkbox" checked="checked" class="checkbox checkbox-sm checkbox-primary" />
+        <input type="checkbox" id="use_ai_checkbox" x-model="useAi" class="checkbox checkbox-sm checkbox-primary" />
         <span class="text-sm">使用AI识别图片内容</span>
       </label>
 
       <!-- 全局表单占位符 - 点击上传解析后根据AI复选框状态动态加载 -->
-      <div id="global-form-container"></div>
+      <div id="global-form-container" x-show="!useAi"></div>
     </form>
 
   </div>
@@ -97,18 +101,10 @@
 
 <script>
   (function () {
-    const useAiCheckbox = document.getElementById("use_ai_checkbox");
-    const useAiInput = document.getElementById("use_ai_input");
     const uploadButton = document.getElementById("upload-preview-btn");
     const timer = document.getElementById("upload-timer");
     const timerValue = document.getElementById("upload-timer-value");
     const uploadCards = document.getElementById("upload-cards");
-
-    if (useAiCheckbox && useAiInput) {
-      useAiCheckbox.addEventListener('change', function() {
-        useAiInput.value = this.checked ? 'on' : '';
-      });
-    }
 
     let syncedContainer = null;
 
@@ -119,6 +115,7 @@
       const globalScore = document.getElementById("global_score");
       const globalResize = document.getElementById("global_resize");
       const globalUseUuid = document.getElementById("global_use_uuid");
+      const globalIsLocked = document.getElementById("global_is_locked");
 
       const classifySelects = document.querySelectorAll('select[name="classify_id"]');
       const descriptionInputs = document.querySelectorAll('input[name="description"]');
@@ -126,6 +123,7 @@
       const scoreInputs = document.querySelectorAll('input[name="score"]');
       const resizeCheckboxes = document.querySelectorAll('input[name^="resize_"]');
       const uuidCheckboxes = document.querySelectorAll('input[name^="use_uuid_"]');
+      const lockedCheckboxes = document.querySelectorAll('input[name^="is_locked_"]');
 
       if (globalClassify && globalClassify.value) {
         classifySelects.forEach(select => { select.value = globalClassify.value; });
@@ -148,6 +146,12 @@
       if (globalUseUuid) {
         uuidCheckboxes.forEach(checkbox => {
           checkbox.checked = globalUseUuid.checked;
+          checkbox.dispatchEvent(new Event('change'));
+        });
+      }
+      if (globalIsLocked) {
+        lockedCheckboxes.forEach(checkbox => {
+          checkbox.checked = globalIsLocked.checked;
           checkbox.dispatchEvent(new Event('change'));
         });
       }

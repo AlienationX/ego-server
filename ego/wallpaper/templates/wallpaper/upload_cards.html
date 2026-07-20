@@ -6,10 +6,13 @@
       {% for item in items %}
       <div class="card bg-base-100 shadow-md hover:shadow-lg transition-shadow min-w-0">
         <div class="card-body flex flex-col sm:flex-row gap-0 p-0 min-w-0">
-          <figure class="w-full sm:w-2/5 flex-shrink-0 cursor-pointer"
+          <figure class="relative w-full sm:w-2/5 flex-shrink-0 cursor-pointer"
             onclick="document.getElementById('preview-modal-{{ forloop.counter }}').showModal()">
             <img src="{{ item.picurl_tmp }}" alt="{{ item.filename }}"
               class="w-full h-48 sm:h-full object-cover rounded-t-lg sm:rounded-l-lg sm:rounded-tr-none hover:opacity-90 transition-opacity" />
+            <span class="absolute top-2 right-2 px-2 py-0.5 bg-black/60 text-white/90 text-[10px] font-medium rounded shadow-sm backdrop-blur-sm z-10 pointer-events-none">
+              {{ item.size }}
+            </span>
           </figure>
 
           <!-- 图片预览模态框 -->
@@ -83,18 +86,8 @@
             </div>
 
             <div class="form-control w-full">
-              <label class="label py-1 flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                  <span class="label-text text-xs font-medium">描述</span>
-                  <span class="text-xs text-base-content/50 flex-shrink-0 whitespace-nowrap">
-                    {{ item.size }}
-                  </span>
-                </div>
-                <label class="flex items-center gap-1 cursor-pointer">
-                  <span class="text-xs text-base-content/70">重置尺寸</span>
-                  <input type="checkbox" name="resize_{{ forloop.counter0 }}" {% if item.resize %}checked{% endif %}
-                    class="toggle toggle-xs toggle-primary" />
-                </label>
+              <label class="label py-1">
+                <span class="label-text text-xs font-medium">描述</span>
               </label>
               <input name="description" type="text" value="{{ item.description }}" placeholder="请输入描述"
                 class="input input-bordered input-sm w-full" />
@@ -117,6 +110,14 @@
               <label class="label py-1 flex items-center justify-between">
                 <span class="label-text text-xs font-medium">是否需要解锁</span>
                 <input type="checkbox" name="is_locked_{{ forloop.counter0 }}" {% if item.is_locked %}checked{% endif %}
+                  class="toggle toggle-xs toggle-primary" />
+              </label>
+            </div>
+            
+            <div class="form-control w-full">
+              <label class="label py-1 flex items-center justify-between">
+                <span class="label-text text-xs font-medium">重置尺寸</span>
+                <input type="checkbox" name="resize_{{ forloop.counter0 }}" {% if item.resize %}checked{% endif %}
                   class="toggle toggle-xs toggle-primary" />
               </label>
             </div>

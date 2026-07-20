@@ -82,7 +82,6 @@ class SubjectAdmin(admin.ModelAdmin):
         "id",
         "name",
         "content",
-        "sort",
         "select",
         "is_active",
         "is_locked",
