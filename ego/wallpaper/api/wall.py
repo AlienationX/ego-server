@@ -2,9 +2,11 @@ import logging
 import random
 from collections import defaultdict
 from datetime import datetime
+import pytz
 
 from django.core.cache import cache
 from django.db.models import F, Q
+from django.utils.dateparse import parse_datetime
 from django.forms.models import model_to_dict
 from rest_framework import status
 from rest_framework.decorators import action
@@ -288,3 +290,25 @@ class ApiModelView(ListModelMixin, CreateModelMixin, GenericViewSet):
         instance.save(update_fields=["downloads"])
         instance.refresh_from_db(fields=["downloads"])
         return Response({"id": instance.id, "downloads": instance.downloads})
+
+    @action(detail=False, methods=["get"])
+    def check_updates(self, request):
+        """检查是否有新增壁纸，返回新增数量"""
+        since = request.query_params.get("since")
+        if not since:
+            return Response({"new_count": 0})
+        
+        try:
+            dt = parse_datetime(since)
+            if not dt:
+                # 兼容纯时间戳
+                if since.isdigit() or since.replace('.', '', 1).isdigit():
+                    dt = datetime.fromtimestamp(float(since), tz=pytz.UTC)
+                else:
+                    return Response({"new_count": 0})
+            
+            count = self.get_queryset().filter(created_at__gt=dt).count()
+            return Response({"new_count": count})
+        except Exception as e:
+            logger.error(f"Error checking updates with since={since}: {e}")
+            return Response({"new_count": 0})
