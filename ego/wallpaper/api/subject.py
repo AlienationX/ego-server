@@ -1,11 +1,11 @@
 from rest_framework.mixins import ListModelMixin, RetrieveModelMixin
-from rest_framework.viewsets import GenericViewSet
 from rest_framework.response import Response
+from rest_framework.viewsets import GenericViewSet
 
 from ..models import Subject
+from ..paginations import CustomPageNumberPagination
 from ..renderers import CustomJSONRenderer
 from ..serializers import SubjectSerializer
-from ..paginations import CustomPageNumberPagination
 
 
 class ApiModelView(ListModelMixin, RetrieveModelMixin, GenericViewSet):
@@ -15,7 +15,7 @@ class ApiModelView(ListModelMixin, RetrieveModelMixin, GenericViewSet):
     renderer_classes = [CustomJSONRenderer]
 
     def get_queryset(self):
-        return self.queryset.order_by("-updated_at", "-id")
+        return self.queryset.order_by("-created_at", "-id")
 
     def list(self, request, *args, **kwargs):
         # 默认仅查询启用的专题

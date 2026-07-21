@@ -8,7 +8,7 @@ from tqdm import tqdm
 from wallpaper.management.commands.utils import generate_thumbs
 from wallpaper.models import Wall
 
-# python manage.py generate_thumbs --wall-id 123
+# python manage.py bulk_generate_thumbs --wall-id 123
 
 
 class Command(BaseCommand):

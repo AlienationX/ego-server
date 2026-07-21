@@ -36,7 +36,7 @@ class ApiModelView(ListModelMixin, CreateModelMixin, GenericViewSet):
 
         pokemon_wall = walls.filter(classify_id=62).order_by("?").first()
 
-        snoopy_ids = [1899, 1894, 1895, 1896, 1900, 1902, 1897, 1901, 1898]
+        snoopy_ids = [1894, 1895, 1896, 1897, 1898, 1899, 1900, 1901, 1902]
         snoopy_id = random.choice(snoopy_ids)
         snoopy_wall = walls.filter(id=snoopy_id).first()
 
@@ -106,7 +106,11 @@ class ApiModelView(ListModelMixin, CreateModelMixin, GenericViewSet):
                     "wall": model_to_dict(
                         random_wall, exclude=["subjects", "md5_hash", "content_hash", "created_at", "updated_at", "remark"]
                     )
-                    | {"classify_id": random_wall.classify.id, "classify_name": random_wall.classify.name, "classify_name_en": random_wall.classify.name_en},
+                    | {
+                        "classify_id": random_wall.classify.id,
+                        "classify_name": random_wall.classify.name,
+                        "classify_name_en": random_wall.classify.name_en,
+                    },
                 }
             )
 
@@ -125,7 +129,11 @@ class ApiModelView(ListModelMixin, CreateModelMixin, GenericViewSet):
                     "wall": model_to_dict(
                         girl_wall, exclude=["subjects", "md5_hash", "content_hash", "created_at", "updated_at", "remark"]
                     )
-                    | {"classify_id": girl_wall.classify.id, "classify_name": girl_wall.classify.name, "classify_name_en": girl_wall.classify.name_en},
+                    | {
+                        "classify_id": girl_wall.classify.id,
+                        "classify_name": girl_wall.classify.name,
+                        "classify_name_en": girl_wall.classify.name_en,
+                    },
                 }
             )
 

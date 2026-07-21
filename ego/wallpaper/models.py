@@ -46,10 +46,17 @@ class Application(models.Model):
 
     class Meta:
         verbose_name = "app应用"
-        verbose_name_plural = "App应用管理"
+        verbose_name_plural = "Applications 应用管理"
 
 
 class Classify(models.Model):
+    CLASSIFY_CHOICES = (
+        (1, "手机壁纸"),
+        (2, "横屏壁纸"),
+        (3, "动态壁纸"),
+        (4, "头像"),
+    )
+
     name = models.CharField(max_length=100, unique=True, verbose_name="分类名称", db_comment="db_comment中显示的名称: 分类名称")
     name_en = models.CharField(max_length=100, unique=True, verbose_name="分类英文名称", blank=True, null=True)
     sort = models.FloatField(verbose_name="排序", blank=True, null=True)
@@ -61,13 +68,14 @@ class Classify(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     # default 是给模型设置默认值，db_default 是给数据库设置默认值，推荐
     updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
+    classify_type = models.IntegerField(choices=CLASSIFY_CHOICES, default=1, blank=True, null=True, verbose_name="分类类型")
 
     def __str__(self):
         return self.name
 
     class Meta:
         verbose_name = "分类"  # 点击列表处，该模型的标题显示的内容
-        verbose_name_plural = "壁纸分类"  # admin列表处显示的是该字段，如果没有该字段会使用verbose_name并末尾增加个s
+        verbose_name_plural = "Classify 壁纸分类"  # admin列表处显示的是该字段，如果没有该字段会使用verbose_name并末尾增加个s
 
 
 class Subject(models.Model):
@@ -87,7 +95,7 @@ class Subject(models.Model):
 
     class Meta:
         verbose_name = "专题"
-        verbose_name_plural = "壁纸专题"
+        verbose_name_plural = "Subjects 专题"
 
 
 class Wall(models.Model):
@@ -171,7 +179,7 @@ class Wall(models.Model):
 
     class Meta:
         verbose_name = "壁纸"
-        verbose_name_plural = "壁纸信息"
+        verbose_name_plural = "Wallpapers 壁纸信息"
         db_table_comment = "壁纸信息，存储壁纸的基本信息"
         indexes = [
             models.Index(fields=["is_active", "-updated_at"]),
@@ -194,7 +202,7 @@ class WallFeatures(models.Model):
 
     class Meta:
         verbose_name = "壁纸特征向量"
-        verbose_name_plural = "壁纸特征向量"
+        verbose_name_plural = "WallpaperFeatures 壁纸特征向量"
         db_table = "wallpaper_wall_features"  # 自定义表名最好带上应用名。没指定db_table，默认是应用名_模型名
         db_table_comment = "壁纸特征向量，存储图片的特征向量用于相似度计算"
 
@@ -207,7 +215,7 @@ class WallSimilarities(models.Model):
 
     class Meta:
         verbose_name = "壁纸相似度"
-        verbose_name_plural = "壁纸相似度"
+        verbose_name_plural = "WallpaperSimilarities 壁纸相似度"
         db_table = "wallpaper_wall_similarities"
         db_table_comment = "壁纸相似度，用于存储壁纸之间的相似度关系"
         constraints = [
@@ -241,7 +249,7 @@ class Notice(models.Model):
 
     class Meta:
         verbose_name = "公告"
-        verbose_name_plural = "公告信息"
+        verbose_name_plural = "Notices 公告信息"
 
 
 class Banner(models.Model):
@@ -258,14 +266,14 @@ class Banner(models.Model):
 
     class Meta:
         verbose_name = "首页横幅"
-        verbose_name_plural = verbose_name
+        verbose_name_plural = "Banners 首页横幅"
 
 
 class Profile(models.Model):
     GENDER_CHOICES = (
-        (0, '保密'),
-        (1, '男'),
-        (2, '女'),
+        (0, "保密"),
+        (1, "男"),
+        (2, "女"),
     )
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile", primary_key=True)
     nickname = models.CharField(max_length=60, verbose_name="用户昵称", blank=True, null=True)
@@ -288,7 +296,7 @@ class Profile(models.Model):
 
     class Meta:
         verbose_name = "个人信息"
-        verbose_name_plural = "用户个人信息"
+        verbose_name_plural = "Profiles 用户个人信息"
 
 
 # # 自动创建Profile对象
@@ -331,7 +339,7 @@ class UserActions(models.Model):
 
     class Meta:
         verbose_name = "用户操作日志"
-        verbose_name_plural = "用户操作日志_plural"
+        verbose_name_plural = "UserActions 用户操作日志"
         db_table = "wallpaper_user_actions"
         db_table_comment = "用户操作日志表"
         constraints = [
@@ -458,7 +466,7 @@ class Access(models.Model):
 
     class Meta:
         verbose_name = "访问日志详情"
-        verbose_name_plural = "访问日志_plural"
+        verbose_name_plural = "Accesses 访问日志"
 
 
 class Feedback(models.Model):
@@ -471,7 +479,7 @@ class Feedback(models.Model):
 
     class Meta:
         verbose_name = "反馈信息"
-        verbose_name_plural = "反馈信息"
+        verbose_name_plural = "Feedbacks 反馈信息"
 
 
 class Versions(models.Model):
@@ -483,7 +491,7 @@ class Versions(models.Model):
 
     class Meta:
         verbose_name = "版本信息"
-        verbose_name_plural = "版本信息"
+        verbose_name_plural = "Versions 版本信息"
 
 
 class EnergyLog(models.Model):
@@ -498,11 +506,12 @@ class EnergyLog(models.Model):
 
     class Meta:
         verbose_name = "能量流水记录"
-        verbose_name_plural = "能量流水记录_plural"
+        verbose_name_plural = "EnergyLogs 能量流水记录"
         db_table = "wallpaper_energy_log"
         indexes = [
             models.Index(fields=["user", "action_type", "-created_at"]),
         ]
+
 
 class Product(models.Model):
     name = models.CharField(max_length=100, verbose_name="套餐名称")
@@ -524,7 +533,7 @@ class Product(models.Model):
 
     class Meta:
         verbose_name = "商品信息"
-        verbose_name_plural = verbose_name
+        verbose_name_plural = "Products 商品信息"
 
 
 class Order(models.Model):
@@ -532,20 +541,20 @@ class Order(models.Model):
     device_id = models.CharField(max_length=128, verbose_name="设备ID")
     user = models.ForeignKey(User, on_delete=models.DO_NOTHING, verbose_name="用户")
     product = models.ForeignKey(Product, on_delete=models.DO_NOTHING, null=True, verbose_name="关联商品")
-    
+
     # 快照字段
     product_name = models.CharField(max_length=100, verbose_name="商品名称(快照)")
     price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="现价(快照)")
     original_price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="原价(快照)")
     currency = models.CharField(max_length=10, default="CNY", verbose_name="币种(快照)")
     period_days = models.IntegerField(verbose_name="有效天数(快照)")
-    
+
     amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="实际支付金额")
     platform = models.CharField(max_length=50, verbose_name="支付来源")
     payment_method = models.CharField(max_length=50, default="alipay", verbose_name="支付方式")
-    status = models.CharField(max_length=20, default="pending", verbose_name="状态") # pending, paid, failed, refunded
+    status = models.CharField(max_length=20, default="pending", verbose_name="状态")  # pending, paid, failed, refunded
     transaction_id = models.CharField(max_length=128, blank=True, null=True, verbose_name="三方流水单号")
-    
+
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     paid_at = models.DateTimeField(blank=True, null=True, verbose_name="支付成功时间")
 
@@ -554,4 +563,4 @@ class Order(models.Model):
 
     class Meta:
         verbose_name = "交易订单"
-        verbose_name_plural = verbose_name
+        verbose_name_plural = "Orders 交易订单"
