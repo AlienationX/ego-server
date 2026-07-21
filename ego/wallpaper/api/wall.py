@@ -2,7 +2,6 @@ import logging
 import random
 from collections import defaultdict
 from datetime import datetime
-import pytz
 
 from django.core.cache import cache
 from django.db.models import F, Q
@@ -300,13 +299,6 @@ class ApiModelView(ListModelMixin, CreateModelMixin, GenericViewSet):
         
         try:
             dt = parse_datetime(since)
-            if not dt:
-                # 兼容纯时间戳
-                if since.isdigit() or since.replace('.', '', 1).isdigit():
-                    dt = datetime.fromtimestamp(float(since), tz=pytz.UTC)
-                else:
-                    return Response({"new_count": 0})
-            
             count = self.get_queryset().filter(created_at__gt=dt).count()
             return Response({"new_count": count})
         except Exception as e:
