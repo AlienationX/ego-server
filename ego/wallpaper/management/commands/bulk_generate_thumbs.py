@@ -33,12 +33,4 @@ class Command(BaseCommand):
             output_file = file.with_name(f"{file.stem}_medium.webp")
             generate_thumbs(file, max_size=(1024, 1024), output_file=output_file)
 
-            # 更新图片的尺寸，方便计算瀑布流高度
-            # with Image.open(file) as img:
-            #     wall.width = img.width
-            #     wall.height = img.height
-
-        # 使用 bulk_update 一次性更新所有壁纸的尺寸
-        # Wall.objects.bulk_update(walls, fields=["width", "height"], batch_size=1000)
-
         self.stdout.write(self.style.SUCCESS(f"{datetime.now()} 成功生成 {len(walls)} 条壁纸 的缩略图"))

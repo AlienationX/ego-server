@@ -7,11 +7,11 @@ from tqdm import tqdm
 from utils.compare_image import get_file_md5, get_image_content_hash
 from wallpaper.models import Wall
 
-# python manage.py update_image_hash --wall-id 123
+# python manage.py update_image_data --wall-id 123
 
 
 class Command(BaseCommand):
-    help = "批量更新壁纸的 md5_hash 和 content_hash 字段"
+    help = "批量更新壁纸相关数据字段， md5_hash、content_hash、width、height、file_size"
 
     def add_arguments(self, parser):
         parser.add_argument("--wall-id", type=int, help="壁纸ID")

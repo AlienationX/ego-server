@@ -111,6 +111,7 @@ class Wall(models.Model):
 
     width = models.IntegerField(blank=True, null=True, verbose_name="图片宽度")
     height = models.IntegerField(blank=True, null=True, verbose_name="图片高度")
+    file_size = models.BigIntegerField(blank=True, null=True, verbose_name="文件大小(字节)")
 
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
