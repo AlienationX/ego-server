@@ -152,12 +152,14 @@ class Command(BaseCommand):
                 md5_hash = get_file_md5(file_path)
                 content_hash = get_image_content_hash(file_path)
                 width, height = get_file_shape(file_path)
+                file_size = file_path.stat().st_size
                 new_record = {
                     **record,
                     "md5_hash": md5_hash,
                     "content_hash": content_hash,
                     "width": width,
                     "height": height,
+                    "file_size": file_size,
                 }
                 new_records.append(new_record)
 
@@ -197,6 +199,7 @@ class Command(BaseCommand):
                         remark=f"{record['image_url']},{location}",
                         width=record["width"],
                         height=record["height"],
+                        file_size=record["file_size"],
                     )
                     for record in new_records
                 ],

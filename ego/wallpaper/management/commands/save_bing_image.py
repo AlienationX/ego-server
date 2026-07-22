@@ -34,6 +34,7 @@ class Command(BaseCommand):
             md5_hash = get_file_md5(file_path)
             content_hash = get_image_content_hash(file_path)
             width, height = get_file_shape(file_path)
+            file_size = file_path.stat().st_size
 
             # step2：生成缩略图
             # 生成 small 缩略图
@@ -90,6 +91,7 @@ class Command(BaseCommand):
                     "remark": record["image_url"],
                     "width": width,
                     "height": height,
+                    "file_size": file_size,
                 },
             )
 
