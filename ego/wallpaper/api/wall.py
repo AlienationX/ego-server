@@ -63,7 +63,8 @@ class ApiModelView(ListModelMixin, CreateModelMixin, GenericViewSet):
     def _get_random_cached_data(self, queryset, keyword=None):
         """随机排序使用缓存策略，避免分页出现重复数据"""
         classify_id = self.request.query_params.get("classify_id", "0")
-        cache_key = f"walls_rand_{keyword or 'blank'}_{classify_id}"
+        subject_id = self.request.query_params.get("subject_id", "0")
+        cache_key = f"walls_rand_{keyword or 'blank'}_c{classify_id}_s{subject_id}"
         data = cache.get_or_set(
             cache_key,
             lambda: list(

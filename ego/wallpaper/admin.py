@@ -81,6 +81,7 @@ class SubjectAdmin(admin.ModelAdmin):
     list_display = (
         "id",
         "name",
+        "wall_count",
         "content",
         "select",
         "is_active",
@@ -90,6 +91,12 @@ class SubjectAdmin(admin.ModelAdmin):
     )  # 显示的字段
     list_filter = ("select", "is_active")
     search_fields = ("name", "content")  # 添加搜索功能
+    # inlines = [WallSubjectInline]
+
+    def wall_count(self, obj):
+        return obj.walls.count()
+
+    wall_count.short_description = "壁纸数量"
 
 
 class WallAdmin(admin.ModelAdmin):
@@ -104,7 +111,7 @@ class WallAdmin(admin.ModelAdmin):
         "score",
         "description",
     )
-    list_filter = ("classify",)
+    list_filter = ("classify", "subjects")
     search_fields = ("id", "description", "publisher", "tags")
     filter_horizontal = ("subjects",)  # 优化多对多字段选择界面
     date_hierarchy = "created_at"  # 按创建日期分层筛选
@@ -223,7 +230,7 @@ class ProfileAdmin(admin.ModelAdmin):
     # 搜索字段
     search_fields = ("nickname", "user__email")
     # 过滤器
-    list_filter = ("channel", "source", "region")
+    list_filter = ("channel", "source")
     # 日期层次
     date_hierarchy = "updated_at"
 
