@@ -9,7 +9,7 @@ from django.utils.dateparse import parse_datetime
 from django.forms.models import model_to_dict
 from rest_framework import status
 from rest_framework.decorators import action
-from rest_framework.mixins import CreateModelMixin, ListModelMixin
+from rest_framework.mixins import CreateModelMixin, ListModelMixin, RetrieveModelMixin
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
@@ -22,7 +22,7 @@ from ..serializers import WallSerializer
 logger = logging.getLogger(__name__)
 
 
-class ApiModelView(ListModelMixin, CreateModelMixin, GenericViewSet):
+class ApiModelView(ListModelMixin, CreateModelMixin, RetrieveModelMixin, GenericViewSet):
     queryset = Wall.objects.select_related("classify").all()
     serializer_class = WallSerializer
     permission_classes = [HasAccessKey]
