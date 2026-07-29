@@ -99,13 +99,29 @@ class Subject(models.Model):
 
 
 class Wall(models.Model):
+    ACCESS_LEVEL_CHOICES = (
+        (0, "免费"),
+        (1, "看广告/VIP"),
+        (2, "VIP专属"),
+    )
+
     # small_picurl = models.CharField(max_length=255, verbose_name="图片缩略图地址")
     picurl = models.CharField(max_length=255, unique=True, verbose_name="图片地址")
     description = models.CharField(max_length=255, verbose_name="描述", blank=True, null=True)
     description_en = models.CharField(max_length=255, verbose_name="英文描述", blank=True, null=True)
     publisher = models.CharField(max_length=60, default="unknown", verbose_name="发布者", blank=True, null=True)
     is_active = models.BooleanField(default=True, verbose_name="是否启用")
-    is_locked = models.BooleanField(default=False, verbose_name="是否需要解锁")
+    access_level = models.IntegerField(
+        choices=ACCESS_LEVEL_CHOICES,
+        default=0,
+        verbose_name="解锁级别",
+        help_text="0:免费 1:看广告或VIP 2:仅VIP专属",
+    )
+
+    @property
+    def is_locked(self):
+        return self.access_level > 0
+
     md5_hash = models.CharField(max_length=32, verbose_name="MD5哈希值", blank=True, null=True)
     content_hash = models.CharField(max_length=32, verbose_name="内容哈希值", blank=True, null=True)
 
@@ -484,11 +500,19 @@ class Feedback(models.Model):
 
 
 class Versions(models.Model):
-    channel = models.CharField(max_length=100, verbose_name="渠道")
-    platform = models.CharField(max_length=100, verbose_name="平台")
-    app_store_url = models.CharField(max_length=255, verbose_name="应用商店地址")
+    channel = models.CharField(max_length=100, default="official", verbose_name="渠道", blank=True, null=True)
+    platform = models.CharField(max_length=100, verbose_name="平台", help_text="如: mp-weixin, app-vivo, app-harmony, app-android, app-ios")
+    app_store_url = models.CharField(max_length=255, verbose_name="应用商店/下载地址", blank=True, null=True)
     app_version = models.CharField(max_length=100, verbose_name="app版本号")
+    ad_enabled = models.BooleanField(default=True, verbose_name="是否开启广告/审核开关", help_text="关闭后客户端隐藏广告并降级引导VIP")
+    is_force_update = models.BooleanField(default=False, verbose_name="是否强制更新")
+    update_title = models.CharField(max_length=200, verbose_name="更新标题", blank=True, null=True)
+    update_log = models.TextField(verbose_name="更新日志", blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
+
+    def __str__(self):
+        return f"{self.platform} - {self.app_version} - (广告: {'开启' if self.ad_enabled else '关闭'})"
 
     class Meta:
         verbose_name = "版本信息"

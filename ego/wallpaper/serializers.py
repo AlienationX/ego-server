@@ -66,9 +66,14 @@ class WallSerializer(ModelSerializer):
     classify_name = CharField(source="classify.name", read_only=True)
     classify_name_en = CharField(source="classify.name_en", read_only=True)
 
+    effective_access_level = SerializerMethodField()
+    unlock_type = SerializerMethodField()
+    is_daily_free = SerializerMethodField()
+    is_daily_ad = SerializerMethodField()
+    is_locked = SerializerMethodField()
+
     class Meta:
         model = Wall
-        # fields = "__all__"
         exclude = [
             "classify",
             "is_active",
@@ -79,6 +84,35 @@ class WallSerializer(ModelSerializer):
             "normalized_trends",
             "subjects",
         ]
+
+    def _get_featured_info(self, obj):
+        if not hasattr(self, "_cached_daily_featured"):
+            from wallpaper.utils.daily_featured import DailyFeaturedService
+
+            self._cached_daily_featured = DailyFeaturedService.get_daily_featured_ids()
+            self._cached_service = DailyFeaturedService
+
+        return self._cached_service.get_effective_access_level(obj, self._cached_daily_featured)
+
+    def get_effective_access_level(self, obj):
+        info = self._get_featured_info(obj)
+        return info["effective_access_level"]
+
+    def get_unlock_type(self, obj):
+        info = self._get_featured_info(obj)
+        return info["unlock_type"]
+
+    def get_is_daily_free(self, obj):
+        info = self._get_featured_info(obj)
+        return info["is_daily_free"]
+
+    def get_is_daily_ad(self, obj):
+        info = self._get_featured_info(obj)
+        return info["is_daily_ad"]
+
+    def get_is_locked(self, obj):
+        info = self._get_featured_info(obj)
+        return info["effective_access_level"] > 0
 
 
 class NoticeSerializer(ModelSerializer):
