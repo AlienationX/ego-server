@@ -1,10 +1,6 @@
-from datetime import timezone as dt_timezone
-
 from django.contrib.auth.models import User
 from django.db import models
 from django.db.models import F
-from django.db.models.signals import post_save
-from django.dispatch import receiver
 from django.utils import timezone
 
 # from django.db.models.functions import Now
@@ -198,13 +194,13 @@ class Wall(models.Model):
         verbose_name = "壁纸"
         verbose_name_plural = "Wallpapers 壁纸信息"
         db_table_comment = "壁纸信息，存储壁纸的基本信息"
-        indexes = [
-            models.Index(fields=["is_active", "-updated_at"]),
-            # 联合索引：先按分类排序，再按更新时间倒序
-            models.Index(fields=["is_active", "classify", "-updated_at"]),
+        indexes = (
+            models.Index(fields=["is_active", "-created_at"]),
+            # 联合索引：先按分类排序，再按创建时间倒序
+            models.Index(fields=["is_active", "classify", "-created_at"]),
             # 自定义索引名
             # models.Index(fields=['title', 'author'], name='idx_title_author'),
-        ]
+        )
 
 
 class WallFeatures(models.Model):
@@ -235,14 +231,14 @@ class WallSimilarities(models.Model):
         verbose_name_plural = "WallpaperSimilarities 壁纸相似度"
         db_table = "wallpaper_wall_similarities"
         db_table_comment = "壁纸相似度，用于存储壁纸之间的相似度关系"
-        constraints = [
+        constraints = (
             # 唯一约束：确保 source_wall_id + target_wall_id 组合唯一
-            models.UniqueConstraint(fields=["source_wall_id", "target_wall_id"], name="unique_source_target")
-        ]
-        indexes = [
+            models.UniqueConstraint(fields=["source_wall_id", "target_wall_id"], name="unique_source_target"),
+        )
+        indexes = (
             # 联合索引：先按源壁纸 ID 排序，再按相似度倒序排序。自定义索引名
             models.Index(fields=["source_wall_id", "-similarity"], name="idx_source_wall_id_similarity"),
-        ]
+        )
 
 
 class Notice(models.Model):
@@ -333,7 +329,7 @@ class UserActions(models.Model):
     """用户操作日志表，主要用于记录用户的操作行为"""
 
     # 用户操作：浏览、点赞、收藏、下载、分享、评论、评分
-    ACTION_TYPES = [
+    ACTION_TYPES = (
         ("view", "浏览"),  # 1为浏览1次，可以多次浏览
         ("like", "点赞"),  # 1为like，0为dislike，可以多次操作
         ("favorite", "收藏"),  # 1为收藏，0为取消收藏，可以多次操作
@@ -341,7 +337,7 @@ class UserActions(models.Model):
         ("share", "分享"),  # 1为分享1次，可以多次分享
         ("comment", "评论"),  # 1为评论1次，可以多次评论
         ("rate", "评分"),  # 0～5，0为取消评分。可以多次操作，覆盖之前的值
-    ]
+    )
     device_id = models.CharField(max_length=100, verbose_name="设备id", blank=True, null=True)
     channel = models.CharField(max_length=60, verbose_name="渠道", blank=True, null=True)
     user = models.ForeignKey(User, on_delete=models.DO_NOTHING, verbose_name="用户id", blank=True, null=True)
@@ -359,18 +355,18 @@ class UserActions(models.Model):
         verbose_name_plural = "UserActions 用户操作日志"
         db_table = "wallpaper_user_actions"
         db_table_comment = "用户操作日志表"
-        constraints = [
+        constraints = (
             # 注意：一个设备可以有多个用户操作，一个用户也可以在多个设备上操作
             models.UniqueConstraint(
                 fields=["device_id", "user", "wall", "action_key"],
                 condition=models.Q(device_id__isnull=False, wall__isnull=False, action_key__isnull=False),
                 name="unique_device_user_action",
             ),
-        ]
-        indexes = [
+        )
+        indexes = (
             models.Index(fields=["device_id", "action_key", "-updated_at"]),
             models.Index(fields=["user", "action_key", "-updated_at"]),
-        ]
+        )
 
 
 # class UserBehaviors(models.Model):
@@ -428,7 +424,7 @@ class Recommendations(models.Model):
         verbose_name_plural = verbose_name
         db_table = "wallpaper_recommendations"
         db_table_comment = "存储预计算的推荐结果"
-        constraints = [
+        constraints = (
             models.UniqueConstraint(
                 fields=["user", "wall_id"], condition=models.Q(user__isnull=False), name="unique_user_recommendation"
             ),
@@ -437,11 +433,11 @@ class Recommendations(models.Model):
                 condition=models.Q(device_id__isnull=False),
                 name="unique_device_recommendation",
             ),
-        ]
-        indexes = [
+        )
+        indexes = (
             models.Index(fields=["user", "-score"]),
             models.Index(fields=["device_id", "-score"]),
-        ]
+        )
 
 
 class PageView(models.Model):
@@ -501,10 +497,12 @@ class Feedback(models.Model):
 
 class Versions(models.Model):
     channel = models.CharField(max_length=100, default="official", verbose_name="渠道", blank=True, null=True)
-    platform = models.CharField(max_length=100, verbose_name="平台", help_text="如: mp-weixin, app-vivo, app-harmony, app-android, app-ios")
+    platform = models.CharField(max_length=100, verbose_name="平台", help_text="如: mp-weixin, harmony, android, ios")
     app_store_url = models.CharField(max_length=255, verbose_name="应用商店/下载地址", blank=True, null=True)
     app_version = models.CharField(max_length=100, verbose_name="app版本号")
-    ad_enabled = models.BooleanField(default=True, verbose_name="是否开启广告/审核开关", help_text="关闭后客户端隐藏广告并降级引导VIP")
+    ad_enabled = models.BooleanField(
+        default=True, verbose_name="是否开启广告/审核开关", help_text="关闭后客户端隐藏广告并降级引导VIP"
+    )
     is_force_update = models.BooleanField(default=False, verbose_name="是否强制更新")
     update_title = models.CharField(max_length=200, verbose_name="更新标题", blank=True, null=True)
     update_log = models.TextField(verbose_name="更新日志", blank=True, null=True)
@@ -533,9 +531,7 @@ class EnergyLog(models.Model):
         verbose_name = "能量流水记录"
         verbose_name_plural = "EnergyLogs 能量流水记录"
         db_table = "wallpaper_energy_log"
-        indexes = [
-            models.Index(fields=["user", "action_type", "-created_at"]),
-        ]
+        indexes = (models.Index(fields=["user", "action_type", "-created_at"]),)
 
 
 class Product(models.Model):

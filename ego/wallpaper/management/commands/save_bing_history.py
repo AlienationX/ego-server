@@ -176,7 +176,7 @@ class Command(BaseCommand):
                         score=round(random.uniform(4, 5), 1),
                         publisher="Bing",
                         is_active=True,
-                        is_locked=False,
+                        access_level=0,
                         md5_hash=record["md5_hash"],
                         content_hash=record["content_hash"],
                         # -- created_at 和 updated_at 这里设置没用，与数据库默认值冲突

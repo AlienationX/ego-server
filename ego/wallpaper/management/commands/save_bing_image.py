@@ -62,7 +62,7 @@ class Command(BaseCommand):
             #     score=record["score"],
             #     publisher=record["publisher"],
             #     is_active=record["is_active"],
-            #     is_locked=record["is_locked"],
+            #     access_level=record["access_level"],
             #     created_at=record["created_at"],
             #     updated_at=record["updated_at"],
             #     classify_id=record["classify_id"]
@@ -82,7 +82,7 @@ class Command(BaseCommand):
                     "score": round(random.uniform(4, 5), 1),
                     "publisher": "Bing",
                     "is_active": True,
-                    "is_locked": False,
+                    "access_level": 0,
                     "md5_hash": md5_hash,
                     "content_hash": content_hash,
                     # "created_at": datetime.now(),

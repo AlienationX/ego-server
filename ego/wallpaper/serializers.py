@@ -5,9 +5,11 @@ from rest_framework.serializers import (
     EmailField,
     ModelSerializer,
     PrimaryKeyRelatedField,
-    ValidationError,
     SerializerMethodField,
+    ValidationError,
 )
+
+from wallpaper.utils.daily_featured import DailyFeaturedService
 
 from .models import (
     Access,
@@ -16,13 +18,13 @@ from .models import (
     Classify,
     Feedback,
     Notice,
+    Order,
+    Product,
     Profile,
+    Subject,
     UserActions,
     Versions,
     Wall,
-    Product,
-    Order,
-    Subject
 )
 
 
@@ -74,7 +76,7 @@ class WallSerializer(ModelSerializer):
 
     class Meta:
         model = Wall
-        exclude = [
+        exclude = (
             "classify",
             "is_active",
             "md5_hash",
@@ -83,12 +85,10 @@ class WallSerializer(ModelSerializer):
             "trends",
             "normalized_trends",
             "subjects",
-        ]
+        )
 
     def _get_featured_info(self, obj):
         if not hasattr(self, "_cached_daily_featured"):
-            from wallpaper.utils.daily_featured import DailyFeaturedService
-
             self._cached_daily_featured = DailyFeaturedService.get_daily_featured_ids()
             self._cached_service = DailyFeaturedService
 
@@ -145,7 +145,7 @@ class UserSerializer(ModelSerializer):
 
     class Meta:
         model = User
-        fields = [
+        fields = (
             "id",
             "username",
             "email",
@@ -154,7 +154,7 @@ class UserSerializer(ModelSerializer):
             "date_joined",
             "last_login",
             "profile",
-        ]  # 按需选择字段，profile是嵌套字段
+        )  # 按需选择字段，profile是嵌套字段
 
 
 class UserProfileSerializer(ModelSerializer):
@@ -164,7 +164,7 @@ class UserProfileSerializer(ModelSerializer):
 
     class Meta:
         model = User
-        fields = ["username", "email", "password", "profile"]
+        fields = ("username", "email", "password", "profile")
         extra_kwargs = {"password": {"write_only": True}}
 
     def validate(self, attrs):
@@ -179,7 +179,7 @@ class UserProfileSerializer(ModelSerializer):
         return attrs
 
     def create(self, validated_data):
-        
+
         # 提取Profile相关数据
         profile_data = validated_data.pop("profile", {})
         # 提取密码
@@ -240,7 +240,7 @@ class ProductSerializer(ModelSerializer):
     class Meta:
         model = Product
         fields = "__all__"
-        
+
 
 class OrderSerializer(ModelSerializer):
     class Meta:

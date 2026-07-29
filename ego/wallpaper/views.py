@@ -62,7 +62,11 @@ def upload(request):
             global_tags = request.POST.get("global_tags", "")
             global_resize = request.POST.get("global_resize") == "on"
             global_use_uuid = request.POST.get("global_use_uuid") == "on"
-            global_is_locked = request.POST.get("global_is_locked") == "on"
+            raw_global_access = request.POST.get("global_access_level")
+            if raw_global_access is not None:
+                global_access_level = int(raw_global_access)
+            else:
+                global_access_level = 1 if request.POST.get("global_is_locked") == "on" else 0
             global_subject_id = request.POST.get("global_subject")
 
             items = []
@@ -140,6 +144,7 @@ def upload(request):
                         info["score"] = round(random.uniform(4, 5), 1)
                         info["resize"] = True
                         info["use_uuid"] = True
+                        info["access_level"] = 0
                         info["is_locked"] = False
                         info["subject_id"] = ""
                 else:
@@ -151,7 +156,8 @@ def upload(request):
                     info["classify_id"] = int(global_classify_id) if global_classify_id else ""
                     info["resize"] = global_resize
                     info["use_uuid"] = global_use_uuid
-                    info["is_locked"] = global_is_locked
+                    info["access_level"] = global_access_level
+                    info["is_locked"] = global_access_level > 0
                     info["subject_id"] = int(global_subject_id) if global_subject_id else ""
 
                 items.append(info)
@@ -399,8 +405,12 @@ def _save_wallpaper(form_data, i):
     pic_path_prefix = Classify.objects.get(id=classify_id).pic_path_prefix
     record_picurl = f"{pic_path_prefix}/{filename}"
 
-    # 处理 is_locked：checkbox 未勾选时不会提交，按行索引读取更稳定
-    is_locked = form_data.get(f"is_locked_{i}") == "on"
+    # 处理 access_level：优先读取 access_level_{i}，向后兼容 is_locked_{i}
+    raw_access_level = form_data.get(f"access_level_{i}")
+    if raw_access_level is not None:
+        access_level = int(raw_access_level)
+    else:
+        access_level = 1 if form_data.get(f"is_locked_{i}") == "on" else 0
 
     # 处理 resize：checkbox 未勾选时不会提交，按行索引读取更稳定
     resize = form_data.get(f"resize_{i}") == "on"
@@ -443,7 +453,7 @@ def _save_wallpaper(form_data, i):
         "score": form_data.getlist("score")[i],
         "publisher": form_data.getlist("publisher")[i],
         "is_active": True,
-        "is_locked": is_locked,
+        "access_level": access_level,
         "md5_hash": md5_hash,
         "content_hash": content_hash,
         # "created_at": datetime.now(),

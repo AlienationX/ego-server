@@ -144,11 +144,15 @@
             </div>
 
             <div class="form-control w-full">
-              <label class="label py-1 flex items-center justify-between">
-                <span class="label-text text-xs font-medium">是否需要解锁</span>
-                <input type="checkbox" name="is_locked_{{ index }}" {% if item.is_locked %}checked{% endif %}
-                  class="toggle toggle-xs toggle-primary" />
+              <label class="label py-1">
+                <span class="label-text text-xs font-medium">权限级别</span>
               </label>
+              <select name="access_level_{{ index }}" class="select select-bordered select-sm w-full">
+                <option value="0" {% if item.access_level == 0 %}selected{% endif %}>免费壁纸 (0)</option>
+                <option value="1" {% if item.access_level == 1 or item.access_level == None %}selected{% endif %}>看广告/VIP (1)</option>
+                <option value="2" {% if item.access_level == 2 %}selected{% endif %}>VIP专属 (2)</option>
+              </select>
+              <input type="checkbox" name="is_locked_{{ index }}" {% if item.is_locked %}checked{% endif %} class="hidden" />
             </div>
             
             <div class="form-control w-full">

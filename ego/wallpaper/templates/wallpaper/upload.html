@@ -162,6 +162,11 @@
           checkbox.dispatchEvent(new Event('change'));
         });
       }
+      const globalAccessLevel = document.getElementById("global_access_level");
+      const accessLevelSelects = document.querySelectorAll('select[name^="access_level_"]');
+      if (globalAccessLevel && globalAccessLevel.value !== undefined) {
+        accessLevelSelects.forEach(select => { select.value = globalAccessLevel.value; });
+      }
       if (globalIsLocked) {
         lockedCheckboxes.forEach(checkbox => {
           checkbox.checked = globalIsLocked.checked;

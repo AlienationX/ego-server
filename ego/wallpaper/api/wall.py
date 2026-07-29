@@ -54,11 +54,11 @@ class ApiModelView(ListModelMixin, CreateModelMixin, RetrieveModelMixin, Generic
         """对queryset应用非随机排序"""
         sortord = self.request.query_params.get("sortord")
         if sortord == "score":
-            return queryset.order_by("-score", "-updated_at", "-id")
+            return queryset.order_by("-score", "-created_at", "-id")
         elif sortord == "date_asc":
-            return queryset.order_by("updated_at", "-id")
+            return queryset.order_by("created_at", "-id")
         else:  # date_desc 或默认
-            return queryset.order_by("-updated_at", "-id")
+            return queryset.order_by("-created_at", "-id")
 
     def _get_random_cached_data(self, queryset, keyword=None):
         """随机排序使用缓存策略，避免分页出现重复数据"""

@@ -166,7 +166,6 @@ class ApiModelView(ListModelMixin, CreateModelMixin, RetrieveModelMixin, Generic
         """
         data = request.POST.dict()
         logger.info("支付宝回调 request.Post: %s", data)
-        logger.info("支付宝回调 request.data: %s", request.data)
         sign = data.pop("sign", None)
         data.pop("sign_type", None)
 

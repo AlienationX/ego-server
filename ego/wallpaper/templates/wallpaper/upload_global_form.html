@@ -48,27 +48,35 @@
         class="input input-bordered input-sm w-full focus:outline-none focus:border-primary" />
     </div>
     
-    <div class="form-control">
+    <div class="form-control md:col-span-2">
       <label class="label py-1">
         <span class="label-text text-xs font-medium">标签</span>
       </label>
       <input id="global_tags" name="global_tags" type="text" value="" placeholder="标签，逗号分隔"
         class="input input-bordered input-sm w-full focus:outline-none focus:border-primary" />
     </div>
-  </div>
-  
-  <div class="flex items-center gap-6 mt-5">
-    <label class="flex items-center gap-2 cursor-pointer hover:text-primary transition-colors">
-      <span class="text-xs font-medium">是否需要解锁</span>
-      <input type="checkbox" id="global_is_locked" name="global_is_locked" class="toggle toggle-sm toggle-primary" />
-    </label>
-    <label class="flex items-center gap-2 cursor-pointer hover:text-primary transition-colors">
-      <span class="text-xs font-medium">重置尺寸</span>
-      <input type="checkbox" id="global_resize" name="global_resize" class="toggle toggle-sm toggle-primary" />
-    </label>
-    <label class="flex items-center gap-2 cursor-pointer hover:text-primary transition-colors">
-      <span class="text-xs font-medium">使用UUID生成文件名</span>
-      <input type="checkbox" id="global_use_uuid" name="global_use_uuid" class="toggle toggle-sm toggle-primary" />
-    </label>
+
+    <div class="form-control">
+      <label class="label py-1">
+        <span class="label-text text-xs font-medium">权限级别</span>
+      </label>
+      <select id="global_access_level" name="global_access_level" class="select select-bordered select-sm w-full focus:outline-none focus:border-primary">
+        <option value="0">免费壁纸 (0)</option>
+        <option value="1" selected>看广告/VIP (1)</option>
+        <option value="2">VIP专属 (2)</option>
+      </select>
+      <input type="checkbox" id="global_is_locked" name="global_is_locked" class="hidden" />
+    </div>
+
+    <div class="form-control flex flex-row items-end gap-6 pb-1">
+      <label class="flex items-center gap-2 cursor-pointer hover:text-primary transition-colors py-1">
+        <span class="text-xs font-medium">重置尺寸</span>
+        <input type="checkbox" id="global_resize" name="global_resize" class="toggle toggle-sm toggle-primary" />
+      </label>
+      <label class="flex items-center gap-2 cursor-pointer hover:text-primary transition-colors py-1">
+        <span class="text-xs font-medium">使用UUID生成文件名</span>
+        <input type="checkbox" id="global_use_uuid" name="global_use_uuid" class="toggle toggle-sm toggle-primary" />
+      </label>
+    </div>
   </div>
 </div>

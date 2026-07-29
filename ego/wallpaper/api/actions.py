@@ -112,9 +112,7 @@ class ApiModelView(CreateModelMixin, ListModelMixin, GenericViewSet):
                 filter_kwargs["user_id"] = None
 
             try:
-                user_action, created = UserActions.objects.update_or_create(
-                    **filter_kwargs, defaults=obj
-                )
+                user_action, created = UserActions.objects.update_or_create(**filter_kwargs, defaults=obj)
             except UserActions.MultipleObjectsReturned:
                 # 处理由于之前以 device_id 匹配导致的历史重复脏数据
                 actions = list(UserActions.objects.filter(**filter_kwargs).order_by("-updated_at"))

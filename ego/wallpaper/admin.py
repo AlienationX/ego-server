@@ -99,19 +99,22 @@ class SubjectAdmin(admin.ModelAdmin):
     wall_count.short_description = "壁纸数量"
 
 
-class WallAdmin(admin.ModelAdmin):
+class WallAdmin(admin.ModelAdmin, TimeStampAdminMixin):
     list_display = (
         "id",
         "display_image",
         "classify",
+        "access_level",
+        "is_active",
         "display_subjects",
-        "is_locked",
         "publisher",
         "tags",
         "score",
-        "description",
+        "views",
+        "downloads",
+        "formatted_created_at",
     )
-    list_filter = ("classify", "subjects")
+    list_filter = ("access_level", "is_active", "classify", "subjects")
     search_fields = ("id", "description", "publisher", "tags")
     filter_horizontal = ("subjects",)  # 优化多对多字段选择界面
     date_hierarchy = "created_at"  # 按创建日期分层筛选
@@ -244,10 +247,34 @@ class ProfileAdmin(admin.ModelAdmin):
 
 
 @admin.register(Versions)
-class VersionsAdmin(admin.ModelAdmin):
-    list_display = ("platform", "channel", "app_store_url", "app_version", "created_at")
-    fields = ("platform", "channel", "app_store_url", "app_version", "created_at")
-    readonly_fields = ("created_at",)
+class VersionsAdmin(admin.ModelAdmin, TimeStampAdminMixin):
+    list_display = (
+        "id",
+        "platform",
+        "channel",
+        "app_version",
+        "ad_enabled",
+        "is_force_update",
+        "update_title",
+        "app_store_url",
+        "formatted_created_at",
+        "formatted_updated_at",
+    )
+    list_filter = ("ad_enabled", "is_force_update", "platform", "channel")
+    search_fields = ("platform", "channel", "app_version", "update_title")
+    fields = (
+        "platform",
+        "channel",
+        "app_version",
+        "ad_enabled",
+        "is_force_update",
+        "update_title",
+        "update_log",
+        "app_store_url",
+        "created_at",
+        "updated_at",
+    )
+    readonly_fields = ("created_at", "updated_at")
 
 
 @admin.register(UserActions)

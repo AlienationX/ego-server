@@ -1,6 +1,7 @@
 import hashlib
 import random
 from datetime import datetime
+
 from django.utils import timezone
 from wallpaper.models import Wall
 
@@ -18,14 +19,12 @@ class DailyFeaturedService:
             target_date = timezone.now().strftime("%Y-%m-%d")
 
         # 使用日期字符串作为随机种子，确保当天内全网用户算出的随机结果恒定一致
-        seed_hash = hashlib.md5(f"daily_featured_{target_date}".encode("utf-8")).hexdigest()
+        seed_hash = hashlib.md5(f"daily_featured_{target_date}".encode()).hexdigest()
         seed_int = int(seed_hash[:8], 16)
         rng = random.Random(seed_int)
 
         # 获取所有 access_level = 2 (VIP专属) 的活跃壁纸 ID
-        vip_wall_ids = list(
-            Wall.objects.filter(is_active=True, access_level=2).values_list("id", flat=True)
-        )
+        vip_wall_ids = list(Wall.objects.filter(is_active=True, access_level=2).values_list("id", flat=True))
 
         if not vip_wall_ids:
             return {"daily_free_ids": set(), "daily_ad_ids": set()}
