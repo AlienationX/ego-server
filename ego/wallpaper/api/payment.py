@@ -7,11 +7,11 @@ from alipay.aop.api.AlipayClientConfig import AlipayClientConfig
 from alipay.aop.api.DefaultAlipayClient import DefaultAlipayClient
 from alipay.aop.api.domain.AlipayTradeAppPayModel import AlipayTradeAppPayModel
 from alipay.aop.api.request.AlipayTradeAppPayRequest import AlipayTradeAppPayRequest
-from alipay.aop.api.util.SignatureUtils import verify_with_rsa
+from alipay.aop.api.util.SignatureUtils import get_sign_content, verify_with_rsa
 from django.conf import settings
 from django.db import transaction
-from django.utils import timezone
 from django.http import HttpResponse
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.mixins import CreateModelMixin, ListModelMixin, RetrieveModelMixin
@@ -38,7 +38,6 @@ def get_alipay_client():
     config.charset = "utf-8"
     config.format = "json"
     return DefaultAlipayClient(alipay_client_config=config)
-
 
 
 class ApiModelView(ListModelMixin, CreateModelMixin, RetrieveModelMixin, GenericViewSet):
@@ -103,12 +102,16 @@ class ApiModelView(ListModelMixin, CreateModelMixin, RetrieveModelMixin, Generic
 
         # 防重与幂等处理：若用户 5 分钟内针对同一商品存在待支付订单，直接复用
         five_minutes_ago = timezone.now() - timedelta(minutes=5)
-        existing_order = Order.objects.filter(
-            user=request.user,
-            product=product,
-            status="pending",
-            created_at__gte=five_minutes_ago,
-        ).order_by("-created_at").first()
+        existing_order = (
+            Order.objects.filter(
+                user=request.user,
+                product=product,
+                status="pending",
+                created_at__gte=five_minutes_ago,
+            )
+            .order_by("-created_at")
+            .first()
+        )
 
         if existing_order:
             order = existing_order
@@ -170,10 +173,13 @@ class ApiModelView(ListModelMixin, CreateModelMixin, RetrieveModelMixin, Generic
         # 验证签名
         try:
             public_key = settings.DECOUPLE_CONFIG("ALIPAY_PUBLIC_KEY")
-            sorted_params = "&".join([f"{k}={v}" for k, v in sorted(data.items())])
-            verify_with_rsa(public_key, sorted_params, sign, "utf-8")
+            sign_content = get_sign_content(data)
+            success = verify_with_rsa(public_key, sign_content.encode("utf-8"), sign)
+            if not success:
+                logger.error("支付宝回调签名验证不通过，sign=%s", sign)
+                return HttpResponse("fail", content_type="text/plain")
         except Exception:
-            logger.exception("支付宝回调签名验证失败")
+            logger.exception("支付宝回调签名验证异常")
             return HttpResponse("fail", content_type="text/plain")
 
         trade_status = data.get("trade_status")
@@ -197,7 +203,6 @@ class ApiModelView(ListModelMixin, CreateModelMixin, RetrieveModelMixin, Generic
                 return HttpResponse("fail", content_type="text/plain")
 
         return HttpResponse("success", content_type="text/plain")
-
 
     # ──────────────── 测试沙盒 ────────────────
     @action(detail=False, methods=["post"], url_path="mock_pay/(?P<order_no>[^/.]+)")
