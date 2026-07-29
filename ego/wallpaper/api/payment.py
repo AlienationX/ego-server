@@ -101,22 +101,35 @@ class ApiModelView(ListModelMixin, CreateModelMixin, RetrieveModelMixin, Generic
         except Product.DoesNotExist:
             return Response({"error": "商品不存在或已下架"}, status=status.HTTP_404_NOT_FOUND)
 
-        with transaction.atomic():
-            order = Order.objects.create(
-                order_no=self._generate_order_no(),
-                user=request.user,
-                device_id=device_id,
-                product=product,
-                product_name=product.name,
-                price=product.price,
-                original_price=product.original_price,
-                currency=product.currency,
-                period_days=product.period_days,
-                amount=product.price,
-                platform=platform,
-                payment_method="alipay",
-                status="pending",
-            )
+        # 防重与幂等处理：若用户 5 分钟内针对同一商品存在待支付订单，直接复用
+        five_minutes_ago = timezone.now() - timedelta(minutes=5)
+        existing_order = Order.objects.filter(
+            user=request.user,
+            product=product,
+            status="pending",
+            created_at__gte=five_minutes_ago,
+        ).order_by("-created_at").first()
+
+        if existing_order:
+            order = existing_order
+            logger.info("复用已存在的待支付订单，order_no=%s", order.order_no)
+        else:
+            with transaction.atomic():
+                order = Order.objects.create(
+                    order_no=self._generate_order_no(),
+                    user=request.user,
+                    device_id=device_id,
+                    product=product,
+                    product_name=product.name,
+                    price=product.price,
+                    original_price=product.original_price,
+                    currency=product.currency,
+                    period_days=product.period_days,
+                    amount=product.price,
+                    platform=platform,
+                    payment_method="alipay",
+                    status="pending",
+                )
 
         try:
             client = get_alipay_client()
@@ -149,8 +162,8 @@ class ApiModelView(ListModelMixin, CreateModelMixin, RetrieveModelMixin, Generic
         必须以 text/plain 格式返回 success 或 fail
         """
         data = request.POST.dict()
-        logger.debug("支付宝回调 request.Post: %s", data)
-        logger.debug("支付宝回调 request.data: %s", request.data)
+        logger.info("支付宝回调 request.Post: %s", data)
+        logger.info("支付宝回调 request.data: %s", request.data)
         sign = data.pop("sign", None)
         data.pop("sign_type", None)
 
