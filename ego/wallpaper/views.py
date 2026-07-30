@@ -11,8 +11,8 @@ from django.http import HttpResponse
 from django.shortcuts import render
 from django.template.loader import render_to_string
 from PIL import Image
-from utils.compare_image import get_file_md5, get_file_shape, get_image_content_hash
 
+from utils.compare_image import get_file_md5, get_file_shape, get_image_content_hash
 from wallpaper.management.commands.upload_cos import upload_file_to_cos
 from wallpaper.management.commands.upload_s3 import upload_file_to_s3
 from wallpaper.management.commands.utils import generate_thumbs, resize_image
@@ -446,6 +446,7 @@ def _save_wallpaper(form_data, i):
     md5_hash = get_file_md5(file_path)
     content_hash = get_image_content_hash(file_path)
     width, height = get_file_shape(file_path)
+    file_size = file_path.stat().st_size
 
     record = {
         "description": form_data.getlist("description")[i],
@@ -462,6 +463,7 @@ def _save_wallpaper(form_data, i):
         "remark": "upload",
         "width": width,
         "height": height,
+        "file_size": file_size,
     }
     logger.debug(record)
 

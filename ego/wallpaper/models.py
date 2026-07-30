@@ -496,12 +496,15 @@ class Feedback(models.Model):
 
 
 class Versions(models.Model):
-    channel = models.CharField(max_length=100, default="official", verbose_name="渠道", blank=True, null=True)
-    platform = models.CharField(max_length=100, verbose_name="平台", help_text="如: mp-weixin, harmony, android, ios")
+    channel = models.CharField(max_length=100, verbose_name="渠道", blank=True, null=True, help_text="如：google、xiaomi、huawei、vivo、oppo等")
+    platform = models.CharField(max_length=100, verbose_name="平台", help_text="如: mp-weixin, harmony, android, ios等")
     app_store_url = models.CharField(max_length=255, verbose_name="应用商店/下载地址", blank=True, null=True)
     app_version = models.CharField(max_length=100, verbose_name="app版本号")
     ad_enabled = models.BooleanField(
-        default=True, verbose_name="是否开启广告/审核开关", help_text="关闭后客户端隐藏广告并降级引导VIP"
+        default=True, verbose_name="是否开启广告功能", help_text="关闭后客户端隐藏广告并降级引导VIP"
+    )
+    pay_enabled = models.BooleanField(
+        default=True, verbose_name="是否开启支付功能", help_text="关闭后客户端隐藏VIP充值/支付入口"
     )
     is_force_update = models.BooleanField(default=False, verbose_name="是否强制更新")
     update_title = models.CharField(max_length=200, verbose_name="更新标题", blank=True, null=True)
@@ -510,7 +513,7 @@ class Versions(models.Model):
     updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
     def __str__(self):
-        return f"{self.platform} - {self.app_version} - (广告: {'开启' if self.ad_enabled else '关闭'})"
+        return f"{self.platform} - {self.app_version} - (广告: {'开启' if self.ad_enabled else '关闭'}, 支付: {'开启' if self.pay_enabled else '关闭'})"
 
     class Meta:
         verbose_name = "版本信息"

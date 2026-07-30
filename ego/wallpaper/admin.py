@@ -250,10 +250,11 @@ class ProfileAdmin(admin.ModelAdmin):
 class VersionsAdmin(admin.ModelAdmin, TimeStampAdminMixin):
     list_display = (
         "id",
-        "platform",
         "channel",
+        "platform",
         "app_version",
         "ad_enabled",
+        "pay_enabled",
         "is_force_update",
         "update_title",
         "app_store_url",
@@ -263,10 +264,11 @@ class VersionsAdmin(admin.ModelAdmin, TimeStampAdminMixin):
     list_filter = ("ad_enabled", "is_force_update", "platform", "channel")
     search_fields = ("platform", "channel", "app_version", "update_title")
     fields = (
-        "platform",
         "channel",
+        "platform",
         "app_version",
         "ad_enabled",
+        "pay_enabled",
         "is_force_update",
         "update_title",
         "update_log",

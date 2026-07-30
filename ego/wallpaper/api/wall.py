@@ -121,6 +121,7 @@ class ApiModelView(ListModelMixin, CreateModelMixin, RetrieveModelMixin, Generic
             for attr, value in update_data.items():
                 setattr(wall_obj, attr, value)
             wall_obj.save(update_fields=list(update_data.keys()))
+            cache.clear()  # 清理壁纸搜索与推荐相关的 Redis 缓存
             return Response(model_to_dict(wall_obj))
         except Exception as e:
             logger.error(e, exc_info=True)

@@ -78,7 +78,6 @@ class WallSerializer(ModelSerializer):
         model = Wall
         exclude = (
             "classify",
-            "is_active",
             "md5_hash",
             "content_hash",
             "remark",
