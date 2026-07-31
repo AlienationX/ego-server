@@ -5,6 +5,7 @@ from datetime import datetime
 
 from django.core.cache import cache
 from django.db.models import F, Q
+from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from django.forms.models import model_to_dict
 from rest_framework import status
@@ -18,6 +19,7 @@ from ..paginations import CustomPageNumberPagination
 from ..permissions import HasAccessKey
 from ..renderers import CustomJSONRenderer
 from ..serializers import WallSerializer
+from ..utils.daily_featured import DailyFeaturedService
 
 logger = logging.getLogger(__name__)
 
@@ -60,21 +62,16 @@ class ApiModelView(ListModelMixin, CreateModelMixin, RetrieveModelMixin, Generic
         else:  # date_desc 或默认
             return queryset.order_by("-created_at", "-id")
 
-    def _get_random_cached_data(self, queryset, keyword=None):
-        """随机排序使用缓存策略，避免分页出现重复数据"""
+    def _get_random_cached_ids(self, queryset, keyword=None):
+        """随机排序缓存 ID 列表，避免分页出现重复数据"""
         classify_id = self.request.query_params.get("classify_id", "0")
         subject_id = self.request.query_params.get("subject_id", "0")
-        cache_key = f"walls_rand_{keyword or 'blank'}_c{classify_id}_s{subject_id}"
-        data = cache.get_or_set(
-            cache_key,
-            lambda: list(
-                queryset.annotate(classify_name=F("classify__name"), classify_name_en=F("classify__name_en"))
-                .order_by("?")
-                .values()
-            ),
-            timeout=10 * 60,
-        )
-        return data
+        cache_key = f"walls_rand_ids_{keyword or 'blank'}_c{classify_id}_s{subject_id}"
+        ids = cache.get(cache_key)
+        if ids is None:
+            ids = list(queryset.order_by("?").values_list("id", flat=True))
+            cache.set(cache_key, ids, timeout=10 * 60)
+        return ids
 
     def list(self, request, *args, **kwargs):
         """重写list方法，非随机排序直接使用数据库分页，避免全量数据加载到内存"""
@@ -82,12 +79,17 @@ class ApiModelView(ListModelMixin, CreateModelMixin, RetrieveModelMixin, Generic
         sortord = request.query_params.get("sortord")
 
         if sortord == "random":
-            # 随机排序需要缓存完整列表，否则分页会出现重复数据
-            data = self._get_random_cached_data(queryset)
-            page = self.paginate_queryset(data)
-            if page is not None:
-                return self.get_paginated_response(page)
-            return Response(data)
+            # 随机排序需要缓存 ID 列表，并通过 WallSerializer 统一序列化输出
+            rand_ids = self._get_random_cached_ids(queryset)
+            page_ids = self.paginate_queryset(rand_ids)
+            if page_ids is not None:
+                walls_dict = {w.id: w for w in self.get_queryset().filter(id__in=page_ids)}
+                ordered_walls = [walls_dict[wid] for wid in page_ids if wid in walls_dict]
+                return self.get_paginated_response(self.get_serializer(ordered_walls, many=True).data)
+
+            walls_dict = {w.id: w for w in self.get_queryset().filter(id__in=rand_ids)}
+            ordered_walls = [walls_dict[wid] for wid in rand_ids if wid in walls_dict]
+            return Response(self.get_serializer(ordered_walls, many=True).data)
 
         # 非随机排序：直接利用数据库排序和分页，不加载全量数据到内存
         queryset = self._apply_sort_order(queryset)
@@ -241,11 +243,16 @@ class ApiModelView(ListModelMixin, CreateModelMixin, RetrieveModelMixin, Generic
         sortord = request.query_params.get("sortord")
 
         if sortord == "random":
-            data = self._get_random_cached_data(queryset, keyword=keyword)
-            page = self.paginate_queryset(data)
-            if page is not None:
-                return self.get_paginated_response(page)
-            return Response(data)
+            rand_ids = self._get_random_cached_ids(queryset, keyword=keyword)
+            page_ids = self.paginate_queryset(rand_ids)
+            if page_ids is not None:
+                walls_dict = {w.id: w for w in self.get_queryset().filter(id__in=page_ids)}
+                ordered_walls = [walls_dict[wid] for wid in page_ids if wid in walls_dict]
+                return self.get_paginated_response(self.get_serializer(ordered_walls, many=True).data)
+
+            walls_dict = {w.id: w for w in self.get_queryset().filter(id__in=rand_ids)}
+            ordered_walls = [walls_dict[wid] for wid in rand_ids if wid in walls_dict]
+            return Response(self.get_serializer(ordered_walls, many=True).data)
 
         # 非随机排序：直接利用数据库排序和分页
         queryset = self._apply_sort_order(queryset)
@@ -306,3 +313,30 @@ class ApiModelView(ListModelMixin, CreateModelMixin, RetrieveModelMixin, Generic
         except Exception as e:
             logger.error(f"Error checking updates with since={since}: {e}")
             return Response({"new_count": 0})
+
+    @action(detail=False, methods=["get"])
+    def daily_featured(self, request):
+        """获取每日福利/精选壁纸列表（固定 12 张：2 张免费 + 10 张看广告体验）"""
+        today_str = timezone.localtime(timezone.now()).strftime("%Y-%m-%d")
+        cache_key = f"walls_daily_featured_list_{today_str}"
+        data = cache.get(cache_key)
+
+        if data is None:
+            featured_info = DailyFeaturedService.get_daily_featured_ids(today_str)
+            free_ids = list(featured_info.get("daily_free_ids", set()))
+            ad_ids = list(featured_info.get("daily_ad_ids", set()))
+
+            all_ids = free_ids + ad_ids
+            if not all_ids:
+                return Response([])
+
+            # 查询壁纸并保持【2张免费 + 10张广告体验】的排序顺序
+            walls_dict = {w.id: w for w in self.get_queryset().filter(id__in=all_ids)}
+            ordered_walls = [walls_dict[wid] for wid in all_ids if wid in walls_dict]
+
+            serializer = self.get_serializer(ordered_walls, many=True)
+            data = serializer.data
+            cache.set(cache_key, data, timeout=60 * 60 * 2)  # 缓存 2 小时
+
+        return Response(data)
+

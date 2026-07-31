@@ -16,7 +16,7 @@ class DailyFeaturedService:
     @classmethod
     def get_daily_featured_ids(cls, target_date=None):
         if target_date is None:
-            target_date = timezone.now().strftime("%Y-%m-%d")
+            target_date = timezone.localtime(timezone.now()).strftime("%Y-%m-%d")
 
         # 使用日期字符串作为随机种子，确保当天内全网用户算出的随机结果恒定一致
         seed_hash = hashlib.md5(f"daily_featured_{target_date}".encode()).hexdigest()
