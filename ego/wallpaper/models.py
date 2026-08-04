@@ -513,7 +513,7 @@ class Versions(models.Model):
     updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
     def __str__(self):
-        return f"{self.platform} - {self.app_version} - (广告: {'开启' if self.ad_enabled else '关闭'}, 支付: {'开启' if self.pay_enabled else '关闭'})"
+        return f"{self.channel} - (广告: {'开启' if self.ad_enabled else '关闭'}, 支付: {'开启' if self.pay_enabled else '关闭'})"
 
     class Meta:
         verbose_name = "版本信息"

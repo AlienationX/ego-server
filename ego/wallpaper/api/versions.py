@@ -1,6 +1,6 @@
+from rest_framework import status
 from rest_framework.mixins import ListModelMixin, RetrieveModelMixin
 from rest_framework.response import Response
-from rest_framework import status
 from rest_framework.viewsets import GenericViewSet
 
 from ..models import Versions
@@ -21,13 +21,14 @@ class ApiModelView(ListModelMixin, RetrieveModelMixin, GenericViewSet):
         channel = self.request.query_params.get("channel")
         platform = self.request.query_params.get("platform")
 
-        if not channel or not platform:
-            return Response({"error": "必须指定渠道和平台参数"}, status=status.HTTP_400_BAD_REQUEST)
+        if not channel:
+            return Response({"error": "必须指定渠道参数"}, status=status.HTTP_400_BAD_REQUEST)
 
-        qs = self.get_queryset().filter(platform=platform, channel=channel)
-        obj = qs.first()
+        obj = self.get_queryset().filter(channel=channel).first()
         if not obj:
-            return Response({"error": "未查询到对应配置"}, status=status.HTTP_404_NOT_FOUND)
+            # 未匹配到时返回预设默认值
+            obj = self.get_queryset().filter(channel="default").first()
+            obj.update_title = f"channel:{channel}, platform:{platform}"
 
         return Response(self.get_serializer(obj, many=False).data)
 
