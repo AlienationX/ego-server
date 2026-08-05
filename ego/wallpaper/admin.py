@@ -207,7 +207,7 @@ class AccessAdmin(admin.ModelAdmin):
         "remark_json",
     )
     readonly_fields = fields
-    list_filter = ("platform", "channel", "device_brand")
+    list_filter = ("channel", "platform", "device_brand")
 
     def remark_json(self, obj):
         data_str = obj.remark
