@@ -466,7 +466,9 @@ class Access(models.Model):
     device_brand = models.CharField(max_length=100, verbose_name="设备品牌", blank=True, null=True)
     device_model = models.CharField(max_length=100, verbose_name="设备型号", blank=True, null=True)
     language = models.CharField(max_length=16, verbose_name="语言", blank=True, null=True)  # 语言，如：zh-CN、en-US等
-
+    os_theme = models.CharField(max_length=16, verbose_name="系统主题", blank=True, null=True) # 系统主题：light、dark
+    app_theme = models.CharField(max_length=16, verbose_name="应用主题", blank=True, null=True) # 应用主题：light、dark
+    
     access_time = models.DateTimeField(auto_now_add=True, verbose_name="访问时间", db_index=True)
     remark = models.JSONField(default=dict, verbose_name="备注", blank=True, null=True)  # desciption
 

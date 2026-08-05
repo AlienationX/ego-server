@@ -186,6 +186,8 @@ class AccessAdmin(admin.ModelAdmin):
         "device_brand",
         "device_model",
         "language",
+        "os_theme",
+        "app_theme",
         "access_time",
     )
     fields = (
@@ -199,6 +201,8 @@ class AccessAdmin(admin.ModelAdmin):
         "device_brand",
         "device_model",
         "language",
+        "os_theme",
+        "app_theme",
         "access_time",
         "remark_json",
     )
