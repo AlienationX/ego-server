@@ -85,11 +85,12 @@ class ApiModelView(ListModelMixin, CreateModelMixin, RetrieveModelMixin, Generic
     def alipay(self, request):
         """
         POST /payment/alipay/ - 支付宝 App 支付下单
-        请求体: { product_id, platform, device_id }
+        请求体: { product_id, channel, platform, device_id }
         返回: { order_no, order_string } — order_string 直接传给 uni.requestPayment()
         """
         product_id = request.data.get("product_id")
-        platform = request.data.get("platform", "unknown")
+        channel = request.data.get("channel")
+        platform = request.data.get("platform")
         device_id = request.headers.get("Device-Id")
 
         if not product_id:
@@ -129,6 +130,7 @@ class ApiModelView(ListModelMixin, CreateModelMixin, RetrieveModelMixin, Generic
                     currency=product.currency,
                     period_days=product.period_days,
                     amount=product.price,
+                    channel=channel,
                     platform=platform,
                     payment_method="alipay",
                     status="pending",
