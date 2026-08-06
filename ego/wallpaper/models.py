@@ -574,10 +574,11 @@ class Order(models.Model):
     original_price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="原价(快照)")
     currency = models.CharField(max_length=10, default="CNY", verbose_name="币种(快照)")
     period_days = models.IntegerField(verbose_name="有效天数(快照)")
-
     amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="实际支付金额")
-    platform = models.CharField(max_length=50, verbose_name="支付来源")
-    payment_method = models.CharField(max_length=50, default="alipay", verbose_name="支付方式")
+    
+    channel = models.CharField(max_length=50, null=True, blank=True, verbose_name="支付渠道")
+    platform = models.CharField(max_length=50, null=True, blank=True, verbose_name="支付平台")
+    payment_method = models.CharField(max_length=50, null=True, blank=True, verbose_name="支付方式")
     status = models.CharField(max_length=20, default="pending", verbose_name="状态")  # pending, paid, failed, refunded
     transaction_id = models.CharField(max_length=128, blank=True, null=True, verbose_name="三方流水单号")
 

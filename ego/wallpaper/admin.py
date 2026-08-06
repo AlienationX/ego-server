@@ -319,10 +319,10 @@ class ProductAdmin(admin.ModelAdmin, TimeStampAdminMixin):
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin, TimeStampAdminMixin):
-    list_display = ("order_no", "user", "product_name", "amount", "currency", "platform", "payment_method", "status", "formatted_created_at")
-    list_filter = ("status", "platform", "payment_method", "currency")
+    list_display = ("order_no", "user", "product_name", "amount", "currency", "channel", "platform", "payment_method", "status", "formatted_created_at")
+    list_filter = ("status", "channel", "platform", "payment_method", "currency")
     search_fields = ("order_no", "user__email", "transaction_id")
-    readonly_fields = ("order_no", "user", "product", "product_name", "price", "original_price", "currency", "period_days", "amount", "platform", "payment_method", "status", "transaction_id", "created_at", "paid_at")
+    readonly_fields = ("order_no", "user", "product", "product_name", "price", "original_price", "currency", "period_days", "amount", "channel", "platform", "payment_method", "status", "transaction_id", "created_at", "paid_at")
 
 
 admin.site.register(Classify, ClassifyAdmin)
