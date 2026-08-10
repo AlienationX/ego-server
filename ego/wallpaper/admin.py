@@ -259,20 +259,20 @@ class VersionsAdmin(admin.ModelAdmin, TimeStampAdminMixin):
         "app_version",
         "ad_enabled",
         "pay_enabled",
+        "set_wallpaper_enabled",
         "is_force_update",
         "update_title",
         "app_store_url",
         "formatted_created_at",
         "formatted_updated_at",
     )
-    list_filter = ("ad_enabled", "is_force_update", "platform", "channel")
-    search_fields = ("platform", "channel", "app_version", "update_title")
     fields = (
         "channel",
         "platform",
         "app_version",
         "ad_enabled",
         "pay_enabled",
+        "set_wallpaper_enabled",
         "is_force_update",
         "update_title",
         "update_log",
@@ -312,8 +312,8 @@ class EnergyLogAdmin(admin.ModelAdmin, TimeStampAdminMixin):
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin, TimeStampAdminMixin):
-    list_display = ("id", "name", "name_en", "code", "price", "original_price", "currency", "period_days", "recommended", "is_active", "formatted_created_at")
-    list_filter = ("recommended", "is_active", "currency")
+    list_display = ("id", "name", "name_en", "category", "code", "price", "original_price", "currency", "period_days", "recommended", "is_active", "formatted_created_at")
+    list_filter = ("category", "is_active", "currency")
     search_fields = ("name", "code")
 
 

@@ -508,6 +508,9 @@ class Versions(models.Model):
     pay_enabled = models.BooleanField(
         default=True, verbose_name="是否开启支付功能", help_text="关闭后客户端隐藏VIP充值/支付入口"
     )
+    set_wallpaper_enabled = models.BooleanField(
+        default=False, verbose_name="是否开启直接设置壁纸功能", help_text="关闭后客户端隐藏直接设置壁纸入口"
+    )
     is_force_update = models.BooleanField(default=False, verbose_name="是否强制更新")
     update_title = models.CharField(max_length=200, verbose_name="更新标题", blank=True, null=True)
     update_log = models.TextField(verbose_name="更新日志", blank=True, null=True)
@@ -540,8 +543,15 @@ class EnergyLog(models.Model):
 
 
 class Product(models.Model):
+    Product_Category = (
+        (0, "国内"),
+        (1, "国外"),
+        # 划分海外币种等等
+        # USD、HKD、EUR、GBP、JPY、KRW、AUD、CAD、CHF
+    )
     name = models.CharField(max_length=100, verbose_name="套餐名称")
     name_en = models.CharField(max_length=100, verbose_name="套餐名称(英文)")
+    category = models.IntegerField(default=0, choices=Product_Category, verbose_name="商品类别")
     code = models.CharField(max_length=50, unique=True, verbose_name="套餐编码标识")
     price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="现价")
     original_price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="原价")
