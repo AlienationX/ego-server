@@ -35,6 +35,8 @@ DECOUPLE_CONFIG = config  # 变量名必须大写
 # 暴露自定义的环境变量，以便在代码中使用
 WECHAT_APPID = config("WECHAT_APPID")  # 微信小程序的AppID
 WECHAT_SECRET = config("WECHAT_SECRET")  # 微信小程序的AppSecret
+HUAWEI_CLIENT_ID = config("HUAWEI_CLIENT_ID")  # 华为应用 Client ID / AppID
+HUAWEI_CLIENT_SECRET = config("HUAWEI_CLIENT_SECRET")  # 华为应用 Client Secret
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent

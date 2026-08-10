@@ -126,6 +126,60 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
         )
 
     @action(detail=False, methods=["post"])
+    def huawei(self, request):
+        code = request.data.get("code")
+        token = request.data.get("token")
+        auth_result = request.data.get("authResult") or {}
+        if isinstance(auth_result, dict):
+            if not token:
+                token = auth_result.get("accessToken")
+            if not code:
+                code = auth_result.get("code")
+
+        openid = request.data.get("openid") or (auth_result.get("openId") if isinstance(auth_result, dict) else None)
+
+        if not code and not token and not openid:
+            return Response({"error": "缺少华为登录凭证 (code/token/openid)"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 校验获取 openid
+        if not openid:
+            openid = self._verify_huawei_token_or_code(code, token)
+
+        user = User.objects.select_related("profile").filter(profile__huawei_openid=openid).first()
+
+        ip_address = get_client_ip(request)
+        region = ip_to_region(ip_address)
+
+        if user:
+            if not user.is_active:
+                raise AuthenticationFailed("User is not active")
+            user.last_login = timezone.now()
+            user.save(update_fields=["last_login"])
+        else:
+            username = f"huawei_{openid[:30]}"
+            with transaction.atomic():
+                user = User.objects.create_user(username=username, last_login=timezone.now())
+                Profile.objects.create(
+                    user=user,
+                    huawei_openid=openid,
+                    ip=ip_address,
+                    nickname=generate_nickname(),
+                    region=region,
+                    channel="huawei",
+                    source="huawei",
+                )
+
+        refresh = RefreshToken.for_user(user)
+        return Response(
+            {
+                "access": str(refresh.access_token),
+                "refresh": str(refresh),
+                "user_id": user.id,
+                "openid": openid,
+            }
+        )
+
+    @action(detail=False, methods=["post"])
     def mobile(self, request):
         pass
 
@@ -155,6 +209,41 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
         except Exception as e:
             logger.error(f"Wechat openid 获取失败: {e}")
             return None
+
+    def _verify_huawei_token_or_code(self, code=None, token=None):
+        """
+        校验华为 Authorization Code 或 Access Token
+        """
+        client_id = settings.HUAWEI_CLIENT_ID
+        client_secret = settings.HUAWEI_CLIENT_SECRET
+
+        if code and client_id and client_secret:
+            try:
+                url = "https://oauth-login.cloud.huawei.com/oauth2/v3/token"
+                data = {
+                    "grant_type": "authorization_code",
+                    "client_id": client_id,
+                    "client_secret": client_secret,
+                    "code": code,
+                }
+                res = requests.post(url, data=data, timeout=10)
+                if res.status_code == 200:
+                    res_json = res.json()
+                    return res_json.get("open_id") or res_json.get("sub")
+            except Exception as e:
+                logger.error(f"华为 Code 验签异常: {e}")
+
+        if token:
+            try:
+                url = f"https://oauth-login.cloud.huawei.com/oauth2/v3/tokeninfo?open_id=true&access_token={token}"
+                res = requests.get(url, timeout=10)
+                if res.status_code == 200:
+                    res_json = res.json()
+                    return res_json.get("open_id")
+            except Exception as e:
+                logger.error(f"华为 Token 验签异常: {e}")
+
+        return None
 
     def _get_region(self, ip):
         url = "http://whois.pconline.com.cn/ipJson.jsp"

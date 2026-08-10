@@ -303,6 +303,8 @@ class Profile(models.Model):
     region = models.CharField(max_length=60, verbose_name="行政区省市县", blank=True, null=True)
     updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
     wechat_openid = models.CharField(max_length=100, verbose_name="微信openid", blank=True, null=True)
+    huawei_openid = models.CharField(max_length=100, verbose_name="华为openid", blank=True, null=True)
+    huawei_unionid = models.CharField(max_length=100, verbose_name="华为unionid", blank=True, null=True)
 
     def __str__(self):
         return f"{self.user.username} 的个人资料"
