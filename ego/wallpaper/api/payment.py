@@ -1,3 +1,4 @@
+import json
 import logging
 import random
 import time
@@ -240,6 +241,149 @@ class ApiModelView(ListModelMixin, CreateModelMixin, RetrieveModelMixin, Generic
     def google_play(self, request):
         """POST /payment/google_play/ - Google Play支付（待实现）"""
         return Response({"error": "Google Play支付暂未开放"}, status=status.HTTP_501_NOT_IMPLEMENTED)
+
+    @action(detail=False, methods=["post"])
+    def huawei_pay(self, request):
+        """
+        POST /payment/huawei_pay/ - 华为应用内支付（IAP）下单
+        请求体: { product_id, channel, platform, device_id }
+        返回: { order_no, order_string, purchase_params }
+        """
+        product_id = request.data.get("product_id")
+        channel = request.data.get("channel")
+        platform = request.data.get("platform")
+        device_id = request.headers.get("Device-Id")
+
+        if not product_id:
+            return Response({"error": "缺少 product_id"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            product = Product.objects.get(id=product_id, is_active=True)
+        except Product.DoesNotExist:
+            return Response({"error": "商品不存在或已下架"}, status=status.HTTP_404_NOT_FOUND)
+
+        five_minutes_ago = timezone.now() - timedelta(minutes=5)
+        existing_order = (
+            Order.objects.filter(
+                user=request.user,
+                product=product,
+                status="pending",
+                created_at__gte=five_minutes_ago,
+            )
+            .order_by("-created_at")
+            .first()
+        )
+
+        if existing_order:
+            order = existing_order
+            logger.info("复用已存在的华为待支付订单，order_no=%s", order.order_no)
+        else:
+            with transaction.atomic():
+                order = Order.objects.create(
+                    order_no=self._generate_order_no(),
+                    user=request.user,
+                    device_id=device_id,
+                    product=product,
+                    product_name=product.name,
+                    price=product.price,
+                    original_price=product.original_price,
+                    currency=product.currency,
+                    period_days=product.period_days,
+                    amount=product.price,
+                    channel=channel,
+                    platform=platform,
+                    payment_method="huawei",
+                    status="pending",
+                )
+
+        huawei_product_id = f"vip_product_{product.id}"
+        purchase_params = {
+            "merchantOrderId": order.order_no,
+            "productId": huawei_product_id,
+            "price": str(product.price),
+            "currency": product.currency or "CNY",
+            "productName": product.name,
+            "applicationId": settings.HUAWEI_CLIENT_ID,
+        }
+        order_string = json.dumps(purchase_params)
+
+        logger.info("华为支付下单成功，order_no=%s", order.order_no)
+        return Response({
+            "order_no": order.order_no,
+            "order_string": order_string,
+            "purchase_params": purchase_params,
+        })
+
+    @action(detail=False, methods=["post"], permission_classes=[AllowAny])
+    def huawei_notify(self, request):
+        """
+        POST /payment/huawei_notify/ - 华为 IAP 官方服务端关键事件回调通知（无需鉴权）
+        """
+        data = request.data or {}
+        logger.info("华为支付服务端通知 request.data: %s", data)
+
+        # 1. 尝试解析 JWS 通知 payload (HarmonyOS V3 通知)
+        jws_notification = data.get("notificationPayload") or data.get("jwsNotification") or data.get("purchaseData")
+        out_trade_no = None
+        purchase_order_id = None
+        purchase_token = None
+        purchase_state = None
+
+        if jws_notification and isinstance(jws_notification, str) and "." in jws_notification:
+            from ..utils.huawei_iap import HuaweiJWSChecker
+
+            payload = HuaweiJWSChecker.decode_jws(jws_notification)
+            if payload:
+                logger.info(f"解析到华为回调通知 Payload: {payload}")
+                purchase_order = payload.get("purchaseOrder") or payload
+                out_trade_no = purchase_order.get("merchantOrderId") or purchase_order.get("developerPayload")
+                purchase_order_id = purchase_order.get("purchaseOrderId") or purchase_order.get("payOrderId")
+                purchase_token = purchase_order.get("purchaseToken")
+                purchase_state = purchase_order.get("purchaseState", 0)
+
+        # 2. 兼容传统 JSON 格式
+        if not out_trade_no:
+            purchase_data = data.get("purchaseData") or data.get("inAppPurchaseData")
+            if purchase_data:
+                try:
+                    p_json = json.loads(purchase_data) if isinstance(purchase_data, str) else purchase_data
+                    out_trade_no = p_json.get("developerPayload") or p_json.get("merchantOrderId") or p_json.get("orderId")
+                    purchase_state = p_json.get("purchaseState")
+                    purchase_order_id = p_json.get("payOrderId") or p_json.get("purchaseOrderId")
+                    purchase_token = p_json.get("purchaseToken")
+                except Exception as e:
+                    logger.warning(f"解析 purchaseData 异常: {e}")
+
+        if not out_trade_no:
+            logger.warning("华为支付回调通知缺少有效订单标识")
+            return Response({"result": 0, "message": "Ignored"})
+
+        try:
+            if purchase_state is None or purchase_state == 0 or purchase_state == "0":
+                with transaction.atomic():
+                    order = Order.objects.select_for_update().get(order_no=out_trade_no, status="pending")
+                    order.status = "paid"
+                    order.paid_at = timezone.now()
+                    order.transaction_id = purchase_order_id or ""
+                    order.save(update_fields=["status", "paid_at", "transaction_id"])
+                    self._grant_vip(order.user, order.period_days)
+
+                # 向华为确认发货
+                if purchase_order_id and purchase_token:
+                    from ..utils.huawei_iap import HuaweiIAPService
+
+                    HuaweiIAPService.order_shipped_confirm(purchase_order_id, purchase_token)
+
+                logger.info("华为支付服务端回调处理成功，已为用户发放 VIP，order_no=%s", out_trade_no)
+                return Response({"result": 0, "message": "Success"})
+        except Order.DoesNotExist:
+            logger.info("华为支付回调通知：订单已处理或不存在，order_no=%s", out_trade_no)
+            return Response({"result": 0, "message": "Order already processed or not found"})
+        except Exception as e:
+            logger.exception("华为支付回调处理异常: %s", e)
+            return Response({"result": 1, "message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        return Response({"result": 0, "message": "OK"})
 
     @action(detail=False, methods=["post"])
     def ios_app_store(self, request):

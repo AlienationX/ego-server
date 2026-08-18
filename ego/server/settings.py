@@ -37,6 +37,9 @@ WECHAT_APPID = config("WECHAT_APPID")  # 微信小程序的AppID
 WECHAT_SECRET = config("WECHAT_SECRET")  # 微信小程序的AppSecret
 HUAWEI_CLIENT_ID = config("HUAWEI_CLIENT_ID")  # 华为应用 Client ID / AppID
 HUAWEI_CLIENT_SECRET = config("HUAWEI_CLIENT_SECRET")  # 华为应用 Client Secret
+HUAWEI_IAP_ISSUER_ID = config("HUAWEI_IAP_ISSUER_ID")  # 华为 IAP 密钥颁发者 ID
+HUAWEI_IAP_KEY_ID = config("HUAWEI_IAP_KEY_ID")  # 华为 IAP 密钥 ID
+HUAWEI_PAY_PRIVATE_KEY = config("HUAWEI_PAY_PRIVATE_KEY")  # 华为应用内支付私钥 (支持 PEM / Base64 DER / 文件路径)
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
