@@ -14,7 +14,7 @@ from rest_framework.mixins import CreateModelMixin, ListModelMixin, RetrieveMode
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
-from ..models import Wall
+from ..models import SearchKeyword, SearchLog, Wall
 from ..paginations import CustomPageNumberPagination
 from ..permissions import HasAccessKey
 from ..renderers import CustomJSONRenderer
@@ -196,11 +196,106 @@ class ApiModelView(ListModelMixin, CreateModelMixin, RetrieveModelMixin, Generic
         cache.set(cache_key, data, timeout=10 * 60)  # 缓存10分钟
         return Response(data)
 
+    def _record_search_log(self, request, keyword: str, result_count: int):
+        """
+        静默记录搜索行为流水与更新关键词统计
+        """
+        try:
+            kw_clean = keyword.strip()
+            # 过滤：忽略空词、超长词、纯 ID 检索（如 #1234）、以及长度<=1且无结果的英文残词
+            if not kw_clean or len(kw_clean) > 50 or (kw_clean.startswith("#") and kw_clean[1:].isdigit()):
+                return
+            if len(kw_clean) <= 1 and result_count == 0:
+                return
+
+            user = request.user if getattr(request, "user", None) and request.user.is_authenticated else None
+            device_id = request.headers.get("Device-Id") or request.query_params.get("device_id")
+            platform = request.headers.get("Platform") or request.query_params.get("platform")
+            channel = request.headers.get("Channel") or request.query_params.get("channel")
+
+            # 获取客户端 IP
+            x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
+            if x_forwarded_for:
+                ip = x_forwarded_for.split(",")[0].strip()
+            else:
+                ip = request.META.get("REMOTE_ADDR")
+
+            # 防抖去重：同一设备/用户 30 秒内连续搜索相同词，不重复记流水
+            ident = user.id if user else (device_id or ip or "anon")
+            cache_key = f"search_debounce:{ident}:{kw_clean.lower()}"
+            if cache.get(cache_key):
+                return
+            cache.set(cache_key, 1, timeout=30)
+
+            # 1. 写入明细流水表
+            SearchLog.objects.create(
+                keyword=kw_clean,
+                result_count=result_count,
+                user=user,
+                device_id=device_id,
+                platform=platform,
+                channel=channel,
+                ip_address=ip if ip and len(ip) <= 45 else None,
+            )
+
+            # 2. 更新/累加聚合统计表
+            has_results = result_count > 0
+            keyword_obj, created = SearchKeyword.objects.get_or_create(
+                keyword=kw_clean,
+                defaults={
+                    "search_count": 1,
+                    "result_count_last": result_count,
+                    "has_results": has_results,
+                },
+            )
+            if not created:
+                SearchKeyword.objects.filter(id=keyword_obj.id).update(
+                    search_count=F("search_count") + 1,
+                    result_count_last=result_count,
+                    has_results=has_results,
+                    last_searched_at=timezone.now(),
+                )
+        except Exception as e:
+            logger.warning(f"记录搜索日志异常: {e}")
+
+    @action(detail=False, methods=["get"])
+    def hot_keywords(self, request):
+        """
+        获取热门搜索推荐词列表
+        优先级：人工推荐 (is_recommend=True) 优先，其次按累计搜索次数倒序，只返回有结果的词
+        """
+        cache_key = "hot_search_keywords"
+        cached_data = cache.get(cache_key)
+        if cached_data is not None:
+            return Response(cached_data)
+
+        # 优先人工推荐词
+        recommend_kws = list(
+            SearchKeyword.objects.filter(is_recommend=True, has_results=True)
+            .order_by("-sort", "-search_count")
+            .values_list("keyword", flat=True)[:10]
+        )
+
+        # 补充高频搜索词
+        limit = 10 - len(recommend_kws)
+        if limit > 0:
+            top_kws = list(
+                SearchKeyword.objects.filter(has_results=True)
+                .exclude(keyword__in=recommend_kws)
+                .order_by("-search_count")
+                .values_list("keyword", flat=True)[:limit]
+            )
+            recommend_kws.extend(top_kws)
+
+        cache.set(cache_key, recommend_kws, timeout=24 * 60 * 60)  # 缓存
+        return Response(recommend_kws)
+
     @action(detail=False, methods=["get"])
     def search(self, request):
         """搜索壁纸，非随机排序直接使用数据库分页"""
 
-        keyword = self.request.query_params.get("keyword")
+        params = request.query_params
+        keyword = params.get("keyword")
         if not keyword:
             # 如果kw为空则返回空结果
             return Response([])
@@ -240,7 +335,14 @@ class ApiModelView(ListModelMixin, CreateModelMixin, RetrieveModelMixin, Generic
                 | Q(tags__icontains=keyword)
                 | Q(tags_en__icontains=keyword)
             )
-        sortord = request.query_params.get("sortord")
+
+        # 仅在第一页或未分页请求时记录搜索日志（避免翻页重复统计）
+        page_num = params.get("page", "1")
+        if str(page_num) == "1":
+            total_count = queryset.count()
+            self._record_search_log(request, keyword, total_count)
+
+        sortord = params.get("sortord")
 
         if sortord == "random":
             rand_ids = self._get_random_cached_ids(queryset, keyword=keyword)

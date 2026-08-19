@@ -603,3 +603,47 @@ class Order(models.Model):
     class Meta:
         verbose_name = "交易订单"
         verbose_name_plural = "Orders 交易订单"
+
+
+class SearchKeyword(models.Model):
+    """
+    搜索关键词聚合统计表（便于后台查看高频搜索词、无结果词及管理热门推荐词）
+    """
+    keyword = models.CharField(max_length=100, unique=True, db_index=True, verbose_name="搜索关键词")
+    search_count = models.PositiveIntegerField(default=1, verbose_name="累计搜索次数")
+    result_count_last = models.IntegerField(default=0, verbose_name="最近一次命中数量")
+    has_results = models.BooleanField(default=True, verbose_name="是否有壁纸收录", help_text="为否表示用户搜索但壁纸库未收录，需重点补库")
+    is_recommend = models.BooleanField(default=False, verbose_name="推荐热搜词", help_text="勾选后可在前端搜索页推荐热搜列表中展示")
+    sort = models.FloatField(default=0, verbose_name="推荐排序", help_text="数字越大越靠前")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="首次搜索时间")
+    last_searched_at = models.DateTimeField(auto_now=True, verbose_name="最近搜索时间")
+
+    def __str__(self):
+        return f"{self.keyword} ({self.search_count}次)"
+
+    class Meta:
+        verbose_name = "搜索关键词"
+        verbose_name_plural = "SearchKeywords 搜索关键词统计"
+        ordering = ["-search_count"]
+
+
+class SearchLog(models.Model):
+    """
+    搜索行为明细流水表（记录每次搜索的上下文环境）
+    """
+    keyword = models.CharField(max_length=100, db_index=True, verbose_name="搜索关键词")
+    result_count = models.IntegerField(default=0, verbose_name="命中结果数")
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="搜索用户")
+    device_id = models.CharField(max_length=128, null=True, blank=True, verbose_name="设备ID")
+    platform = models.CharField(max_length=50, null=True, blank=True, verbose_name="平台")
+    channel = models.CharField(max_length=50, null=True, blank=True, verbose_name="渠道")
+    ip_address = models.GenericIPAddressField(null=True, blank=True, verbose_name="IP地址")
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True, verbose_name="搜索时间")
+
+    def __str__(self):
+        return f"{self.keyword} - {self.result_count}条结果 - {self.created_at.strftime('%Y-%m-%d %H:%M')}"
+
+    class Meta:
+        verbose_name = "搜索明细日志"
+        verbose_name_plural = "SearchLogs 搜索明细日志"
+        ordering = ["-created_at"]

@@ -17,6 +17,8 @@ from .models import (
     Order,
     Product,
     Profile,
+    SearchKeyword,
+    SearchLog,
     Subject,
     UserActions,
     Versions,
@@ -323,6 +325,56 @@ class OrderAdmin(admin.ModelAdmin, TimeStampAdminMixin):
     list_filter = ("status", "channel", "platform", "payment_method", "currency")
     search_fields = ("order_no", "user__email", "transaction_id")
     readonly_fields = ("order_no", "user", "product", "product_name", "price", "original_price", "currency", "period_days", "amount", "channel", "platform", "payment_method", "status", "transaction_id", "created_at", "paid_at")
+
+
+@admin.register(SearchKeyword)
+class SearchKeywordAdmin(admin.ModelAdmin, TimeStampAdminMixin):
+    list_display = (
+        "id",
+        "keyword",
+        "search_count",
+        "result_count_last",
+        "is_recommend",
+        "sort",
+        "formatted_last_searched_at",
+        "formatted_created_at",
+    )
+    list_filter = ("has_results", "is_recommend")
+    search_fields = ("keyword",)
+    list_editable = ("is_recommend", "sort")
+    ordering = ("-search_count",)
+
+    def formatted_last_searched_at(self, obj):
+        if obj.last_searched_at:
+            return timezone.localtime(obj.last_searched_at).strftime("%Y-%m-%d %H:%M:%S")
+        return "-"
+
+    formatted_last_searched_at.short_description = "最近搜索时间"
+    formatted_last_searched_at.admin_order_field = "last_searched_at"
+
+
+@admin.register(SearchLog)
+class SearchLogAdmin(admin.ModelAdmin, TimeStampAdminMixin):
+    list_display = (
+        "id",
+        "keyword",
+        "result_count",
+        "user_display",
+        "device_id",
+        "platform",
+        "channel",
+        "ip_address",
+        "formatted_created_at",
+    )
+    list_filter = ("platform", "channel", "created_at")
+    search_fields = ("keyword", "device_id", "user__email", "ip_address")
+    readonly_fields = ("keyword", "result_count", "user", "device_id", "platform", "channel", "ip_address", "created_at")
+    ordering = ("-created_at",)
+
+    def user_display(self, obj):
+        return obj.user.email if obj.user else "匿名用户"
+
+    user_display.short_description = "用户"
 
 
 admin.site.register(Classify, ClassifyAdmin)
