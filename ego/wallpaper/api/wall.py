@@ -337,7 +337,7 @@ class ApiModelView(ListModelMixin, CreateModelMixin, RetrieveModelMixin, Generic
             )
 
         # 仅在第一页或未分页请求时记录搜索日志（避免翻页重复统计）
-        page_num = params.get("page", "1")
+        page_num = params.get("pageNum", "1")
         if str(page_num) == "1":
             total_count = queryset.count()
             self._record_search_log(request, keyword, total_count)
