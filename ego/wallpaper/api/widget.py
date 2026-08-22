@@ -75,7 +75,7 @@ class ApiModelView(GenericViewSet):
 
     queryset = Wall.objects.filter(is_active=True)
     serializer_class = WallSerializer
-    permission_classes = [HasAccessKey]
+    permission_classes = []
     renderer_classes = [CustomJSONRenderer]
 
     def _build_date_info(self, now=None):
@@ -110,6 +110,17 @@ class ApiModelView(GenericViewSet):
         wall_serializer = WallSerializer(wall, context={"request": self.request})
         wall_data = wall_serializer.data
 
+        # 构建完整的图床访问绝对 URL
+        base_media_url = "https://api.wp.ego8.space/static/wallpaper/media"
+        raw_picurl = str(wall.picurl or "")
+        if raw_picurl.startswith("http://") or raw_picurl.startswith("https://"):
+            full_picurl = raw_picurl
+        else:
+            full_picurl = f"{base_media_url}/{raw_picurl.lstrip('/')}"
+
+        small_picurl = full_picurl.replace(".jpg", "_small.webp")
+        medium_picurl = full_picurl.replace(".jpg", "_medium.webp")
+
         # 小组件需要最精炼、直观、高可用格式
         return {
             "id": wall.id,
@@ -118,8 +129,9 @@ class ApiModelView(GenericViewSet):
             "quote": quote_info["quote"],
             "quote_author": quote_info["author"],
             "quote_en": quote_info["quote_en"],
-            "picurl": wall_data.get("picurl") or "",
-            "small_picurl": wall_data.get("smallPicurl") or wall_data.get("picurl") or "",
+            "picurl": full_picurl,
+            "small_picurl": small_picurl,
+            "medium_picurl": medium_picurl,
             "score": wall_data.get("score") or 9.5,
             "classify_name": wall_data.get("classify_name") or "精选",
             "date_info": date_info,
