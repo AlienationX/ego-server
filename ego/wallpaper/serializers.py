@@ -15,6 +15,8 @@ from .models import (
     Access,
     Application,
     Banner,
+    Board,
+    BoardWall,
     Classify,
     Feedback,
     Notice,
@@ -23,6 +25,7 @@ from .models import (
     Profile,
     Subject,
     UserActions,
+    UserAutoRotateConfig,
     Versions,
     Wall,
 )
@@ -245,3 +248,51 @@ class OrderSerializer(ModelSerializer):
     class Meta:
         model = Order
         fields = "__all__"
+
+
+class BoardSerializer(ModelSerializer):
+    preview_images = SerializerMethodField()
+    items_count = SerializerMethodField()
+
+    def get_preview_images(self, obj):
+        return obj.preview_images
+
+    def get_items_count(self, obj):
+        return obj.items_count
+
+    class Meta:
+        model = Board
+        fields = ["id", "name", "description", "is_auto_rotate", "preview_images", "items_count", "created_at", "updated_at"]
+
+
+class BoardWallSerializer(ModelSerializer):
+    wall = WallSerializer(read_only=True)
+
+    class Meta:
+        model = BoardWall
+        fields = ["id", "board", "wall", "sort_order", "added_at"]
+
+
+class UserAutoRotateConfigSerializer(ModelSerializer):
+    board_name = SerializerMethodField()
+
+    def get_board_name(self, obj):
+        return obj.board.name if obj.board else ""
+
+    class Meta:
+        model = UserAutoRotateConfig
+        fields = [
+            "id",
+            "enabled",
+            "mode",
+            "board",
+            "board_name",
+            "target",
+            "frequency",
+            "strategy",
+            "wifi_only",
+            "rotate_token",
+            "last_rotated_at",
+            "updated_at",
+        ]
+

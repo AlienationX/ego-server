@@ -647,3 +647,100 @@ class SearchLog(models.Model):
         verbose_name = "搜索明细日志"
         verbose_name_plural = "SearchLogs 搜索明细日志"
         ordering = ["-created_at"]
+
+
+class Board(models.Model):
+    """
+    用户灵感画板（Pinterest 风格，支持动态 3 图拼图与自动轮播）
+    """
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="boards", verbose_name="所属用户")
+    name = models.CharField(max_length=60, verbose_name="画板名称")
+    description = models.CharField(max_length=200, blank=True, null=True, verbose_name="画板简介")
+    is_auto_rotate = models.BooleanField(default=False, verbose_name="开启自动轮播")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
+
+    def __str__(self):
+        return f"{self.name} ({self.user.username})"
+
+    @property
+    def preview_images(self):
+        """动态返回画板内最新的 3 张壁纸缩略图/原图地址，供前端直接渲染 Pinterest 风格 3 图拼图封面"""
+        return list(
+            self.items.select_related("wall")
+            .order_by("-added_at")
+            .values_list("wall__picurl", flat=True)[:3]
+        )
+
+    @property
+    def items_count(self):
+        """画板内壁纸总数量"""
+        return self.items.count()
+
+    class Meta:
+        verbose_name = "壁纸画板"
+        verbose_name_plural = "Boards 壁纸画板"
+        ordering = ["-updated_at"]
+
+
+class BoardWall(models.Model):
+    """
+    画板与壁纸的关联表
+    """
+    board = models.ForeignKey(Board, on_delete=models.CASCADE, related_name="items", verbose_name="所属画板")
+    wall = models.ForeignKey(Wall, on_delete=models.CASCADE, related_name="board_items", verbose_name="关联壁纸")
+    sort_order = models.IntegerField(default=0, verbose_name="排序")
+    added_at = models.DateTimeField(auto_now_add=True, verbose_name="添加时间")
+
+    class Meta:
+        verbose_name = "画板壁纸关联"
+        verbose_name_plural = "BoardWalls 画板壁纸关联"
+        unique_together = ("board", "wall")
+        ordering = ["sort_order", "-added_at"]
+
+
+class UserAutoRotateConfig(models.Model):
+    """
+    用户自动更换壁纸设置（VIP 专属）
+    """
+    MODE_CHOICES = (
+        ("bing", "每日必应"),
+        ("board", "画板轮播"),
+    )
+    TARGET_CHOICES = (
+        ("both", "双屏同时"),
+        ("lock", "锁屏壁纸"),
+        ("home", "桌面壁纸"),
+    )
+    FREQUENCY_CHOICES = (
+        ("daily", "每天一次"),
+        ("12h", "每12小时"),
+        ("6h", "每6小时"),
+        ("1h", "每1小时"),
+        ("unlock", "每次亮屏解锁"),
+    )
+    STRATEGY_CHOICES = (
+        ("random", "随机轮播"),
+        ("sequential", "顺序循环"),
+    )
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="auto_rotate_config", verbose_name="所属用户")
+    enabled = models.BooleanField(default=False, verbose_name="开启自动切换")
+    mode = models.CharField(max_length=20, choices=MODE_CHOICES, default="bing", verbose_name="切换模式")
+    board = models.ForeignKey(Board, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="指定轮播画板")
+    target = models.CharField(max_length=20, choices=TARGET_CHOICES, default="both", verbose_name="应用目标")
+    frequency = models.CharField(max_length=20, choices=FREQUENCY_CHOICES, default="daily", verbose_name="切换频率")
+    strategy = models.CharField(max_length=20, choices=STRATEGY_CHOICES, default="random", verbose_name="轮播策略")
+    wifi_only = models.BooleanField(default=True, verbose_name="仅在WiFi下下载")
+    rotate_token = models.CharField(max_length=64, unique=True, blank=True, null=True, verbose_name="快捷指令Token")
+    last_rotated_at = models.DateTimeField(null=True, blank=True, verbose_name="最近切换时间")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
+
+    def __str__(self):
+        return f"{self.user.username} 自动换壁纸配置 ({self.mode})"
+
+    class Meta:
+        verbose_name = "自动换壁纸配置"
+        verbose_name_plural = "UserAutoRotateConfigs 自动换壁纸配置"
+

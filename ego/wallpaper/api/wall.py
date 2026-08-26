@@ -442,3 +442,19 @@ class ApiModelView(ListModelMixin, CreateModelMixin, RetrieveModelMixin, Generic
 
         return Response(data)
 
+
+    @action(detail=False, methods=["get"])
+    def daily_bing(self, request):
+        """获取最新一期的每日必应壁纸"""
+        bing_wall = (
+            self.get_queryset()
+            .filter(classify_id=30, is_active=True)
+            .order_by("-id")
+            .first()
+        )
+        
+        if not bing_wall:
+            return Response({"error": "暂无必应壁纸"}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = self.get_serializer(bing_wall)
+        return Response(serializer.data)
