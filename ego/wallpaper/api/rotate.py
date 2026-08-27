@@ -96,23 +96,43 @@ class ApiModelView(GenericViewSet):
                 .first()
             )
             if config:
+                user = config.user
+                is_vip = False
+                if user and hasattr(user, "profile") and user.profile.vip_expire_time:
+                    is_vip = user.profile.vip_expire_time > timezone.now()
+
+                if not is_vip:
+                    return Response({
+                        "code": 403,
+                        "error": "VIP会员已到期，画板自动轮播已暂停",
+                        "vip_expired": True,
+                    }, status=status.HTTP_403_FORBIDDEN)
+
                 mode = config.mode
                 if config.mode == "board" and config.board:
                     # 从指定画板中选取壁纸
                     board_wall_items = list(
-                        BoardWall.objects.filter(board=config.board).select_related("wall")
+                        BoardWall.objects.filter(board=config.board).order_by("id").select_related("wall")
                     )
                     if board_wall_items:
                         if config.strategy == "random":
                             selected_bw = random.choice(board_wall_items)
                         else:
-                            # 顺序轮播逻辑：按 added_at 循环
-                            selected_bw = board_wall_items[0]
+                            # 顺序循环轮播逻辑：查找上次位置，推进到下一张
+                            last_wall_id = config.last_wall_id
+                            next_idx = 0
+                            if last_wall_id:
+                                wall_ids = [bw.wall_id for bw in board_wall_items]
+                                if last_wall_id in wall_ids:
+                                    curr_idx = wall_ids.index(last_wall_id)
+                                    next_idx = (curr_idx + 1) % len(board_wall_items)
+                            selected_bw = board_wall_items[next_idx]
                         wall = selected_bw.wall
+                        config.last_wall = wall
 
-                # 更新最近切换时间
+                # 更新最近切换时间与上次壁纸
                 config.last_rotated_at = timezone.now()
-                config.save(update_fields=["last_rotated_at"])
+                config.save(update_fields=["last_rotated_at", "last_wall"])
 
         # 若未选定壁纸，默认降级拉取最新必应壁纸
         if not wall:

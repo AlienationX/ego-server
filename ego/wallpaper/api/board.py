@@ -155,10 +155,48 @@ class ApiModelView(ModelViewSet):
     @action(detail=True, methods=["post"])
     def set_rotate(self, request, pk=None):
         """设为/取消自动轮播画板"""
+        user = request.user
+        is_vip = False
+        if user and hasattr(user, "profile") and user.profile.vip_expire_time:
+            is_vip = user.profile.vip_expire_time > timezone.now()
+
         board = self.get_object()
+        new_status = not board.is_auto_rotate
+
+        if new_status and not is_vip:
+            return Response(
+                {"error": "自动更换壁纸为 VIP 专属特权，开通会员后可开启画板轮播", "is_vip": False},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
         # 取消其他画板的轮播状态
-        Board.objects.filter(user=request.user).exclude(id=board.id).update(is_auto_rotate=False)
-        board.is_auto_rotate = not board.is_auto_rotate
+        Board.objects.filter(user=user).exclude(id=board.id).update(is_auto_rotate=False)
+        board.is_auto_rotate = new_status
         board.save(update_fields=["is_auto_rotate", "updated_at"])
 
-        return Response({"id": board.id, "is_auto_rotate": board.is_auto_rotate})
+        # 同步更新 UserAutoRotateConfig
+        config, _ = UserAutoRotateConfig.objects.get_or_create(user=user)
+        if not config.rotate_token:
+            config.rotate_token = secrets.token_hex(16)
+        if new_status:
+            config.board = board
+            config.mode = "board"
+            config.enabled = True
+        else:
+            if config.board_id == board.id:
+                config.enabled = False
+        config.save()
+
+        return Response({
+            "id": board.id,
+            "is_auto_rotate": board.is_auto_rotate,
+            "rotate_token": config.rotate_token,
+            "config": {
+                "enabled": config.enabled,
+                "mode": config.mode,
+                "target": config.target,
+                "frequency": config.frequency,
+                "strategy": config.strategy,
+                "wifi_only": config.wifi_only,
+            },
+        })

@@ -734,6 +734,7 @@ class UserAutoRotateConfig(models.Model):
     wifi_only = models.BooleanField(default=True, verbose_name="仅在WiFi下下载")
     rotate_token = models.CharField(max_length=64, unique=True, blank=True, null=True, verbose_name="快捷指令Token")
     last_rotated_at = models.DateTimeField(null=True, blank=True, verbose_name="最近切换时间")
+    last_wall = models.ForeignKey(Wall, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="上次轮播壁纸")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
