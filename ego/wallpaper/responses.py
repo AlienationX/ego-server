@@ -49,8 +49,9 @@ class BusinessResponse(Response):
             status_enum = BusinessStatus(business_status)
             message = get_business_message(status_enum)
 
-        # 构建响应数据
-        response_data = {"code": business_status, "message": message, "data": data}
+        # 构建响应数据 (项目约定: code 200 表示成功)
+        code_val = 200 if business_status in (0, 200) else business_status
+        response_data = {"code": code_val, "message": message, "data": data}
 
         # 合并额外字段
         if kwargs:

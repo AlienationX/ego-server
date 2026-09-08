@@ -49,8 +49,8 @@ from enum import IntEnum
 class BusinessStatus(IntEnum):
     """业务状态码定义"""
 
-    # 成功
-    SUCCESS = 0
+    # 成功 (符合项目接口约定: code 200 表示成功)
+    SUCCESS = 200
 
     # 系统错误 (1xxx)
     SYSTEM_ERROR = 1000
