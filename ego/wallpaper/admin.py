@@ -2,6 +2,7 @@ import json
 import random
 import string
 
+from django import forms
 from django.contrib import admin
 from django.utils import timezone
 from django.utils.html import format_html
@@ -27,6 +28,7 @@ from .models import (
     UserActions,
     Versions,
     Wall,
+    generate_redeem_code,
 )
 
 # ROOT_PIC_URL = "https://mp-36059119-7390-44c6-8190-cc3527d1e745.cdn.bspapp.com/wallpaper"
@@ -317,10 +319,37 @@ class EnergyLogAdmin(admin.ModelAdmin, TimeStampAdminMixin):
 
 
 @admin.register(Product)
-class ProductAdmin(admin.ModelAdmin, TimeStampAdminMixin):
-    list_display = ("id", "name", "name_en", "category", "code", "price", "original_price", "currency", "period_days", "recommended", "is_active", "formatted_created_at")
-    list_filter = ("category", "is_active", "currency")
-    search_fields = ("name", "code")
+class ProductAdmin(TimeStampAdminMixin, admin.ModelAdmin):
+    list_display = (
+        "id",
+        "name",
+        "category",
+        "code",
+        "price",
+        "currency",
+        "period_days",
+        "wx_product_id",
+        "recommended",
+        "is_active",
+        "formatted_created_at",
+    )
+    list_display_links = ("id", "name")
+    # list_editable = ("is_active", "recommended")  # 不用进入详情页就可以直接编辑
+    list_filter = ("category", "is_active", "recommended", "currency")
+    search_fields = ("name", "code", "wx_product_id")
+    fieldsets = (
+        ("基础信息", {
+            "fields": ("name", "name_en", "category", "code", "period_days", "is_active", "recommended")
+        }),
+        ("定价与虚拟支付配置", {
+            "fields": ("price", "original_price", "currency", "wx_product_id"),
+            "description": "💡 微信虚拟支付说明：请填写在微信公众平台【虚拟支付 -> 道具管理】中已创建并发布的道具ID (productId)。若未配置则默认取套餐编码标识。",
+        }),
+        ("营销文案", {
+            "fields": ("description", "description_en"),
+            "classes": ("collapse",),
+        }),
+    )
 
 
 @admin.register(Order)
@@ -392,8 +421,49 @@ class RedeemRecordInline(admin.TabularInline):
         return False
 
 
+class RedeemCodeWidget(forms.TextInput):
+    """体验码输入框，右侧附带实时随机生成按钮"""
+
+    def render(self, name, value, attrs=None, renderer=None):
+        input_html = super().render(name, value, attrs, renderer)
+        btn_html = mark_safe(
+            f"""<button type="button" class="button" style="margin-left: 10px; padding: 6px 6px; height: 24px; line-height: 1; vertical-align: middle; cursor: pointer; font-size: 10px;" onclick="(function(){{
+                var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+                var p1 = '', p2 = '';
+                for (var i = 0; i < 4; i++) p1 += chars.charAt(Math.floor(Math.random() * chars.length));
+                for (var i = 0; i < 4; i++) p2 += chars.charAt(Math.floor(Math.random() * chars.length));
+                var el = document.getElementById('id_{name}');
+                if (el) {{
+                    el.value = 'EGO-' + p1 + '-' + p2;
+                    el.dispatchEvent(new Event('input'));
+                    el.focus();
+                }}
+            }})()">随机生成</button>"""
+        )
+        return format_html(
+            '<div style="display: inline-flex; align-items: center;">{}{}</div>',
+            mark_safe(input_html),
+            btn_html,
+        )
+
+
+class RedeemCodeAdminForm(forms.ModelForm):
+    class Meta:
+        model = RedeemCode
+        fields = "__all__"
+        widgets = {
+            "code": RedeemCodeWidget(attrs={"class": "vTextField", "style": "width: 240px;"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not self.instance.pk and not self.initial.get("code"):
+            self.initial["code"] = generate_redeem_code()
+
+
 @admin.register(RedeemCode)
 class RedeemCodeAdmin(TimeStampAdminMixin, admin.ModelAdmin):
+    form = RedeemCodeAdminForm
     list_display = (
         "code",
         "title",
@@ -424,12 +494,9 @@ class RedeemCodeAdmin(TimeStampAdminMixin, admin.ModelAdmin):
 
     def _batch_create_codes(self, request, count=10, reward_days=3):
         created_codes = []
-        chars = string.ascii_uppercase + string.digits
         for _ in range(count):
             # 格式: EGO-XXXX-XXXX
-            part1 = "".join(random.choices(chars, k=4))
-            part2 = "".join(random.choices(chars, k=4))
-            code_str = f"EGO-{part1}-{part2}"
+            code_str = generate_redeem_code()
             obj = RedeemCode.objects.create(
                 code=code_str,
                 title=f"小红书推广体验({reward_days}天)",

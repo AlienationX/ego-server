@@ -1,3 +1,6 @@
+import random
+import string
+
 from django.contrib.auth.models import User
 from django.db import models
 from django.db.models import F
@@ -303,6 +306,7 @@ class Profile(models.Model):
     region = models.CharField(max_length=60, verbose_name="行政区省市县", blank=True, null=True)
     updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
     wechat_openid = models.CharField(max_length=100, verbose_name="微信openid", blank=True, null=True)
+    wechat_session_key = models.CharField(max_length=128, verbose_name="微信session_key", blank=True, null=True)
     huawei_openid = models.CharField(max_length=100, verbose_name="华为openid", blank=True, null=True)
     huawei_unionid = models.CharField(max_length=100, verbose_name="华为unionid", blank=True, null=True)
 
@@ -561,6 +565,13 @@ class Product(models.Model):
     period_days = models.IntegerField(verbose_name="有效天数")
     description = models.CharField(max_length=255, verbose_name="营销文案", blank=True, null=True)
     description_en = models.CharField(max_length=255, verbose_name="营销文案(英文)", blank=True, null=True)
+    wx_product_id = models.CharField(
+        max_length=64,
+        verbose_name="微信虚拟支付道具ID",
+        blank=True,
+        null=True,
+        help_text="微信公众平台->虚拟支付->道具管理中创建并已发布的道具ID（未填写时默认使用套餐编码）",
+    )
     recommended = models.BooleanField(default=False, verbose_name="是否推荐")
     is_active = models.BooleanField(default=True, verbose_name="上下架状态")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
@@ -746,8 +757,22 @@ class UserAutoRotateConfig(models.Model):
         verbose_name_plural = "UserAutoRotateConfigs 自动换壁纸配置"
 
 
+def generate_redeem_code():
+    """生成格式如 EGO-XXXX-XXXX 的体验码（排除易混淆字符 0, O, 1, I）"""
+    chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+    part1 = "".join(random.choices(chars, k=4))
+    part2 = "".join(random.choices(chars, k=4))
+    return f"EGO-{part1}-{part2}"
+
+
 class RedeemCode(models.Model):
-    code = models.CharField(max_length=32, unique=True, db_index=True, verbose_name="体验码")
+    code = models.CharField(
+        max_length=32,
+        unique=True,
+        db_index=True,
+        default=generate_redeem_code,
+        verbose_name="体验码",
+    )
     title = models.CharField(max_length=100, default="小红书推广体验", verbose_name="活动名称")
     reward_days = models.PositiveIntegerField(default=3, verbose_name="赠送VIP天数")
     max_uses = models.PositiveIntegerField(default=1, verbose_name="最大可用次数")

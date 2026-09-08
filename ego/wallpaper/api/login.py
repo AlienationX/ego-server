@@ -78,8 +78,8 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
         if not code:
             return Response({"error": "缺少code参数"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # 2. 用 code 换 openid
-        openid = self._get_wechat_openid(code)
+        # 2. 用 code 换 openid 和 session_key
+        openid, session_key = self._get_wechat_openid(code)
         if not openid:
             return Response({"error": "微信登录失败 Invalid code"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -96,6 +96,9 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
             # 更新用户的 last_login 字段
             user.last_login = timezone.now()
             user.save(update_fields=["last_login"])
+            if session_key and hasattr(user, "profile"):
+                user.profile.wechat_session_key = session_key
+                user.profile.save(update_fields=["wechat_session_key"])
         else:
             username = f"wechat_{openid}"
             # password = User.objects.make_random_password()
@@ -106,6 +109,7 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
                 Profile.objects.create(
                     user=user,
                     wechat_openid=openid,
+                    wechat_session_key=session_key,
                     ip=ip_address,
                     nickname=generate_nickname(),
                     region=region,
@@ -192,7 +196,7 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
         pass
 
     def _get_wechat_openid(self, code):
-        # 获取微信小程序的openid
+        # 获取微信小程序的openid和session_key
         url = "https://api.weixin.qq.com/sns/jscode2session"
         params = {
             "appid": settings.WECHAT_APPID,
@@ -205,10 +209,10 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
             response = requests.get(url, params=params, timeout=5)
             data = response.json()
             # {'session_key': 'hkDdAFzHEBa2yIYk6VC90w==', 'openid': 'oqp6q7XoU8sdJ2UpAVJWug6SM8_U'}
-            return data.get("openid")
+            return data.get("openid"), data.get("session_key")
         except Exception as e:
             logger.error(f"Wechat openid 获取失败: {e}")
-            return None
+            return None, None
 
     def _get_region(self, ip):
         url = "http://whois.pconline.com.cn/ipJson.jsp"

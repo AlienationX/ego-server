@@ -2,6 +2,8 @@ import json
 import logging
 import random
 import time
+import requests
+import hashlib
 from datetime import timedelta
 
 from alipay.aop.api.AlipayClientConfig import AlipayClientConfig
@@ -25,6 +27,7 @@ from ..paginations import CustomPageNumberPagination
 from ..permissions import HasAccessKey
 from ..renderers import CustomJSONRenderer
 from ..serializers import OrderSerializer, ProductSerializer
+from ..utils.wechat_xpay import WeChatXPayService
 
 logger = logging.getLogger(__name__)
 
@@ -74,10 +77,28 @@ class ApiModelView(ListModelMixin, CreateModelMixin, RetrieveModelMixin, Generic
     @action(detail=False, methods=["get"], url_path="status/(?P<order_no>[^/.]+)")
     def order_status(self, request, order_no=None):
         """
-        GET /payment/status/{order_no}/ - 查询指定订单状态
+        GET /payment/status/{order_no}/ - 查询指定订单状态（支持微信虚拟支付自动兜底查单）
         """
         try:
             order = Order.objects.get(order_no=order_no, user=request.user)
+            # 若状态为 pending 且为微信虚拟支付，主动调用 query_order 进行兜底核实
+            if order.status == "pending" and order.payment_method == "wechat_virtual":
+                profile = getattr(request.user, "profile", None)
+                openid = profile.wechat_openid if profile else None
+                if openid:
+                    res = WeChatXPayService.query_order(openid, order.order_no)
+                    if res and res.get("errcode") == 0:
+                        order_info = res.get("order", {})
+                        # status: 0-待支付 1-已支付 2-已退款
+                        if order_info.get("status") == 1:
+                            with transaction.atomic():
+                                order.status = "paid"
+                                order.paid_at = timezone.now()
+                                order.transaction_id = order_info.get("wx_order_id") or ""
+                                order.save(update_fields=["status", "paid_at", "transaction_id"])
+                                self._grant_vip(order.user, order.period_days)
+                            logger.info(f"通过 query_order 兜底查单成功并已发货, order_no={order.order_no}")
+
             return Response({"order_no": order.order_no, "status": order.status})
         except Order.DoesNotExist:
             return Response({"error": "订单不存在"}, status=status.HTTP_404_NOT_FOUND)
@@ -228,9 +249,191 @@ class ApiModelView(ListModelMixin, CreateModelMixin, RetrieveModelMixin, Generic
         return Response({"message": "模拟支付成功"})
 
     @action(detail=False, methods=["post"])
+    def wechat_virtual_pay(self, request):
+        """
+        POST /payment/wechat_virtual_pay/ - 微信小程序虚拟支付（道具直购）下单
+        请求体: { product_id, channel, platform, code }
+        返回: { order_no, mode, signData, paySig, signature }
+        """
+        product_id = request.data.get("product_id")
+        channel = request.data.get("channel")
+        platform = request.data.get("platform")
+        code = request.data.get("code")
+        device_id = request.headers.get("Device-Id")
+
+        if not product_id:
+            return Response({"error": "缺少 product_id"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            product = Product.objects.get(id=product_id, is_active=True)
+        except Product.DoesNotExist:
+            return Response({"error": "商品不存在或已下架"}, status=status.HTTP_404_NOT_FOUND)
+
+        user = request.user
+        profile, _ = Profile.objects.get_or_create(user=user)
+
+        # 尝试通过前端传来的最新 code 刷新 session_key
+        if code:
+            try:
+                resp = requests.get(
+                    "https://api.weixin.qq.com/sns/jscode2session",
+                    params={
+                        "appid": settings.WECHAT_APPID,
+                        "secret": settings.WECHAT_SECRET,
+                        "js_code": code,
+                        "grant_type": "authorization_code",
+                    },
+                    timeout=5,
+                )
+                wx_res = resp.json()
+                s_key = wx_res.get("session_key")
+                o_id = wx_res.get("openid")
+                if s_key:
+                    profile.wechat_session_key = s_key
+                if o_id and not profile.wechat_openid:
+                    profile.wechat_openid = o_id
+                profile.save(update_fields=["wechat_session_key", "wechat_openid"])
+            except Exception as e:
+                logger.warning(f"通过 code 刷新 session_key 失败: {e}")
+
+        session_key = profile.wechat_session_key
+        if not session_key:
+            return Response({"error": "未获取到微信登录凭证，请在小程序端重新授权或传入 code"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 防重与幂等处理：若用户 5 分钟内针对同一商品存在待支付订单，直接复用
+        five_minutes_ago = timezone.now() - timedelta(minutes=5)
+        existing_order = (
+            Order.objects.filter(
+                user=user,
+                product=product,
+                payment_method="wechat_virtual",
+                status="pending",
+                created_at__gte=five_minutes_ago,
+            )
+            .order_by("-created_at")
+            .first()
+        )
+
+        if existing_order:
+            order = existing_order
+            logger.info("复用已存在的待支付微信虚拟支付订单，order_no=%s", order.order_no)
+        else:
+            with transaction.atomic():
+                order = Order.objects.create(
+                    order_no=self._generate_order_no(),
+                    user=user,
+                    device_id=device_id or "",
+                    product=product,
+                    product_name=product.name,
+                    price=product.price,
+                    original_price=product.original_price,
+                    currency=product.currency,
+                    period_days=product.period_days,
+                    amount=product.price,
+                    channel=channel or "wechat",
+                    platform=platform or "mp-weixin",
+                    payment_method="wechat_virtual",
+                    status="pending",
+                )
+
+        try:
+            # 微信虚拟支付金额单位为分
+            goods_price_fen = int(round(float(product.price) * 100))
+            # 道具ID：优先取 Product.wx_product_id，其次 code，其次 id
+            xpay_product_id = product.wx_product_id or product.code or f"vip_{product.id}"
+
+            pay_data = WeChatXPayService.build_order_pay_data(
+                out_trade_no=order.order_no,
+                product_id=xpay_product_id,
+                goods_price_fen=goods_price_fen,
+                session_key=session_key,
+                buy_quantity=1,
+                attach=f"user_{user.id}",
+            )
+
+            logger.info(f"微信虚拟支付下单成功, order_no={order.order_no}, pay_data={pay_data}")
+            return Response({
+                "order_no": order.order_no,
+                **pay_data,
+            })
+        except Exception as e:
+            logger.exception(f"微信虚拟支付下单失败, order_no={order.order_no}: {e}")
+            return Response({"error": f"微信虚拟支付下单失败: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=["get", "post"], permission_classes=[AllowAny])
+    def wechat_virtual_notify(self, request):
+        """
+        GET  /payment/wechat_virtual_notify/ - 微信公众平台消息推送服务器 Token 有效性验证
+        POST /payment/wechat_virtual_notify/ - 微信虚拟支付官方发货推送异步回调（无需鉴权）
+        微信推送格式为 XML，处理完毕后必须返回格式为 <xml><ErrCode>0</ErrCode><ErrMsg><![CDATA[success]]></ErrMsg></xml>
+        """
+        # 1. 响应微信公众平台后台配置消息推送时的 GET 校验请求
+        if request.method.lower() == "get":
+            signature = request.GET.get("signature", "")
+            timestamp = request.GET.get("timestamp", "")
+            nonce = request.GET.get("nonce", "")
+            echostr = request.GET.get("echostr", "")
+            token = getattr(settings, "WECHAT_MSG_TOKEN", "egowallpaper")
+            tmp_list = sorted([token, timestamp, nonce])
+            hashcode = hashlib.sha1("".join(tmp_list).encode("utf-8")).hexdigest()
+
+            if hashcode == signature:
+                logger.info("微信消息推送 Token 校验通过")
+                return HttpResponse(echostr, content_type="text/plain")
+            else:
+                logger.warning(f"微信消息推送 Token 校验不匹配, calc={hashcode}, sign={signature}, echostr={echostr}")
+                return HttpResponse(echostr, content_type="text/plain")
+
+        # 获取原始 XML 内容
+        raw_body = request.body.decode("utf-8") if isinstance(request.body, bytes) else str(request.body or "")
+        logger.info(f"收到微信虚拟支付发货推送: {raw_body}")
+
+        notify_data = WeChatXPayService.parse_deliver_notify_xml(raw_body)
+        if not notify_data:
+            logger.error("解析微信虚拟支付发货推送失败")
+            return HttpResponse(WeChatXPayService.format_deliver_response(-1, "invalid xml"), content_type="text/xml")
+
+        event = notify_data.get("event")
+        out_trade_no = notify_data.get("out_trade_no")
+        wx_order_id = notify_data.get("wx_order_id")
+
+        if event != "xpay_goods_deliver_notify":
+            logger.warning(f"忽略非发货推送事件: {event}")
+            return HttpResponse(WeChatXPayService.format_deliver_response(0, "success"), content_type="text/xml")
+
+        if not out_trade_no:
+            logger.error("推送数据缺少 OutTradeNo")
+            return HttpResponse(WeChatXPayService.format_deliver_response(-1, "missing out_trade_no"), content_type="text/xml")
+
+        try:
+            with transaction.atomic():
+                order = Order.objects.select_for_update().filter(order_no=out_trade_no).first()
+                if not order:
+                    logger.error(f"发货推送对应订单不存在: {out_trade_no}")
+                    return HttpResponse(WeChatXPayService.format_deliver_response(-1, "order not found"), content_type="text/xml")
+
+                # 幂等核验：若已发货，直接回复成功
+                if order.status == "paid":
+                    logger.info(f"订单已发货，幂等直接返回成功: {out_trade_no}")
+                    return HttpResponse(WeChatXPayService.format_deliver_response(0, "success"), content_type="text/xml")
+
+                # 发货并开通权益
+                order.status = "paid"
+                order.paid_at = timezone.now()
+                order.transaction_id = wx_order_id or order.transaction_id or ""
+                order.save(update_fields=["status", "paid_at", "transaction_id"])
+                self._grant_vip(order.user, order.period_days)
+                logger.info(f"微信虚拟支付发货成功，已为用户 {order.user_id} 激活 VIP {order.period_days} 天, order_no={out_trade_no}, wx_order_id={wx_order_id}")
+
+            return HttpResponse(WeChatXPayService.format_deliver_response(0, "success"), content_type="text/xml")
+        except Exception as e:
+            logger.exception(f"处理微信发货推送异常, out_trade_no={out_trade_no}: {e}")
+            return HttpResponse(WeChatXPayService.format_deliver_response(-1, str(e)), content_type="text/xml")
+
+    @action(detail=False, methods=["post"])
     def wxpay(self, request):
-        """POST /payment/wxpay/ - 微信支付（待实现）"""
-        return Response({"error": "微信支付暂未开放"}, status=status.HTTP_501_NOT_IMPLEMENTED)
+        """POST /payment/wxpay/ - 微信App支付（保留备用）"""
+        return Response({"error": "微信App支付暂未开放"}, status=status.HTTP_501_NOT_IMPLEMENTED)
 
     @action(detail=False, methods=["post"])
     def paypal(self, request):
