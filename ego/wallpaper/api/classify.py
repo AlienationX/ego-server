@@ -32,6 +32,11 @@ class ApiModelView(ListModelMixin, RetrieveModelMixin, GenericViewSet):
         if enable:
             queryset = queryset.filter(enable=enable)
 
+        # 获取查询参数中的 classify_type
+        classify_type = self.request.query_params.get("classify_type")
+        if classify_type:
+            queryset = queryset.filter(classify_type=classify_type)
+
         # 如果 select 参数存在，则过滤查询集
         if select:
             # select=true即首页显示的分类，只显示8条即可

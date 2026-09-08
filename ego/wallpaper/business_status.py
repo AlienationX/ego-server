@@ -87,6 +87,10 @@ class BusinessStatus(IntEnum):
     ORDER_CREATE_FAILED = 5003
     PAYMENT_FAILED = 5004
     USER_FROZEN = 5005
+    REDEEM_CODE_NOT_FOUND = 5010
+    REDEEM_CODE_EXPIRED = 5011
+    REDEEM_CODE_EXHAUSTED = 5012
+    REDEEM_CODE_ALREADY_USED = 5013
 
     # 第三方服务 (6xxx)
     THIRD_PARTY_ERROR = 6000
@@ -138,6 +142,10 @@ BUSINESS_MESSAGES = {
     BusinessStatus.ORDER_CREATE_FAILED: "订单创建失败",
     BusinessStatus.PAYMENT_FAILED: "支付失败",
     BusinessStatus.USER_FROZEN: "用户已被冻结",
+    BusinessStatus.REDEEM_CODE_NOT_FOUND: "体验码不存在或已被作废",
+    BusinessStatus.REDEEM_CODE_EXPIRED: "该体验码已过期",
+    BusinessStatus.REDEEM_CODE_EXHAUSTED: "手慢了，该体验码已被领完",
+    BusinessStatus.REDEEM_CODE_ALREADY_USED: "您已兑换过该体验码，请勿重复使用",
     # 第三方服务
     BusinessStatus.THIRD_PARTY_ERROR: "第三方服务错误",
     BusinessStatus.WEIXIN_ERROR: "微信服务错误",

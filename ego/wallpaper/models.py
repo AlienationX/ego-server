@@ -745,3 +745,39 @@ class UserAutoRotateConfig(models.Model):
         verbose_name = "自动换壁纸配置"
         verbose_name_plural = "UserAutoRotateConfigs 自动换壁纸配置"
 
+
+class RedeemCode(models.Model):
+    code = models.CharField(max_length=32, unique=True, db_index=True, verbose_name="体验码")
+    title = models.CharField(max_length=100, default="小红书推广体验", verbose_name="活动名称")
+    reward_days = models.PositiveIntegerField(default=3, verbose_name="赠送VIP天数")
+    max_uses = models.PositiveIntegerField(default=1, verbose_name="最大可用次数")
+    used_count = models.PositiveIntegerField(default=0, verbose_name="已使用次数")
+    is_active = models.BooleanField(default=True, verbose_name="是否启用")
+    valid_end = models.DateTimeField(null=True, blank=True, verbose_name="有效期截止时间")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
+
+    def __str__(self):
+        return f"{self.code} ({self.title} - {self.reward_days}天)"
+
+    class Meta:
+        verbose_name = "体验码"
+        verbose_name_plural = "RedeemCodes 体验码管理"
+        ordering = ["-created_at"]
+
+
+class RedeemRecord(models.Model):
+    code = models.ForeignKey(RedeemCode, on_delete=models.CASCADE, related_name="records", verbose_name="对应体验码")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="redeem_records", verbose_name="兑换用户")
+    reward_desc = models.CharField(max_length=100, verbose_name="获得权益描述")
+    ip_address = models.CharField(max_length=50, blank=True, null=True, verbose_name="兑换IP")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="兑换时间")
+
+    def __str__(self):
+        return f"{self.user.username} 兑换了 {self.code.code}"
+
+    class Meta:
+        verbose_name = "兑换明细记录"
+        verbose_name_plural = "RedeemRecords 兑换明细记录"
+        unique_together = ("code", "user")
+        ordering = ["-created_at"]
+

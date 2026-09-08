@@ -1,4 +1,6 @@
 import json
+import random
+import string
 
 from django.contrib import admin
 from django.utils import timezone
@@ -17,6 +19,8 @@ from .models import (
     Order,
     Product,
     Profile,
+    RedeemCode,
+    RedeemRecord,
     SearchKeyword,
     SearchLog,
     Subject,
@@ -377,6 +381,97 @@ class SearchLogAdmin(admin.ModelAdmin, TimeStampAdminMixin):
     user_display.short_description = "用户"
 
 
+class RedeemRecordInline(admin.TabularInline):
+    model = RedeemRecord
+    extra = 0
+    can_delete = False
+    readonly_fields = ("user", "reward_desc", "ip_address", "created_at")
+    fields = ("user", "reward_desc", "ip_address", "created_at")
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(RedeemCode)
+class RedeemCodeAdmin(TimeStampAdminMixin, admin.ModelAdmin):
+    list_display = (
+        "code",
+        "title",
+        "reward_days",
+        "usage_display",
+        "is_active",
+        "valid_end",
+        "formatted_created_at",
+    )
+    list_filter = ("is_active", "reward_days", "created_at")
+    search_fields = ("code", "title")
+    inlines = [RedeemRecordInline]
+    actions = ["generate_batch_10_codes_3days", "generate_batch_10_codes_7days"]
+
+    def usage_display(self, obj):
+        color = "green" if obj.used_count < obj.max_uses else "red"
+        return format_html('<span style="color: {}; font-weight: bold;">{}/{}</span>', color, obj.used_count, obj.max_uses)
+
+    usage_display.short_description = "已用/总量"
+
+    @admin.action(description="⚡️ 批量生成 10 个体验码 (3天VIP)")
+    def generate_batch_10_codes_3days(self, request, queryset):
+        self._batch_create_codes(request, count=10, reward_days=3)
+
+    @admin.action(description="⚡️ 批量生成 10 个体验码 (7天VIP)")
+    def generate_batch_10_codes_7days(self, request, queryset):
+        self._batch_create_codes(request, count=10, reward_days=7)
+
+    def _batch_create_codes(self, request, count=10, reward_days=3):
+        created_codes = []
+        chars = string.ascii_uppercase + string.digits
+        for _ in range(count):
+            # 格式: EGO-XXXX-XXXX
+            part1 = "".join(random.choices(chars, k=4))
+            part2 = "".join(random.choices(chars, k=4))
+            code_str = f"EGO-{part1}-{part2}"
+            obj = RedeemCode.objects.create(
+                code=code_str,
+                title=f"小红书推广体验({reward_days}天)",
+                reward_days=reward_days,
+                max_uses=1,
+                is_active=True,
+            )
+            created_codes.append(obj.code)
+
+        codes_text = " , ".join(created_codes)
+        self.message_user(
+            request,
+            f"✅ 成功生成 {count} 个 {reward_days} 天 VIP 体验码: {codes_text}"
+        )
+
+@admin.register(RedeemRecord)
+class RedeemRecordAdmin(TimeStampAdminMixin, admin.ModelAdmin):
+    list_display = (
+        "code_display",
+        "user_display",
+        "reward_desc",
+        "ip_address",
+        "formatted_created_at",
+    )
+    search_fields = ("code__code", "user__username", "user__email", "ip_address")
+    list_filter = ("created_at",)
+    readonly_fields = ("code", "user", "reward_desc", "ip_address", "created_at")
+
+    def code_display(self, obj):
+        return obj.code.code
+
+    code_display.short_description = "体验码"
+
+    def user_display(self, obj):
+        return f"{obj.user.username} (ID: {obj.user.id})"
+
+    user_display.short_description = "兑换用户"
+
+    def has_add_permission(self, request):
+        return False
+
+
 admin.site.register(Classify, ClassifyAdmin)
 admin.site.register(Subject, SubjectAdmin)
 admin.site.register(Wall, WallAdmin)
@@ -388,4 +483,6 @@ admin.site.register(Banner, BannerAdmin)
 # admin.site.register(Versions, VersionsAdmin)
 # admin.site.register(UserActions, UserActionsAdmin)
 # admin.site.register(EnergyLog, EnergyLogAdmin)
+# admin.site.register(RedeemCode, RedeemCodeAdmin)
+# admin.site.register(RedeemRecord, RedeemRecordAdmin)
 admin.site.register(Application)

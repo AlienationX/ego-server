@@ -44,6 +44,11 @@ class ApiModelView(ListModelMixin, CreateModelMixin, RetrieveModelMixin, Generic
         if subject_id:
             queryset = queryset.filter(subjects__id=subject_id)
 
+        # 获取查询参数中的 classify_type (1: 手机壁纸, 2: 横屏壁纸, 3: 动态壁纸, 4: 头像)
+        classify_type = self.request.query_params.get("classify_type")
+        if classify_type:
+            queryset = queryset.filter(classify__classify_type=classify_type)
+
         # 获取查询参数中的 classify_enable
         classify_enable = self.request.query_params.get("classify_enable", "true").lower()
         if classify_enable != "false":
