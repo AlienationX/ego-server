@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ego 壁纸 BI 数据中心 - Dashboard</title>
+
+  <!-- 1. 最新版 Tailwind CSS & daisyUI -->
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@latest/dist/full.min.css" rel="stylesheet" type="text/css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- 2. 最新版 Apache ECharts -->
+  <script src="https://cdn.jsdelivr.net/npm/echarts@latest/dist/echarts.min.js"></script>
+
+  <!-- 3. 最新版 Alpine.js -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@latest/dist/cdn.min.js"></script>
+
+  <style>
+    [x-cloak] { display: none !important; }
+    /* 平滑过渡 */
+    .fade-in {
+      animation: fadeIn 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    /* 自定义滚动条 */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(156, 163, 175, 0.3);
+      border-radius: 4px;
+    }
+  </style>
+</head>
+
+<body class="bg-base-200 text-base-content min-h-screen p-4 md:p-6" x-data="biApp()" x-init="init()" x-cloak>
+
+  <!-- 顶部主导航栏 -->
+  <header class="navbar bg-base-100 rounded-2xl shadow-md border border-base-300 mb-6 flex-wrap gap-3 px-4 py-3">
+    <!-- 品牌与标题 -->
+    <div class="flex items-center gap-3 flex-1 min-w-[240px]">
+      <div class="w-10 h-10 rounded-xl bg-primary/20 text-primary flex items-center justify-center font-bold text-xl shadow-inner">
+        📊
+      </div>
+      <div>
+        <h1 class="text-lg md:text-xl font-black tracking-tight flex items-center gap-2">
+          Ego 壁纸 BI 数据中心
+          <span class="badge badge-primary badge-sm font-normal">v1.0</span>
+        </h1>
+        <p class="text-xs text-base-content/60">多维用户行为、渠道获客与商业化分析大盘</p>
+      </div>
+    </div>
+
+    <!-- 筛选工具栏 -->
+    <div class="flex items-center gap-2 flex-wrap">
+      <!-- 渠道下拉筛选 -->
+      <div class="form-control">
+        <select class="select select-bordered select-sm bg-base-100 font-medium" x-model="filter.channel" @change="fetchData()">
+          <option value="all">🌐 全部渠道</option>
+          <template x-for="ch in options.channels" :key="ch">
+            <option :value="ch" x-text="ch"></option>
+          </template>
+        </select>
+      </div>
+
+      <!-- 平台下拉筛选 -->
+      <div class="form-control">
+        <select class="select select-bordered select-sm bg-base-100 font-medium" x-model="filter.platform" @change="fetchData()">
+          <option value="all">📱 全部平台</option>
+          <template x-for="pl in options.platforms" :key="pl">
+            <option :value="pl" x-text="pl"></option>
+          </template>
+        </select>
+      </div>
+
+      <!-- 时间粒度切换 (日/月) -->
+      <div class="join border border-base-300 rounded-lg overflow-hidden">
+        <button class="btn btn-sm join-item font-normal" 
+                :class="filter.granularity === 'day' ? 'btn-primary font-bold' : 'btn-ghost'"
+                @click="setGranularity('day')">按日</button>
+        <button class="btn btn-sm join-item font-normal" 
+                :class="filter.granularity === 'month' ? 'btn-primary font-bold' : 'btn-ghost'"
+                @click="setGranularity('month')">按月</button>
+      </div>
+
+      <!-- 日期快捷选择器 -->
+      <div class="join border border-base-300 rounded-lg overflow-hidden">
+        <button class="btn btn-sm join-item font-normal" :class="filter.days === 7 && !isCustomDate ? 'btn-primary font-bold' : 'btn-ghost'" @click="setDays(7)">7天</button>
+        <button class="btn btn-sm join-item font-normal" :class="filter.days === 14 && !isCustomDate ? 'btn-primary font-bold' : 'btn-ghost'" @click="setDays(14)">14天</button>
+        <button class="btn btn-sm join-item font-normal" :class="filter.days === 30 && !isCustomDate ? 'btn-primary font-bold' : 'btn-ghost'" @click="setDays(30)">30天</button>
+        <button class="btn btn-sm join-item font-normal" :class="isCustomDate ? 'btn-primary font-bold' : 'btn-ghost'" @click="toggleCustomDate()">自定义</button>
+      </div>
+
+      <!-- 刷新按钮 -->
+      <button class="btn btn-sm btn-circle btn-ghost" :class="loading ? 'animate-spin' : ''" @click="fetchData()" title="刷新数据">
+        🔄
+      </button>
+
+      <!-- 暗黑/明亮主题切换 -->
+      <button class="btn btn-sm btn-circle btn-ghost" @click="toggleTheme()" title="切换明亮/暗黑主题">
+        <span x-show="theme === 'dark'">☀️</span>
+        <span x-show="theme === 'light'">🌙</span>
+      </button>
+    </div>
+
+    <!-- 自定义日期展开面板 -->
+    <div x-show="isCustomDate" x-transition class="w-full pt-3 mt-2 border-t border-base-300 flex items-center justify-end gap-3 text-sm">
+      <span class="text-base-content/70">自定义区间：</span>
+      <input type="date" class="input input-bordered input-xs" x-model="filter.start_date" />
+      <span>至</span>
+      <input type="date" class="input input-bordered input-xs" x-model="filter.end_date" />
+      <button class="btn btn-primary btn-xs" @click="fetchData()">应用日期</button>
+    </div>
+  </header>
+
+  <!-- Tab 标签页组 -->
+  <div class="tabs tabs-boxed bg-base-100 p-1.5 rounded-2xl shadow-sm border border-base-300 mb-6 flex-wrap gap-1 w-fit">
+    <template x-for="tab in tabs" :key="tab.key">
+      <button class="tab tab-md font-medium transition-all gap-2"
+              :class="activeTab === tab.key ? 'tab-active !bg-primary !text-primary-content font-bold shadow' : 'text-base-content/70 hover:text-base-content'"
+              @click="switchTab(tab.key)">
+        <span x-text="tab.icon"></span>
+        <span x-text="tab.name"></span>
+      </button>
+    </template>
+  </div>
+
+  <!-- 全局加载状态指示条 -->
+  <div x-show="loading" class="w-full mb-4">
+    <progress class="progress progress-primary w-full h-1"></progress>
+  </div>
+
+  <!-- ======================== TAB 1: 核心总览 ======================== -->
+  <section x-show="activeTab === 'overview'" class="fade-in space-y-6">
+    <!-- 7 大核心 KPI 指标卡 (daisyUI stats) -->
+    <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3.5">
+      <!-- 1. DAU -->
+      <div class="stats bg-base-100 shadow border border-base-300">
+        <div class="stat p-4">
+          <div class="stat-figure text-primary text-xl">👥</div>
+          <div class="stat-title text-xs">周期活跃设备</div>
+          <div class="stat-value text-primary text-xl font-bold" x-text="cards.dau.toLocaleString()"></div>
+          <div class="stat-desc text-xs font-semibold" :class="isPositive(cards.dau_growth) ? 'text-success' : 'text-error'" x-text="cards.dau_growth + ' 较上周期'"></div>
+        </div>
+      </div>
+
+      <!-- 2. 今日实时 DAU -->
+      <div class="stats bg-base-100 shadow border border-base-300">
+        <div class="stat p-4">
+          <div class="stat-figure text-secondary text-xl">⚡</div>
+          <div class="stat-title text-xs">今日实时 DAU</div>
+          <div class="stat-value text-secondary text-xl font-bold" x-text="cards.today_dau.toLocaleString()"></div>
+          <div class="stat-desc text-xs text-base-content/50">今日截止目前</div>
+        </div>
+      </div>
+
+      <!-- 3. 新增设备访客 -->
+      <div class="stats bg-base-100 shadow border border-base-300">
+        <div class="stat p-4">
+          <div class="stat-figure text-accent text-xl">🌱</div>
+          <div class="stat-title text-xs">新增渠道访客</div>
+          <div class="stat-value text-accent text-xl font-bold" x-text="cards.new_devices.toLocaleString()"></div>
+          <div class="stat-desc text-xs font-semibold" :class="isPositive(cards.new_devices_growth) ? 'text-success' : 'text-error'" x-text="cards.new_devices_growth + ' 较上周期'"></div>
+        </div>
+      </div>
+
+      <!-- 4. 新注册用户 -->
+      <div class="stats bg-base-100 shadow border border-base-300">
+        <div class="stat p-4">
+          <div class="stat-figure text-info text-xl">📝</div>
+          <div class="stat-title text-xs">新注册用户</div>
+          <div class="stat-value text-info text-xl font-bold" x-text="cards.new_registers.toLocaleString()"></div>
+          <div class="stat-desc text-xs font-semibold" :class="isPositive(cards.new_registers_growth) ? 'text-success' : 'text-error'" x-text="cards.new_registers_growth + ' 较上周期'"></div>
+        </div>
+      </div>
+
+      <!-- 5. VIP开通数 -->
+      <div class="stats bg-base-100 shadow border border-base-300">
+        <div class="stat p-4">
+          <div class="stat-figure text-warning text-xl">💎</div>
+          <div class="stat-title text-xs">VIP开通订单</div>
+          <div class="stat-value text-warning text-xl font-bold" x-text="cards.vip_orders.toLocaleString()"></div>
+          <div class="stat-desc text-xs font-semibold" :class="isPositive(cards.vip_orders_growth) ? 'text-success' : 'text-error'" x-text="cards.vip_orders_growth + ' 较上周期'"></div>
+        </div>
+      </div>
+
+      <!-- 6. VIP 营收 (GMV) -->
+      <div class="stats bg-base-100 shadow border border-base-300">
+        <div class="stat p-4">
+          <div class="stat-figure text-success text-xl">💰</div>
+          <div class="stat-title text-xs">VIP营收流水</div>
+          <div class="stat-value text-success text-xl font-bold" x-text="'¥' + cards.vip_revenue.toFixed(2)"></div>
+          <div class="stat-desc text-xs font-semibold" :class="isPositive(cards.vip_revenue_growth) ? 'text-success' : 'text-error'" x-text="cards.vip_revenue_growth + ' 较上周期'"></div>
+        </div>
+      </div>
+
+      <!-- 7. 壁纸下载量 -->
+      <div class="stats bg-base-100 shadow border border-base-300">
+        <div class="stat p-4">
+          <div class="stat-figure text-error text-xl">📥</div>
+          <div class="stat-title text-xs">壁纸下载量</div>
+          <div class="stat-value text-error text-xl font-bold" x-text="cards.downloads.toLocaleString()"></div>
+          <div class="stat-desc text-xs font-semibold" :class="isPositive(cards.downloads_growth) ? 'text-success' : 'text-error'" x-text="cards.downloads_growth + ' 较上周期'"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 趋势与占比图表行 -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- 核心双折线走势图 -->
+      <div class="card bg-base-100 shadow-md border border-base-300 lg:col-span-2">
+        <div class="card-body p-5">
+          <div class="flex justify-between items-center mb-1">
+            <h2 class="card-title text-base font-bold flex items-center gap-2">
+              <span>📈</span> 活跃设备与新增访客走势
+            </h2>
+            <span class="badge badge-sm badge-ghost" x-text="filter.granularity === 'day' ? '按日粒度' : '按月粒度'"></span>
+          </div>
+          <div id="overviewTrendChart" class="w-full h-80"></div>
+        </div>
+      </div>
+
+      <!-- 渠道获客环形图 -->
+      <div class="card bg-base-100 shadow-md border border-base-300">
+        <div class="card-body p-5">
+          <h2 class="card-title text-base font-bold flex items-center gap-2 mb-1">
+            <span>🍩</span> 各渠道活跃设备分布
+          </h2>
+          <div id="overviewChannelPie" class="w-full h-80"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================== TAB 2: 用户与增长 ======================== -->
+  <section x-show="activeTab === 'growth'" class="fade-in space-y-6">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- 新增访客 vs 新注册用户 对比图 -->
+      <div class="card bg-base-100 shadow-md border border-base-300">
+        <div class="card-body p-5">
+          <h2 class="card-title text-base font-bold flex items-center gap-2 mb-1">
+            <span>👥</span> 新增访客 vs 新注册转化走势
+          </h2>
+          <div id="growthConversionChart" class="w-full h-80"></div>
+        </div>
+      </div>
+
+      <!-- 平台设备分布柱状图 -->
+      <div class="card bg-base-100 shadow-md border border-base-300">
+        <div class="card-body p-5">
+          <h2 class="card-title text-base font-bold flex items-center gap-2 mb-1">
+            <span>📱</span> 平台系统活跃占比
+          </h2>
+          <div id="growthPlatformChart" class="w-full h-80"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 用户存量与概括卡片 -->
+    <div class="card bg-base-100 shadow-md border border-base-300">
+      <div class="card-body p-5">
+        <h2 class="card-title text-base font-bold mb-3">💡 用户增长健康度评估</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+          <div class="p-4 rounded-xl bg-base-200/60">
+            <div class="text-xs text-base-content/60 mb-1">渠道访客转化率 (新注册/新增访客)</div>
+            <div class="text-2xl font-bold text-accent" 
+                 x-text="cards.new_devices > 0 ? ((cards.new_registers / cards.new_devices) * 100).toFixed(1) + '%' : '0%'"></div>
+          </div>
+          <div class="p-4 rounded-xl bg-base-200/60">
+            <div class="text-xs text-base-content/60 mb-1">周期活跃用户数</div>
+            <div class="text-2xl font-bold text-primary" x-text="cards.dau.toLocaleString()"></div>
+          </div>
+          <div class="p-4 rounded-xl bg-base-200/60">
+            <div class="text-xs text-base-content/60 mb-1">新注册用户总量</div>
+            <div class="text-2xl font-bold text-info" x-text="cards.new_registers.toLocaleString()"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================== TAB 3: 会员与营收 ======================== -->
+  <section x-show="activeTab === 'vip'" class="fade-in space-y-6">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- 营收与订单双轴走势图 -->
+      <div class="card bg-base-100 shadow-md border border-base-300 lg:col-span-2">
+        <div class="card-body p-5">
+          <h2 class="card-title text-base font-bold flex items-center gap-2 mb-1">
+            <span>💎</span> 会员开通订单量与营收走势
+          </h2>
+          <div id="vipRevenueChart" class="w-full h-80"></div>
+        </div>
+      </div>
+
+      <!-- VIP 商品销售结构占比 -->
+      <div class="card bg-base-100 shadow-md border border-base-300">
+        <div class="card-body p-5">
+          <h2 class="card-title text-base font-bold flex items-center gap-2 mb-1">
+            <span>📦</span> 会员套餐销量结构
+          </h2>
+          <div id="vipProductPie" class="w-full h-80"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 会员存量指标卡 -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="stats bg-base-100 shadow border border-base-300">
+        <div class="stat">
+          <div class="stat-figure text-warning text-2xl">👑</div>
+          <div class="stat-title">当前有效 VIP 会员存量</div>
+          <div class="stat-value text-warning text-3xl font-bold" x-text="cards.active_vips.toLocaleString()"></div>
+          <div class="stat-desc">系统内有效会员总资产</div>
+        </div>
+      </div>
+
+      <div class="stats bg-base-100 shadow border border-base-300">
+        <div class="stat">
+          <div class="stat-figure text-error text-2xl">⏰</div>
+          <div class="stat-title">7天内即将到期会员</div>
+          <div class="stat-value text-error text-3xl font-bold" x-text="cards.expiring_soon_vips.toLocaleString()"></div>
+          <div class="stat-desc">需重点做触达与续费引导</div>
+        </div>
+      </div>
+
+      <div class="stats bg-base-100 shadow border border-base-300">
+        <div class="stat">
+          <div class="stat-figure text-success text-2xl">📈</div>
+          <div class="stat-title">当前平均客单价 (ARPU)</div>
+          <div class="stat-value text-success text-3xl font-bold" 
+               x-text="cards.vip_orders > 0 ? '¥' + (cards.vip_revenue / cards.vip_orders).toFixed(2) : '¥0.00'"></div>
+          <div class="stat-desc">订单实付均值</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================== TAB 4: 内容与消费 ======================== -->
+  <section x-show="activeTab === 'wallpaper'" class="fade-in space-y-6">
+    <!-- 下载走势图 -->
+    <div class="card bg-base-100 shadow-md border border-base-300">
+      <div class="card-body p-5">
+        <h2 class="card-title text-base font-bold flex items-center gap-2 mb-1">
+          <span>🖼️</span> 壁纸下载量趋势
+        </h2>
+        <div id="wallpaperDownloadChart" class="w-full h-80"></div>
+      </div>
+    </div>
+
+    <!-- 热门壁纸排行列表 TOP 20 -->
+    <div class="card bg-base-100 shadow-md border border-base-300">
+      <div class="card-body p-5">
+        <div class="flex justify-between items-center mb-3">
+          <h2 class="card-title text-base font-bold flex items-center gap-2">
+            <span>🏆</span> 热门壁纸下载榜单 (TOP 20)
+          </h2>
+          <span class="text-xs text-base-content/60">根据所选时间范围内下载行为聚合</span>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="table table-zebra table-sm w-full">
+            <thead>
+              <tr class="bg-base-200">
+                <th class="w-12 text-center">排名</th>
+                <th class="w-20">预览</th>
+                <th>壁纸信息</th>
+                <th>所属分类</th>
+                <th>发布者</th>
+                <th class="text-right">下载次数</th>
+                <th class="text-right">收藏次数</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="(wall, idx) in wallpaperRank" :key="wall.id">
+                <tr class="hover">
+                  <td class="text-center font-bold">
+                    <span class="badge badge-sm font-bold"
+                          :class="idx === 0 ? 'badge-warning text-warning-content' : (idx === 1 ? 'badge-accent' : (idx === 2 ? 'badge-info' : 'badge-ghost'))"
+                          x-text="idx + 1"></span>
+                  </td>
+                  <td>
+                    <div class="avatar">
+                      <div class="w-12 h-16 rounded-lg bg-base-300 overflow-hidden shadow-inner">
+                        <img :src="wall.picurl" :alt="wall.description" loading="lazy" class="object-cover w-full h-full" onerror="this.src='https://placehold.co/100x150?text=No+Pic'" />
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="font-semibold text-sm max-w-xs truncate" x-text="wall.description"></div>
+                    <div class="text-xs text-base-content/50">ID: <span x-text="wall.id"></span></div>
+                  </td>
+                  <td>
+                    <span class="badge badge-ghost badge-sm" x-text="wall.classify_name"></span>
+                  </td>
+                  <td class="text-xs text-base-content/70" x-text="wall.publisher"></td>
+                  <td class="text-right font-bold text-error" x-text="wall.download_count.toLocaleString()"></td>
+                  <td class="text-right font-medium text-warning" x-text="wall.favorite_count.toLocaleString()"></td>
+                </tr>
+              </template>
+              <tr x-show="wallpaperRank.length === 0">
+                <td colspan="7" class="text-center py-8 text-base-content/50">当前时段暂无下载记录</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================== TAB 5: 多维明细透视 ======================== -->
+  <section x-show="activeTab === 'explorer'" class="fade-in space-y-6">
+    <div class="card bg-base-100 shadow-md border border-base-300">
+      <div class="card-body p-5">
+        <div class="flex justify-between items-center flex-wrap gap-3 mb-4">
+          <div>
+            <h2 class="card-title text-base font-bold flex items-center gap-2">
+              <span>🔍</span> 日期 × 渠道 × 平台 明细数据
+            </h2>
+            <p class="text-xs text-base-content/60">可查看各端每天的访问与设备活跃情况</p>
+          </div>
+          <button class="btn btn-sm btn-outline btn-primary gap-2" @click="exportCSV()">
+            <span>📥</span> 导出 Excel/CSV 报表
+          </button>
+        </div>
+
+        <div class="overflow-x-auto border border-base-200 rounded-xl">
+          <table class="table table-zebra table-sm w-full">
+            <thead>
+              <tr class="bg-base-200">
+                <th>日期</th>
+                <th>渠道 (Channel)</th>
+                <th>平台 (Platform)</th>
+                <th class="text-right">访问量 (PV)</th>
+                <th class="text-right">独立活跃设备 (DAU)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="row in detailTable" :key="row.date + row.channel + row.platform">
+                <tr class="hover">
+                  <td class="font-mono text-xs font-semibold" x-text="row.date"></td>
+                  <td><span class="badge badge-outline badge-sm" x-text="row.channel"></span></td>
+                  <td><span class="badge badge-ghost badge-sm" x-text="row.platform"></span></td>
+                  <td class="text-right font-mono" x-text="row.pv.toLocaleString()"></td>
+                  <td class="text-right font-mono font-bold text-primary" x-text="row.dau.toLocaleString()"></td>
+                </tr>
+              </template>
+              <tr x-show="detailTable.length === 0">
+                <td colspan="5" class="text-center py-8 text-base-content/50">当前条件无明细记录</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 全局页脚 -->
+  <footer class="footer footer-center p-4 mt-12 text-base-content/50 text-xs">
+    <div>
+      <p>Ego 壁纸业务智能系统 · 实时数据支持 · Powered by Django, daisyUI, Alpine.js & ECharts</p>
+    </div>
+  </footer>
+
+  <!-- ======================== Alpine.js 核心驱动逻辑 ======================== -->
+  <script>
+    function biApp() {
+      return {
+        theme: 'dark',
+        activeTab: 'overview',
+        loading: false,
+        isCustomDate: false,
+
+        tabs: [
+          { key: 'overview', name: '核心总览', icon: '📌' },
+          { key: 'growth', name: '用户与增长', icon: '👥' },
+          { key: 'vip', name: '会员与营收', icon: '💎' },
+          { key: 'wallpaper', name: '内容与消费', icon: '🖼️' },
+          { key: 'explorer', name: '多维明细透视', icon: '🔍' },
+        ],
+
+        filter: {
+          days: 7,
+          start_date: '',
+          end_date: '',
+          channel: 'all',
+          platform: 'all',
+          granularity: 'day',
+        },
+
+        options: {
+          channels: {{ channels|safe|default:"[]" }},
+          platforms: {{ platforms|safe|default:"[]" }},
+        },
+
+        cards: {
+          dau: 0,
+          dau_growth: '0%',
+          today_dau: 0,
+          new_devices: 0,
+          new_devices_growth: '0%',
+          new_registers: 0,
+          new_registers_growth: '0%',
+          vip_orders: 0,
+          vip_orders_growth: '0%',
+          vip_revenue: 0,
+          vip_revenue_growth: '0%',
+          active_vips: 0,
+          expiring_soon_vips: 0,
+          downloads: 0,
+          downloads_growth: '0%',
+        },
+
+        wallpaperRank: [],
+        detailTable: [],
+
+        // ECharts 实例缓存
+        charts: {},
+
+        init() {
+          // 初始化主题
+          const savedTheme = localStorage.getItem('ego_bi_theme') || 'dark';
+          this.setTheme(savedTheme);
+
+          // 初始化图表实例
+          this.$nextTick(() => {
+            this.initChartInstances();
+            this.fetchData();
+          });
+
+          // 窗口 Resize 监听
+          window.addEventListener('resize', () => {
+            Object.values(this.charts).forEach(c => c && c.resize());
+          });
+        },
+
+        initChartInstances() {
+          const initC = (id) => {
+            const el = document.getElementById(id);
+            if (el) {
+              const c = echarts.init(el, this.theme);
+              this.charts[id] = c;
+              return c;
+            }
+            return null;
+          };
+
+          initC('overviewTrendChart');
+          initC('overviewChannelPie');
+          initC('growthConversionChart');
+          initC('growthPlatformChart');
+          initC('vipRevenueChart');
+          initC('vipProductPie');
+          initC('wallpaperDownloadChart');
+        },
+
+        switchTab(tabKey) {
+          this.activeTab = tabKey;
+          // Tab 切换时触发图表自适应 resize
+          this.$nextTick(() => {
+            setTimeout(() => {
+              Object.values(this.charts).forEach(c => c && c.resize());
+            }, 50);
+          });
+        },
+
+        setDays(num) {
+          this.filter.days = num;
+          this.isCustomDate = false;
+          this.filter.start_date = '';
+          this.filter.end_date = '';
+          this.fetchData();
+        },
+
+        toggleCustomDate() {
+          this.isCustomDate = !this.isCustomDate;
+        },
+
+        setGranularity(g) {
+          this.filter.granularity = g;
+          this.fetchData();
+        },
+
+        isPositive(str) {
+          return str && str.startsWith('+');
+        },
+
+        toggleTheme() {
+          const next = this.theme === 'dark' ? 'light' : 'dark';
+          this.setTheme(next);
+        },
+
+        setTheme(t) {
+          this.theme = t;
+          document.documentElement.setAttribute('data-theme', t);
+          localStorage.setItem('ego_bi_theme', t);
+
+          // 重新初始化 ECharts 的主题颜色
+          this.$nextTick(() => {
+            Object.keys(this.charts).forEach(id => {
+              const el = document.getElementById(id);
+              if (el && this.charts[id]) {
+                const opt = this.charts[id].getOption();
+                this.charts[id].dispose();
+                this.charts[id] = echarts.init(el, t);
+                if (opt) {
+                  this.charts[id].setOption(opt);
+                }
+              }
+            });
+          });
+        },
+
+        async fetchData() {
+          this.loading = true;
+          try {
+            const params = new URLSearchParams({
+              days: this.filter.days,
+              channel: this.filter.channel,
+              platform: this.filter.platform,
+              granularity: this.filter.granularity,
+            });
+
+            if (this.isCustomDate && this.filter.start_date && this.filter.end_date) {
+              params.set('start_date', this.filter.start_date);
+              params.set('end_date', this.filter.end_date);
+            }
+
+            const res = await fetch(`/wallpaper/bi/api/data/?${params.toString()}`);
+            const result = await res.json();
+
+            if (result.code === 200 && result.data) {
+              const d = result.data;
+              this.cards = d.cards;
+              this.wallpaperRank = d.wallpaper_rank || [];
+              this.detailTable = d.detail_table || [];
+
+              this.renderCharts(d.trends, d.distributions);
+            }
+          } catch (err) {
+            console.error('Fetch BI data failed:', err);
+          } finally {
+            this.loading = false;
+          }
+        },
+
+        renderCharts(trends, dist) {
+          const dates = trends.dates || [];
+          const isDark = this.theme === 'dark';
+          const textColor = isDark ? '#9ca3af' : '#4b5563';
+
+          // 1. 核心总览趋势图 (双折线面积图)
+          if (this.charts.overviewTrendChart) {
+            this.charts.overviewTrendChart.setOption({
+              tooltip: { trigger: 'axis' },
+              legend: { data: ['活跃设备(DAU)', '新增访客'], textStyle: { color: textColor } },
+              grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+              xAxis: { type: 'category', boundaryGap: false, data: dates, axisLabel: { color: textColor } },
+              yAxis: { type: 'value', axisLabel: { color: textColor }, splitLine: { lineStyle: { color: isDark ? '#374151' : '#e5e7eb' } } },
+              series: [
+                {
+                  name: '活跃设备(DAU)',
+                  type: 'line',
+                  smooth: true,
+                  data: trends.dau,
+                  itemStyle: { color: '#6366f1' },
+                  areaStyle: {
+                    color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                      { offset: 0, color: 'rgba(99, 102, 241, 0.4)' },
+                      { offset: 1, color: 'rgba(99, 102, 241, 0.0)' }
+                    ])
+                  }
+                },
+                {
+                  name: '新增访客',
+                  type: 'line',
+                  smooth: true,
+                  data: trends.new_devices,
+                  itemStyle: { color: '#ec4899' },
+                  areaStyle: {
+                    color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                      { offset: 0, color: 'rgba(236, 72, 153, 0.3)' },
+                      { offset: 1, color: 'rgba(236, 72, 153, 0.0)' }
+                    ])
+                  }
+                }
+              ]
+            }, true);
+          }
+
+          // 2. 核心总览渠道环形图
+          if (this.charts.overviewChannelPie) {
+            this.charts.overviewChannelPie.setOption({
+              tooltip: { trigger: 'item' },
+              series: [{
+                type: 'pie',
+                radius: ['45%', '72%'],
+                avoidLabelOverlap: false,
+                itemStyle: { borderRadius: 8, borderColor: isDark ? '#1f2937' : '#ffffff', borderWidth: 2 },
+                label: { show: true, color: textColor, formatter: '{b}: {d}%' },
+                data: dist.channels && dist.channels.length ? dist.channels : [{ name: '暂无数据', value: 0 }]
+              }]
+            }, true);
+          }
+
+          // 3. 用户增长对比图 (新增访客 vs 新注册)
+          if (this.charts.growthConversionChart) {
+            this.charts.growthConversionChart.setOption({
+              tooltip: { trigger: 'axis' },
+              legend: { data: ['新增访客', '新注册用户'], textStyle: { color: textColor } },
+              grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+              xAxis: { type: 'category', data: dates, axisLabel: { color: textColor } },
+              yAxis: { type: 'value', axisLabel: { color: textColor }, splitLine: { lineStyle: { color: isDark ? '#374151' : '#e5e7eb' } } },
+              series: [
+                { name: '新增访客', type: 'bar', data: trends.new_devices, itemStyle: { color: '#38bdf8', borderRadius: [4, 4, 0, 0] } },
+                { name: '新注册用户', type: 'bar', data: trends.new_registers, itemStyle: { color: '#a855f7', borderRadius: [4, 4, 0, 0] } }
+              ]
+            }, true);
+          }
+
+          // 4. 平台活跃占比柱状图
+          if (this.charts.growthPlatformChart) {
+            const pNames = (dist.platforms || []).map(p => p.name);
+            const pValues = (dist.platforms || []).map(p => p.value);
+            this.charts.growthPlatformChart.setOption({
+              tooltip: { trigger: 'axis' },
+              grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+              xAxis: { type: 'category', data: pNames, axisLabel: { color: textColor } },
+              yAxis: { type: 'value', axisLabel: { color: textColor } },
+              series: [{
+                type: 'bar',
+                data: pValues,
+                itemStyle: {
+                  color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                    { offset: 0, color: '#10b981' },
+                    { offset: 1, color: '#059669' }
+                  ]),
+                  borderRadius: [6, 6, 0, 0]
+                }
+              }]
+            }, true);
+          }
+
+          // 5. 会员与营收双轴图 (订单量 + GMV)
+          if (this.charts.vipRevenueChart) {
+            this.charts.vipRevenueChart.setOption({
+              tooltip: { trigger: 'axis' },
+              legend: { data: ['开通订单数', '营收金额 (¥)'], textStyle: { color: textColor } },
+              grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+              xAxis: { type: 'category', data: dates, axisLabel: { color: textColor } },
+              yAxis: [
+                { type: 'value', name: '订单数', axisLabel: { color: textColor } },
+                { type: 'value', name: '金额 (¥)', axisLabel: { color: textColor }, splitLine: { show: false } }
+              ],
+              series: [
+                { name: '开通订单数', type: 'bar', yAxisIndex: 0, data: trends.vip_orders, itemStyle: { color: '#f59e0b', borderRadius: [4, 4, 0, 0] } },
+                { name: '营收金额 (¥)', type: 'line', yAxisIndex: 1, smooth: true, data: trends.vip_revenue, itemStyle: { color: '#10b981' } }
+              ]
+            }, true);
+          }
+
+          // 6. VIP 商品结构环形图
+          if (this.charts.vipProductPie) {
+            this.charts.vipProductPie.setOption({
+              tooltip: { trigger: 'item' },
+              series: [{
+                type: 'pie',
+                radius: ['45%', '70%'],
+                itemStyle: { borderRadius: 8, borderColor: isDark ? '#1f2937' : '#ffffff', borderWidth: 2 },
+                label: { color: textColor },
+                data: dist.vip_products && dist.vip_products.length ? dist.vip_products : [{ name: '暂无订单', value: 0 }]
+              }]
+            }, true);
+          }
+
+          // 7. 壁纸下载走势图
+          if (this.charts.wallpaperDownloadChart) {
+            this.charts.wallpaperDownloadChart.setOption({
+              tooltip: { trigger: 'axis' },
+              grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+              xAxis: { type: 'category', data: dates, axisLabel: { color: textColor } },
+              yAxis: { type: 'value', axisLabel: { color: textColor } },
+              series: [{
+                name: '下载量',
+                type: 'line',
+                smooth: true,
+                data: trends.downloads,
+                itemStyle: { color: '#ef4444' },
+                areaStyle: {
+                  color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                    { offset: 0, color: 'rgba(239, 68, 68, 0.4)' },
+                    { offset: 1, color: 'rgba(239, 68, 68, 0.0)' }
+                  ])
+                }
+              }]
+            }, true);
+          }
+        },
+
+        exportCSV() {
+          const params = new URLSearchParams({
+            days: this.filter.days,
+            channel: this.filter.channel,
+            platform: this.filter.platform,
+          });
+          if (this.isCustomDate && this.filter.start_date && this.filter.end_date) {
+            params.set('start_date', this.filter.start_date);
+            params.set('end_date', this.filter.end_date);
+          }
+          window.location.href = `/wallpaper/bi/api/export/?${params.toString()}`;
+        }
+      };
+    }
+  </script>
+</body>
+</html>

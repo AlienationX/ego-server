@@ -5,6 +5,7 @@ from django.urls import include, path
 from rest_framework import routers
 
 from . import views
+from .dashboard import views as dashboard_views
 
 # from drf_yasg.views import get_schema_view
 # from drf_yasg import openapi
@@ -65,4 +66,7 @@ urlpatterns = [
     # # 为 Swagger UI 添加路径
     # path('spe-swagger/', SpectacularSwaggerView.as_view(url_name='schema'), name='spe-swagger'),
     # path('spe-redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
+    path("dashboard/", dashboard_views.bi_dashboard_view, name="dashboard"),
+    path("dashboard/api/data/", dashboard_views.bi_api_data_view, name="dashboard_api_data"),
+    path("dashboard/api/export/", dashboard_views.bi_api_export_view, name="dashboard_api_export"),
 ]
