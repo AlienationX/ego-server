@@ -64,8 +64,8 @@ class ClassifyAdmin(admin.ModelAdmin):
     #     (None,               {'fields': ['question_text']}),
     #     ('Date information', {'fields': ['pub_date'], 'classes': ['collapse']}),
     # ]
-    list_display = ("id", "name", "name_en", "sort", "enable", "is_locked", "select", "pic_path_prefix")  # 显示的字段
-    list_filter = ("enable",)
+    list_display = ("id", "name", "name_en", "sort", "enable", "is_locked", "select", "pic_path_prefix", "classify_type")  # 显示的字段
+    list_filter = ("enable", "classify_type")
 
     # 在编辑页也显示图片预览, fields是编辑页面展示的字段
     fields = tuple(

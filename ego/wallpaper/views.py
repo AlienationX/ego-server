@@ -27,22 +27,22 @@ def index(request):
 
 
 def upload(request):
+    # 分类
+    classify_objects = Classify.objects.all()
+    classifies = [{"id": obj.id, "name": obj.name} for obj in classify_objects]
+    classifies.sort(key=lambda x: x["id"])
+
+    # 主题
+    subject_objects = Subject.objects.all().order_by("-created_at", "-id")
+    subjects = [{"id": obj.id, "name": obj.name} for obj in subject_objects]
+
     if request.method == "GET":
-        return render(request, "wallpaper/upload.html")
+        return render(request, "wallpaper/upload.html", {"classifies": classifies, "subjects": subjects})
 
     # POST 请求：处理上传的文件
     if request.method == "POST":
         # 获取 action 参数
         action = request.POST.get("action")
-
-        # 分类
-        classify_objects = Classify.objects.all()
-        classifies = [{"id": obj.id, "name": obj.name} for obj in classify_objects]
-        classifies.sort(key=lambda x: x["id"])
-
-        # 主题
-        subject_objects = Subject.objects.all().order_by("-created_at", "-id")
-        subjects = [{"id": obj.id, "name": obj.name} for obj in subject_objects]
 
         # 如果是预览操作，处理上传的文件
         if action == "preview":
@@ -56,27 +56,35 @@ def upload(request):
 
             # 获取全局设置
             use_ai = request.POST.get("use_ai") == "on"
-            global_classify_id = request.POST.get("global_classify")
+            global_classify_id = request.POST.get("global_classify", "")
             global_score = request.POST.get("global_score", "")
             global_description = request.POST.get("global_description", "")
             global_tags = request.POST.get("global_tags", "")
             global_resize = request.POST.get("global_resize") == "on"
-            global_use_uuid = request.POST.get("global_use_uuid") == "on"
+            global_use_uuid = request.POST.get("global_use_uuid") == "on" if "global_use_uuid" in request.POST or "global_classify" in request.POST else True
             raw_global_access = request.POST.get("global_access_level")
             if raw_global_access is not None:
                 global_access_level = int(raw_global_access)
             else:
-                global_access_level = 1 if request.POST.get("global_is_locked") == "on" else 0
-            global_subject_id = request.POST.get("global_subject")
+                global_access_level = 1 if request.POST.get("global_is_locked") == "on" else 1
+            global_subject_id = request.POST.get("global_subject", "")
+
+            global_data = {
+                "global_classify": global_classify_id,
+                "global_subject": global_subject_id,
+                "global_description": global_description,
+                "global_tags": global_tags,
+                "global_score": global_score,
+                "global_access_level": str(global_access_level),
+                "global_resize": global_resize,
+                "global_use_uuid": global_use_uuid,
+            }
 
             items = []
             for uploaded_file in uploaded_files:
                 # 读取本地文件内容为 base64 编码。智普API只能使用url地址或者base64编码，不能直接使用本地文件
                 b64 = base64.b64encode(uploaded_file.read()).decode()
                 img_base = f"data:{uploaded_file.content_type};base64,{b64}"
-
-                # 这种方式生成的字符串太长会报错，推荐使用上面的方式
-                # img_base = base64.b64encode(uploaded_file.read()).decode("utf-8")
 
                 # 1. 保存文件到服务器临时目录
                 original_name = Path(uploaded_file.name.replace(" ", "_").replace("/", "_"))
@@ -88,7 +96,6 @@ def upload(request):
                     new_filename = f"{original_name.stem}.jpg"
 
                 picurl_tmp = f"wallpaper/upload_tmp/{new_filename}"
-                # img_url = "https://api.wp.ego8.space/static/wallpaper/media/pics/classify_10/1712470293317_8.jpg"
                 img_url = f"{settings.NGINX_MEDIA_URL}/{picurl_tmp}"
                 save_path_tmp = Path(settings.MEDIA_ROOT) / picurl_tmp
 
@@ -114,7 +121,6 @@ def upload(request):
                 info["filename"] = new_filename
                 info["save_path_tmp"] = str(save_path_tmp)
                 info["picurl_tmp"] = img_base if settings.ENV == "dev" else img_url
-                # info["picurl_tmp"] = img_url
 
                 original_width, original_height = original_image.size
                 info["size"] = f"{original_width} x {original_height}"
@@ -142,10 +148,10 @@ def upload(request):
                         info.update(ai_info)
                         info["tags_list"] = info["tags"].split(",") if info.get("tags") else []
                         info["score"] = round(random.uniform(4, 5), 1)
-                        info["resize"] = True
+                        info["resize"] = False
                         info["use_uuid"] = True
-                        info["access_level"] = 0
-                        info["is_locked"] = False
+                        info["access_level"] = 1
+                        info["is_locked"] = True
                         info["subject_id"] = ""
                 else:
                     # 使用全局设置
@@ -169,7 +175,7 @@ def upload(request):
 
             global_form_html = render_to_string(
                 "wallpaper/upload_global_form.html",
-                {"classifies": classifies, "subjects": subjects, "use_ai": use_ai},
+                {"classifies": classifies, "subjects": subjects, "use_ai": use_ai, "global_data": global_data},
                 request=request,
             )
 
@@ -220,13 +226,12 @@ def upload(request):
                         info["status"] = "pending"
                         info["tags_list"] = info["tags"].split(",") if info.get("tags") else []
                         info["score"] = round(random.uniform(4, 5), 1)
-                        info["resize"] = True
+                        info["resize"] = False
                         info["use_uuid"] = True
-                        info["is_locked"] = False
+                        info["access_level"] = 1
+                        info["is_locked"] = True
                         info["subject_id"] = ""
                 else:
-                    # Pass through normal cards properties using the form values
-                    # To be robust, if it's already generated, we should keep its status and other info if available
                     pass
 
                 items.append(info)
@@ -245,6 +250,28 @@ def upload(request):
             error_msgs = form_data.getlist("error_msg")
             duplicate_ids_field = form_data.getlist("duplicate_id")
 
+            # 保持全局设置数据
+            global_classify_id = request.POST.get("global_classify", "")
+            global_subject_id = request.POST.get("global_subject", "")
+            global_description = request.POST.get("global_description", "")
+            global_tags = request.POST.get("global_tags", "")
+            global_score = request.POST.get("global_score", "")
+            raw_global_access = request.POST.get("global_access_level")
+            global_access_level = int(raw_global_access) if raw_global_access is not None else 1
+            global_resize = request.POST.get("global_resize") == "on"
+            global_use_uuid = request.POST.get("global_use_uuid") == "on" if "global_use_uuid" in request.POST or "global_classify" in request.POST else True
+
+            global_data = {
+                "global_classify": global_classify_id,
+                "global_subject": global_subject_id,
+                "global_description": global_description,
+                "global_tags": global_tags,
+                "global_score": global_score,
+                "global_access_level": str(global_access_level),
+                "global_resize": global_resize,
+                "global_use_uuid": global_use_uuid,
+            }
+
             success_count = 0
             error_count = 0
             update_count = 0
@@ -257,6 +284,10 @@ def upload(request):
                 picurl_tmp = picurls[i] if picurls and len(picurls) > i else ""
                 pic_path_prefix = pic_path_prefixes[i] if pic_path_prefixes and len(pic_path_prefixes) > i else ""
 
+                classify_id_val = form_data.getlist("classify_id")[i] if form_data.getlist("classify_id") and len(form_data.getlist("classify_id")) > i else ""
+                subject_id_val = form_data.getlist("subject_id")[i] if form_data.getlist("subject_id") and len(form_data.getlist("subject_id")) > i else ""
+                tags_val = form_data.getlist("tags")[i] if form_data.getlist("tags") and len(form_data.getlist("tags")) > i else ""
+
                 info = {
                     "filename": filenames[i],
                     "save_path_tmp": save_path_tmp,
@@ -265,7 +296,18 @@ def upload(request):
                     "status": status,
                     "error_msg": error_msgs[i] if error_msgs and len(error_msgs) > i else "",
                     "duplicate_id": duplicate_ids_field[i] if duplicate_ids_field and len(duplicate_ids_field) > i else "",
-                    "size": form_data.getlist("size")[i] if form_data.getlist("size") else "",
+                    "size": form_data.getlist("size")[i] if form_data.getlist("size") and len(form_data.getlist("size")) > i else "",
+                    "publisher": form_data.getlist("publisher")[i] if form_data.getlist("publisher") and len(form_data.getlist("publisher")) > i else "Admin",
+                    "score": form_data.getlist("score")[i] if form_data.getlist("score") and len(form_data.getlist("score")) > i else "",
+                    "classify_id": int(classify_id_val) if classify_id_val else "",
+                    "subject_id": int(subject_id_val) if subject_id_val else "",
+                    "description": form_data.getlist("description")[i] if form_data.getlist("description") and len(form_data.getlist("description")) > i else "",
+                    "tags": tags_val,
+                    "tags_list": tags_val.split(",") if tags_val else [],
+                    "access_level": int(form_data.get(f"access_level_{i}", 1)),
+                    "is_locked": int(form_data.get(f"access_level_{i}", 1)) > 0,
+                    "resize": form_data.get(f"resize_{i}") == "on",
+                    "use_uuid": form_data.get(f"use_uuid_{i}") == "on",
                 }
 
                 if status in ["duplicate", "llm_error"]:
@@ -313,7 +355,14 @@ def upload(request):
                 data["items"] = failed_items
                 data["classifies"] = classifies
                 data["subjects"] = subjects
-            return render(request, "wallpaper/upload_cards.html", data)
+
+            cards_html = render_to_string("wallpaper/upload_cards.html", data, request=request)
+            global_form_html = render_to_string(
+                "wallpaper/upload_global_form.html",
+                {"classifies": classifies, "subjects": subjects, "use_ai": request.POST.get("use_ai") == "on", "global_data": global_data},
+                request=request,
+            )
+            return HttpResponse(cards_html + global_form_html)
 
 
 def _generate_info_with_llm(img_url):

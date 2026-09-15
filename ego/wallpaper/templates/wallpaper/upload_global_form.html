@@ -16,7 +16,7 @@
       <select id="global_classify" name="global_classify" class="select select-bordered select-sm w-full focus:outline-none focus:border-primary">
         <option value="">请选择分类</option>
         {% for item in classifies %}
-        <option value="{{ item.id }}">{{ item.name }} (ID:{{ item.id }})</option>
+        <option value="{{ item.id }}" {% if global_data and global_data.global_classify|stringformat:"s" == item.id|stringformat:"s" %}selected{% endif %}>{{ item.name }} (ID:{{ item.id }})</option>
         {% endfor %}
       </select>
     </div>
@@ -28,7 +28,7 @@
       <select id="global_subject" name="global_subject" class="select select-bordered select-sm w-full focus:outline-none focus:border-primary">
         <option value="">请选择专题</option>
         {% for item in subjects %}
-        <option value="{{ item.id }}">{{ item.name }} (ID:{{ item.id }})</option>
+        <option value="{{ item.id }}" {% if global_data and global_data.global_subject|stringformat:"s" == item.id|stringformat:"s" %}selected{% endif %}>{{ item.name }} (ID:{{ item.id }})</option>
         {% endfor %}
       </select>
     </div>
@@ -38,7 +38,7 @@
       <label class="label py-1">
         <span class="label-text text-xs font-medium">描述</span>
       </label>
-      <input id="global_description" name="global_description" type="text" value="" placeholder="请输入描述"
+      <input id="global_description" name="global_description" type="text" value="{{ global_data.global_description|default:'' }}" placeholder="请输入描述"
         class="input input-bordered input-sm w-full focus:outline-none focus:border-primary" />
     </div>
 
@@ -46,7 +46,7 @@
       <label class="label py-1">
         <span class="label-text text-xs font-medium">标签</span>
       </label>
-      <input id="global_tags" name="global_tags" type="text" value="" placeholder="标签，逗号分隔"
+      <input id="global_tags" name="global_tags" type="text" value="{{ global_data.global_tags|default:'' }}" placeholder="标签，逗号分隔"
         class="input input-bordered input-sm w-full focus:outline-none focus:border-primary" />
     </div>
 
@@ -56,9 +56,9 @@
         <span class="label-text text-xs font-medium">权限级别</span>
       </label>
       <select id="global_access_level" name="global_access_level" class="select select-bordered select-sm w-full focus:outline-none focus:border-primary">
-        <option value="0">免费壁纸 (0)</option>
-        <option value="1" selected>看广告/VIP (1)</option>
-        <option value="2">VIP专属 (2)</option>
+        <option value="0" {% if global_data and global_data.global_access_level == "0" %}selected{% endif %}>免费壁纸 (0)</option>
+        <option value="1" {% if not global_data or global_data.global_access_level == "1" %}selected{% endif %}>看广告/VIP (1)</option>
+        <option value="2" {% if global_data and global_data.global_access_level == "2" %}selected{% endif %}>VIP专属 (2)</option>
       </select>
       <input type="checkbox" id="global_is_locked" name="global_is_locked" class="hidden" />
     </div>
@@ -68,17 +68,17 @@
         <label class="label py-1">
           <span class="label-text text-xs font-medium">评分</span>
         </label>
-        <input id="global_score" name="global_score" type="number" value="" min="0" max="5" step="0.1" placeholder="评分"
+        <input id="global_score" name="global_score" type="number" value="{{ global_data.global_score|default:'' }}" min="0" max="5" step="0.1" placeholder="评分"
           class="input input-bordered input-sm w-full focus:outline-none focus:border-primary" />
       </div>
       <div class="flex items-center gap-4 py-1.5 flex-wrap">
         <label class="flex items-center gap-2 cursor-pointer hover:text-primary transition-colors">
           <span class="text-xs font-medium">重置尺寸</span>
-          <input type="checkbox" id="global_resize" name="global_resize" class="toggle toggle-sm toggle-primary" />
+          <input type="checkbox" id="global_resize" name="global_resize" class="toggle toggle-sm toggle-primary" {% if global_data and global_data.global_resize %}checked{% endif %} />
         </label>
         <label class="flex items-center gap-2 cursor-pointer hover:text-primary transition-colors">
           <span class="text-xs font-medium">使用UUID生成文件名</span>
-          <input type="checkbox" id="global_use_uuid" name="global_use_uuid" class="toggle toggle-sm toggle-primary" />
+          <input type="checkbox" id="global_use_uuid" name="global_use_uuid" class="toggle toggle-sm toggle-primary" {% if not global_data or global_data.global_use_uuid %}checked{% endif %} />
         </label>
       </div>
     </div>

@@ -86,8 +86,8 @@
         <span class="text-sm font-medium">使用AI识别图片内容</span>
       </label>
 
-      <!-- 全局表单占位符 - 点击上传解析后根据AI复选框状态动态加载 -->
-      <div id="global-form-container" x-show="!useAi"></div>
+      <!-- 全局表单 -->
+      {% include 'wallpaper/upload_global_form.html' %}
     </form>
   </div>
 </div>
@@ -193,6 +193,9 @@
     document.body.addEventListener("htmx:afterSettle", function () {
       setupGlobalFormSyncListener();
     });
+
+    // 初始加载时绑定监听
+    setupGlobalFormSyncListener();
 
     if (!uploadButton || !timer || !timerValue) return;
 
