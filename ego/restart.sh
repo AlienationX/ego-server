@@ -2,6 +2,9 @@
 
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(echo "$SCRIPT_DIR" | grep -o '^.*/ego-server/')"
+
 if pgrep -f "ego-server" > /dev/null; then
     echo "ego-server is running"
     pgrep -f "ego-server" | xargs kill
@@ -10,8 +13,8 @@ if pgrep -f "ego-server" > /dev/null; then
 fi
 
 
-# source /app/ego-server/.venv/bin/activate
-cd /app/ego-server/ego/
-/app/ego-server/.venv/bin/gunicorn server.wsgi:application -c gunicorn_conf.py -D
+# source ${PROJECT_ROOT}/.venv/bin/activate
+cd ${PROJECT_ROOT}/ego/
+${PROJECT_ROOT}/.venv/bin/gunicorn server.wsgi:application -c gunicorn_conf.py -D
 
 echo "ego-server is started"
