@@ -13,8 +13,10 @@ threads = 4
 timeout = 120
 forwarded_allow_ips = "127.0.0.1"  # 信任来自 Nginx 代理的 X-Forwarded-For 头
 loglevel = "info"
-accesslog = "/var/log/gunicorn/ego-server/access.log"
-errorlog = "/var/log/gunicorn/ego-server/error.log"
+# accesslog = "/var/log/gunicorn/ego-server/access.log"
+# errorlog = "/var/log/gunicorn/ego-server/error.log"
+accesslog = f"{PROJECT_ROOT}/logs/access.log"
+errorlog = f"{PROJECT_ROOT}/logs/error.log"
 
 Path(accesslog).parent.mkdir(parents=True, exist_ok=True)
 Path(errorlog).parent.mkdir(parents=True, exist_ok=True)
