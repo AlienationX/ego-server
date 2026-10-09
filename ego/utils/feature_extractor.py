@@ -1,14 +1,16 @@
 import json
 
 import numpy as np
-import torch
-import torchvision.models as models
-import torchvision.transforms as transforms
-from PIL import Image
 
 
 class ImageFeatureExtractor:
     def __init__(self, model_name="resnet50", device="cuda"):
+        # 延迟导入重量级深度学习依赖，避免 Web 进程在启动时因导入 FeatureStorage 而被动载入 PyTorch 消耗数百兆内存
+        import torch
+        import torchvision.models as models
+        import torchvision.transforms as transforms
+
+        self.torch = torch
         self.device = device if torch.cuda.is_available() else "cpu"
 
         # 加载预训练模型
@@ -42,10 +44,12 @@ class ImageFeatureExtractor:
 
     def extract_features(self, image_path):
         """提取单张图片的特征向量"""
+        from PIL import Image
+
         img = Image.open(image_path).convert("RGB")
         img_tensor = self.transform(img).unsqueeze(0).to(self.device)
 
-        with torch.no_grad():
+        with self.torch.no_grad():
             features = self.model(img_tensor)
             features = features.squeeze().cpu().numpy()  # 转为numpy数组
 
