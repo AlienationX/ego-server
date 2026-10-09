@@ -156,6 +156,7 @@ class Command(BaseCommand):
             file_path = local_bing_path / f"{file_name}.jpg"
             if file_path.exists():
                 print(f"Already exist, skip {file_name}.jpg")
+                continue
             else:
                 with open(file_path, "wb") as f:
                     f.write(image_data)
