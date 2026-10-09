@@ -6,7 +6,7 @@ PROJECT_ROOT="$(echo "$SCRIPT_DIR" | grep -o '^.*/ego-server/')"
 # 每日凌晨1点执行一次，保存Bing每日壁纸，增量计算壁纸的特征向量并存储，增量预计算壁纸的TopN相似度
 
 PYTHON="$PROJECT_ROOT/.venv/bin/python"
-log_file="/var/log/ego-server/daily_tasks_$(date +%Y-%m-%d).log"
+log_file=f"${PROJECT_ROOT}/ego/logs/daily_tasks_$(date +%Y-%m-%d).log"
 
 cd "$PROJECT_ROOT/ego"
 
