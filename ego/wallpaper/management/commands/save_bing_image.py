@@ -110,13 +110,32 @@ class Command(BaseCommand):
         # n：返回的图片数量（最大值为8）。
         # mkt：区域代码（例如 zh-CN 为中国，en-US 为美国，不同地区可能返回不同图片）(en-US设置无效，和ip有关)。
 
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+            "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+        }
         # params = {"format": "js", "idx": 0, "n": 8, "mkt": "zh_CN"}
         params = {"format": "js", "idx": 0, "n": 8, "mkt": "zh_CN"}
-        api_url = "https://www.bing.com/HPImageArchive.aspx"
-        response = requests.get(api_url, params=params)
-        response.raise_for_status()
-        # data = json.loads(response.text)
-        data = response.json()
+
+        # 优先使用国内直连节点 cn.bing.com，避免境内服务器访问 www.bing.com 触发 SNI 阻断重置 (Errno 104)
+        base_domains = ["https://cn.bing.com", "https://www.bing.com"]
+        data = None
+        current_base_domain = base_domains[0]
+
+        for domain in base_domains:
+            api_url = f"{domain}/HPImageArchive.aspx"
+            try:
+                response = requests.get(api_url, params=params, headers=headers, timeout=10)
+                response.raise_for_status()
+                data = response.json()
+                current_base_domain = domain
+                break
+            except Exception as e:
+                logger.warning(f"请求 {api_url} 失败: {e}，尝试备用节点...")
+
+        if not data or "images" not in data:
+            raise RuntimeError("获取必应壁纸数据失败，所有域名均无法连接")
 
         records = []
         # 反转列表，顺序下载确保最新的壁纸在最后处理
@@ -125,14 +144,15 @@ class Command(BaseCommand):
             safe_title = str(image["title"]).replace("/", "_").replace("\\", "_").replace("?", "").replace(" ", "_")
             file_name = image["enddate"] + "-" + safe_title
             # 解析并拼接图片URL
-            image_url = "https://www.bing.com" + image["url"]
+            image_url = current_base_domain + image["url"]
             # image_url = image_url.replace("1920x1080", "UHD")  # 改为超高清分辨率
             image_url = image_url.replace("1920x1080", "1080x1920")  # 改为手机分辨率
 
             # 下载图片
-            image_data = requests.get(image_url).content
+            image_data = requests.get(image_url, headers=headers, timeout=20).content
 
             # 检查图片是否存在，如果存在则跳过
+            local_bing_path.mkdir(parents=True, exist_ok=True)
             file_path = local_bing_path / f"{file_name}.jpg"
             if file_path.exists():
                 print(f"Already exist, skip {file_name}.jpg")
