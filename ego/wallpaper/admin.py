@@ -34,7 +34,8 @@ from .models import (
 # ROOT_PIC_URL = "https://mp-36059119-7390-44c6-8190-cc3527d1e745.cdn.bspapp.com/wallpaper"
 # ROOT_PIC_URL = "https://wallpaper-kpze6c.s3.eu-north-1.amazonaws.com"
 # ROOT_PIC_URL = "https://wp-1328701250.cos.ap-beijing.myqcloud.com"
-ROOT_PIC_URL = "https://api.wp.ego8.space/static/wallpaper/media"
+# ROOT_PIC_URL = "https://api.wp.ego8.space/static/wallpaper/media"
+ROOT_PIC_URL = "https://api.egofish.cn/media/wallpaper"
 
 
 class TimeStampAdminMixin:
@@ -64,7 +65,17 @@ class ClassifyAdmin(admin.ModelAdmin):
     #     (None,               {'fields': ['question_text']}),
     #     ('Date information', {'fields': ['pub_date'], 'classes': ['collapse']}),
     # ]
-    list_display = ("id", "name", "name_en", "sort", "enable", "is_locked", "select", "pic_path_prefix", "classify_type")  # 显示的字段
+    list_display = (
+        "id",
+        "name",
+        "name_en",
+        "sort",
+        "enable",
+        "is_locked",
+        "select",
+        "pic_path_prefix",
+        "classify_type",
+    )  # 显示的字段
     list_filter = ("enable", "classify_type")
 
     # 在编辑页也显示图片预览, fields是编辑页面展示的字段
@@ -241,7 +252,18 @@ class FeedbackAdmin(admin.ModelAdmin):
 @admin.register(Profile)
 class ProfileAdmin(admin.ModelAdmin):
     # 列表显示
-    list_display = ("user__id", "user__email", "nickname", "is_vip", "vip_expire_time", "energy", "channel", "source", "region", "wechat_openid")
+    list_display = (
+        "user__id",
+        "user__email",
+        "nickname",
+        "is_vip",
+        "vip_expire_time",
+        "energy",
+        "channel",
+        "source",
+        "region",
+        "wechat_openid",
+    )
     # 搜索字段
     search_fields = ("nickname", "user__email")
     # 过滤器
@@ -338,26 +360,58 @@ class ProductAdmin(TimeStampAdminMixin, admin.ModelAdmin):
     list_filter = ("category", "is_active", "recommended", "currency")
     search_fields = ("name", "code", "wx_product_id")
     fieldsets = (
-        ("基础信息", {
-            "fields": ("name", "name_en", "category", "code", "period_days", "is_active", "recommended")
-        }),
-        ("定价与虚拟支付配置", {
-            "fields": ("price", "original_price", "currency", "wx_product_id"),
-            "description": "💡 微信虚拟支付说明：请填写在微信公众平台【虚拟支付 -> 道具管理】中已创建并发布的道具ID (productId)。若未配置则默认取套餐编码标识。",
-        }),
-        ("营销文案", {
-            "fields": ("description", "description_en"),
-            "classes": ("collapse",),
-        }),
+        ("基础信息", {"fields": ("name", "name_en", "category", "code", "period_days", "is_active", "recommended")}),
+        (
+            "定价与虚拟支付配置",
+            {
+                "fields": ("price", "original_price", "currency", "wx_product_id"),
+                "description": "💡 微信虚拟支付说明：请填写在微信公众平台【虚拟支付 -> 道具管理】中已创建并发布的道具ID (productId)。若未配置则默认取套餐编码标识。",
+            },
+        ),
+        (
+            "营销文案",
+            {
+                "fields": ("description", "description_en"),
+                "classes": ("collapse",),
+            },
+        ),
     )
 
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin, TimeStampAdminMixin):
-    list_display = ("order_no", "user", "product_name", "amount", "currency", "channel", "platform", "payment_method", "status", "formatted_created_at")
+    list_display = (
+        "order_no",
+        "user",
+        "product_name",
+        "amount",
+        "currency",
+        "channel",
+        "platform",
+        "payment_method",
+        "status",
+        "formatted_created_at",
+    )
     list_filter = ("status", "channel", "platform", "payment_method", "currency")
     search_fields = ("order_no", "user__email", "transaction_id")
-    readonly_fields = ("order_no", "user", "product", "product_name", "price", "original_price", "currency", "period_days", "amount", "channel", "platform", "payment_method", "status", "transaction_id", "created_at", "paid_at")
+    readonly_fields = (
+        "order_no",
+        "user",
+        "product",
+        "product_name",
+        "price",
+        "original_price",
+        "currency",
+        "period_days",
+        "amount",
+        "channel",
+        "platform",
+        "payment_method",
+        "status",
+        "transaction_id",
+        "created_at",
+        "paid_at",
+    )
 
 
 @admin.register(SearchKeyword)
@@ -507,10 +561,8 @@ class RedeemCodeAdmin(TimeStampAdminMixin, admin.ModelAdmin):
             created_codes.append(obj.code)
 
         codes_text = " , ".join(created_codes)
-        self.message_user(
-            request,
-            f"✅ 成功生成 {count} 个 {reward_days} 天 VIP 体验码: {codes_text}"
-        )
+        self.message_user(request, f"✅ 成功生成 {count} 个 {reward_days} 天 VIP 体验码: {codes_text}")
+
 
 @admin.register(RedeemRecord)
 class RedeemRecordAdmin(TimeStampAdminMixin, admin.ModelAdmin):

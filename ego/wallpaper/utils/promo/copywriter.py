@@ -11,15 +11,15 @@ class PromoCopywriter:
     3. 微信公众号长图文 Markdown (wechat_post.md) - 精简排版版
     """
 
-    # 小红书爆款标题模板库 (突出 18 款精选与氛围感)
+    # 小红书爆款标题模板库 (严格不超过 20 字，包含 emoji 与标点)
     XHS_TITLE_TEMPLATES = [
-        "换上新壁纸，瞬间被治愈了✨（共18款）",
-        "被问爆的18款iPhone神仙锁屏！高级感拉满📱",
-        "每一张都想换上！私藏18款4K超清质感壁纸🤍",
-        "干净透气！18款适配灵动岛的治愈系手机壁纸🌿",
-        "审美在线｜精选18款高级感锁屏合辑，太惊艳了✨",
-        "手机颜值直接翻倍！沉浸感超强的18款壁纸合集🔥",
-        "今日份审美充能！18款超耐看的极简手机壁纸🫧",
+        "换上新壁纸被治愈了✨私藏18款神仙锁屏",
+        "被问爆的18款神仙锁屏！高级感拉满📱",
+        "每一张都心动！私藏18款iPhone超清壁纸🤍",
+        "审美在线！精选18款高级感治愈锁屏合辑✨",
+        "手机颜值翻倍！沉浸感超强的18款壁纸🔥",
+        "干净又高级！18款治愈系iPhone锁屏🌿",
+        "今日份审美充能！18款超耐看神仙壁纸🫧",
     ]
 
     # 小红书极简呼吸感正文前言
@@ -37,13 +37,19 @@ class PromoCopywriter:
         custom_theme: str = None,
     ) -> dict:
         """
-        生成小红书笔记文本（精炼极简版，100-150字，图18自带完整获取引导）
+        生成小红书笔记文本（精炼极简版，100-150字，标题严格限制 <= 20字）
         """
         primary_title = random.choice(cls.XHS_TITLE_TEMPLATES)
         if custom_theme:
-            primary_title = f"{custom_theme}壁纸｜{primary_title}"
+            candidate = f"{custom_theme}壁纸｜{primary_title}"
+            if len(candidate) > 20:
+                primary_title = f"{custom_theme}壁纸｜精选18款神仙锁屏✨"
+            else:
+                primary_title = candidate
 
-        alt_titles = [t for t in cls.XHS_TITLE_TEMPLATES if t != primary_title][:3]
+        # 严格截断确保绝对不超过 20 字
+        primary_title = primary_title[:20]
+        alt_titles = [t[:20] for t in cls.XHS_TITLE_TEMPLATES if t[:20] != primary_title][:3]
         intro = random.choice(cls.XHS_INTROS)
 
         interaction_text = "💬 你最喜欢第几款？在评论区留下心动的编号吧～"

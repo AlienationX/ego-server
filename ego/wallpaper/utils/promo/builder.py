@@ -126,11 +126,23 @@ class PromoBuilder:
             show_img.save(file_path, quality=95)
             generated_files.append({"type": "wall_mockup", "path": file_path, "wall_id": item["id"]})
 
-        # (c) 第 18 张：引导尾图 (Guide Tail，引导评论区留言【体验码】)
-        tail_img = PromoMockupRenderer.render_guide_tail(total_count=18)
+        # (c) 第 18 张：引导尾图双版本 (小红书防限流专版 + 微信公众号专版)
+        # 1. 小红书防限流专版尾图 (去除微信/小程序等敏感词，改为“主页简介/置顶入口直达”，防限流)
+        tail_xhs = PromoMockupRenderer.render_guide_tail(total_count=18, platform="xhs")
+        tail_xhs_file = os.path.join(output_dir, "18_guide_tail_xhs.png")
+        tail_xhs.save(tail_xhs_file, quality=95)
+        generated_files.append({"type": "guide_tail_xhs", "path": tail_xhs_file})
+
+        # 默认 18_guide_tail.png 采用小红书防限流版本，确保用户直接选中 18 张图发布小红书时 100% 安全
         tail_file = os.path.join(output_dir, "18_guide_tail.png")
-        tail_img.save(tail_file, quality=95)
+        tail_xhs.save(tail_file, quality=95)
         generated_files.append({"type": "guide_tail", "path": tail_file})
+
+        # 2. 微信公众号专版尾图 (微信搜一搜小程序「本我壁纸」)
+        tail_wechat = PromoMockupRenderer.render_guide_tail(total_count=18, platform="wechat")
+        tail_wechat_file = os.path.join(output_dir, "18_guide_tail_wechat.png")
+        tail_wechat.save(tail_wechat_file, quality=95)
+        generated_files.append({"type": "guide_tail_wechat", "path": tail_wechat_file})
 
         # 4. 生成文案资产
         custom_theme = theme_keyword or category_name
@@ -141,16 +153,18 @@ class PromoBuilder:
             custom_theme=custom_theme,
         )
         if custom_xhs_title:
-            xhs_data["title"] = custom_xhs_title
+            xhs_data["title"] = custom_xhs_title.strip()[:20]
         if custom_xhs_body:
             xhs_data["body"] = custom_xhs_body
 
+        # 确保备选标题和主标题均不超过 20 字
+        main_xhs_title = xhs_data['title'][:20]
         xhs_content_str = (
             f"【小红书推荐标题（选其一）】\n"
-            f"1. {xhs_data['title']}\n"
+            f"1. {main_xhs_title}\n"
         )
         for i, alt in enumerate(xhs_data.get("alt_titles", []), start=2):
-            xhs_content_str += f"{i}. {alt}\n"
+            xhs_content_str += f"{i}. {alt[:20]}\n"
 
         xhs_content_str += (
             f"\n----------------------------------------\n"

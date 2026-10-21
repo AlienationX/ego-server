@@ -532,8 +532,8 @@ class PromoMockupRenderer:
         bg_composite = Image.alpha_composite(bg_blurred, dim_mask)
         canvas.paste(bg_composite, (0, 0))
 
-        # 2. 渲染高保真真机样机 (高度 1180px，留出开阔优雅的上下空间)
-        device_h = 1180
+        # 2. 渲染高保真真机样机 (高度提升至 1360px，机身更加饱满，上下边距与文字严格对称一致)
+        device_h = 1360
         device_img = cls.render_iphone_device(
             wall_image_path=wall_image_path,
             target_height=device_h,
@@ -545,14 +545,23 @@ class PromoMockupRenderer:
         )
         dev_w, dev_h = device_img.size
 
-        # 垂直黄金布局：手机放置在 y=125，底部到 1305
+        # 真实机身顶底偏移量
+        scale = device_h / 1024
+        outer_top = int(55 * scale)
+        outer_bottom = int(929 * scale)
+
+        # 绝对居中对称布局：
+        # 机身真实高度约 1160px，置于画布 y=[140, 1300]，上下各留白恰好 140px
         dev_x = (cls.CANVAS_WIDTH - dev_w) // 2
-        dev_y = 125
+        dev_y = 140 - outer_top
         canvas.paste(device_img, (dev_x, dev_y), device_img)
+
+        actual_dev_bottom = dev_y + outer_bottom
 
         canvas_draw = ImageDraw.Draw(canvas)
 
-        # 3. 顶部品牌徽标：[官方 Logo] + Ego Wallpapers · 本我壁纸 (y=52，舒缓大气)
+        # 3. 顶部品牌徽标：[官方 Logo] + Ego Wallpapers · 本我壁纸
+        # 在顶部 140px 空间中垂直居中 (y=58)，距画布顶 58px，距机身顶沿 58px，严格对称
         logo_img = cls.get_app_logo_image(size=26)
         top_brand = "Ego Wallpapers · 本我壁纸"
         tb_font = get_text_font(size=20, bold=True)
@@ -561,7 +570,7 @@ class PromoMockupRenderer:
 
         total_brand_w = tb_w + (36 if logo_img else 0)
         brand_start_x = (cls.CANVAS_WIDTH - total_brand_w) // 2
-        brand_y = 52
+        brand_y = 58
 
         if logo_img:
             canvas.paste(logo_img, (brand_start_x, brand_y - 3), logo_img)
@@ -569,7 +578,8 @@ class PromoMockupRenderer:
         else:
             canvas_draw.text((brand_start_x, brand_y), top_brand, font=tb_font, fill=(255, 255, 255, 205))
 
-        # 4. 底部信息扁平化微标 (扁平轻透处理)
+        # 4. 底部信息扁平化微标
+        # 在底部 140px 空间中垂直居中 (pill_y=1353)，距机身底沿 53px，距画布底 53px，严格对称
         wid_text = f"# {wall_id}   ·   Ego Wallpapers" if wall_id else "Ego Wallpapers"
         w_font = get_text_font(size=20, bold=False)
         wb = canvas_draw.textbbox((0, 0), wid_text, font=w_font)
@@ -581,7 +591,7 @@ class PromoMockupRenderer:
         pill_w = ww + pill_px * 2
         pill_h = wh + pill_py * 2
         pill_x = (cls.CANVAS_WIDTH - pill_w) // 2
-        pill_y = 1358
+        pill_y = 1353
 
         pill_layer = Image.new("RGBA", (cls.CANVAS_WIDTH, cls.CANVAS_HEIGHT), (0, 0, 0, 0))
         p_draw = ImageDraw.Draw(pill_layer)
@@ -632,8 +642,8 @@ class PromoMockupRenderer:
         canvas.paste(bg_composite, (0, 0))
 
         # 2. 渲染两台真机样机 (参考附件2：后机小一些，前机挺拔在前，错落有致)
-        # (a) 左后方机身 (Sub Device, 高度 1000px，约前机的 89%，产生经典景深透视)
-        sub_h = 1000
+        # (a) 左后方机身 (Sub Device, 高度 1050px)
+        sub_h = 1050
         sub_device = cls.render_iphone_device(
             wall_image_path=wall_sub_path,
             target_height=sub_h,
@@ -642,8 +652,8 @@ class PromoMockupRenderer:
             time_text="09:41",
             bezel_thick=15,
         )
-        sub_x = 70
-        sub_y = 255
+        sub_x = 65
+        sub_y = 240
 
         # 左机柔和底影
         sub_alpha = sub_device.split()[3]
@@ -657,8 +667,8 @@ class PromoMockupRenderer:
         # 贴入左后方机身
         canvas.paste(sub_device, (sub_x, sub_y), sub_device)
 
-        # (b) 右前方机身 (Hero Device, 高度 1120px，挺立在右前方)
-        hero_h = 1120
+        # (b) 右前方机身 (Hero Device, 高度 1180px，挺拔饱满)
+        hero_h = 1180
         hero_device = cls.render_iphone_device(
             wall_image_path=wall_hero_path,
             target_height=hero_h,
@@ -667,8 +677,8 @@ class PromoMockupRenderer:
             time_text="09:41",
             bezel_thick=15,
         )
-        hero_x = 430
-        hero_y = 205
+        hero_x = 420
+        hero_y = 190
 
         # 3. 轻薄自然的前后机接触落影 (参考附件2：紧贴右机左边缘，纯净柔和，绝不污染遮盖后机画面)
         hero_alpha = hero_device.split()[3]
@@ -743,13 +753,12 @@ class PromoMockupRenderer:
     def render_guide_tail(
         cls,
         total_count: int = 18,
+        platform: str = "xhs",
     ) -> Image.Image:
         """
         生成顶级科技美学质感尾图：
-        - 暗夜星云微光渐变背景
-        - 修复顶部徽章颜色：采用高对比度黑金发光胶囊，纯净清晰，彻底解决泛白看不清问题
-        - 毛玻璃质感 3 步指南卡片
-        - 至尊黑金 VIP 礼包与立体发光黄金按钮
+        - platform="xhs": 小红书防限流专版（严禁出现“微信/小程序”等敏感词，改为“主页简介/置顶入口”，防限流）
+        - platform="wechat": 微信公众号专版（微信搜一搜小程序「本我壁纸」）
         """
         # 1. 创建深邃高级暗夜星云渐变底图
         canvas = Image.new("RGBA", (cls.CANVAS_WIDTH, cls.CANVAS_HEIGHT), (15, 17, 24, 255))
@@ -804,11 +813,23 @@ class PromoMockupRenderer:
         gap = 20
         card_start_y = 285
 
-        steps = [
-            ("01", "打开微信搜索小程序", "在微信搜一搜输入「本我壁纸」即可进入应用"),
-            ("02", "输入壁纸编号直达", "在首页搜索框输入笔记/贴图上标注的「#编号」"),
-            ("03", "无损保存即刻上屏", "4K超清原图一键保存，支持沉浸式时钟与灵动岛预览"),
-        ]
+        if platform == "wechat":
+            steps = [
+                ("01", "打开微信搜索小程序", "在微信搜一搜输入「本我壁纸」即可进入应用"),
+                ("02", "输入壁纸编号直达", "在首页搜索框输入笔记/贴图上标注的「#编号」"),
+                ("03", "无损保存即刻上屏", "4K超清原图一键保存，支持沉浸式时钟与灵动岛预览"),
+            ]
+            cta_title = "在评论区留言【体验码】"
+            cta_sub = "私信发放3天VIP专属兑换码"
+        else:
+            # 小红书专属防限流合规文案（严禁“微信/小程序”字眼，采用主页简介与编号搜索）
+            steps = [
+                ("01", "查看作者主页简介", "点击主页头像或查看置顶笔记直达图库入口"),
+                ("02", "输入壁纸编号直达", "在搜索框输入图上标注的专属「#编号」直达原图"),
+                ("03", "无损保存即刻上屏", "4K超清原图一键下载，支持真机沉浸式锁屏预览"),
+            ]
+            cta_title = "在评论区留言【体验码】"
+            cta_sub = "私信发放3天VIP专属兑换码"
 
         num_font = get_clock_font(size=64)
         step_t_font = get_text_font(size=28, bold=True)
@@ -904,12 +925,10 @@ class PromoMockupRenderer:
             width=2,
         )
 
-        cta_title = "在评论区 / 后台留言【体验码】"
         cta_font = get_text_font(size=33, bold=True)
         ct_b = draw.textbbox((0, 0), cta_title, font=cta_font)
         draw.text(((cls.CANVAS_WIDTH - (ct_b[2] - ct_b[0])) // 2, cta_y + 16), cta_title, font=cta_font, fill=(28, 20, 10, 255))
 
-        cta_sub = "私信自动发放 3 天 VIP 专属兑换码"
         cs_font = get_text_font(size=20, bold=False)
         cs_b = draw.textbbox((0, 0), cta_sub, font=cs_font)
         draw.text(((cls.CANVAS_WIDTH - (cs_b[2] - cs_b[0])) // 2, cta_y + 58), cta_sub, font=cs_font, fill=(75, 52, 22, 230))

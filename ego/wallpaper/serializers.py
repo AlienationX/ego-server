@@ -3,6 +3,7 @@ from django.db import transaction
 from rest_framework.serializers import (
     CharField,
     EmailField,
+    IntegerField,
     ModelSerializer,
     PrimaryKeyRelatedField,
     SerializerMethodField,
@@ -70,6 +71,7 @@ class WallSerializer(ModelSerializer):
     classify_id = PrimaryKeyRelatedField(source="classify", read_only=True)  # 显示外键表的主键值id
     classify_name = CharField(source="classify.name", read_only=True)
     classify_name_en = CharField(source="classify.name_en", read_only=True)
+    classify_type = IntegerField(source="classify.classify_type", read_only=True)
 
     effective_access_level = SerializerMethodField()
     unlock_type = SerializerMethodField()
