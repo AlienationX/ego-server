@@ -4,6 +4,11 @@
             onclick="document.getElementById('preview-modal-{{ index1 }}').showModal()">
             <img src="{{ item.picurl_tmp }}" alt="{{ item.filename }}"
               class="w-full h-48 sm:h-full object-cover rounded-t-lg sm:rounded-l-lg sm:rounded-tr-none hover:opacity-90 transition-opacity" />
+            {% if item.has_watermark %}
+            <span class="absolute top-2 left-2 px-2 py-0.5 bg-warning text-warning-content text-[10px] font-medium rounded shadow-sm backdrop-blur-sm z-10 pointer-events-none">
+              水印
+            </span>
+            {% endif %}
             <span class="absolute top-2 right-2 px-2 py-0.5 bg-black/60 text-white/90 text-[10px] font-medium rounded shadow-sm backdrop-blur-sm z-10 pointer-events-none">
               {{ item.size }}
             </span>
@@ -59,6 +64,7 @@
             <input type="hidden" name="picurl_tmp" value="{{ item.picurl_tmp }}" />
             <input type="hidden" name="error_msg" value="{{ item.error_msg|default:'' }}" />
             <input type="hidden" name="duplicate_id" value="{{ item.duplicate_id|default:'' }}" />
+            <input type="hidden" name="has_watermark" value="{% if item.has_watermark %}1{% else %}0{% endif %}" />
 
             <!-- <div class="form-control w-full">
               <label class="label py-1">

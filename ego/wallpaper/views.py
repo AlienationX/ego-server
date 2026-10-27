@@ -4,6 +4,7 @@ import logging
 import random
 import shutil
 from pathlib import Path
+from uuid import uuid4
 
 import requests
 from django.conf import settings
@@ -16,6 +17,7 @@ from utils.compare_image import get_file_md5, get_file_shape, get_image_content_
 from wallpaper.management.commands.upload_cos import upload_file_to_cos
 from wallpaper.management.commands.upload_s3 import upload_file_to_s3
 from wallpaper.management.commands.utils import generate_thumbs, resize_image
+from wallpaper.utils.watermark import detect_watermark
 
 from .models import Classify, Subject, Wall
 
@@ -95,7 +97,10 @@ def upload(request):
                 else:
                     new_filename = f"{original_name.stem}.jpg"
 
-                picurl_tmp = f"wallpaper/upload_tmp/{new_filename}"
+                # 临时文件名追加唯一后缀：同名文件重复上传时不会覆盖旧文件，
+                # 且每次生成新的 URL，避免浏览器/网关缓存命中上一次的图片内容
+                tmp_filename = f"{original_name.stem}_{uuid4().hex[:12]}.jpg"
+                picurl_tmp = f"wallpaper/upload_tmp/{tmp_filename}"
                 img_url = f"{settings.NGINX_MEDIA_URL}/{picurl_tmp}"
                 save_path_tmp = Path(settings.MEDIA_ROOT) / picurl_tmp
 
@@ -144,6 +149,7 @@ def upload(request):
                         info["status"] = "llm_error"
                         info["error_msg"] = ai_info["error"]
                         info["tags_list"] = []
+                        info["has_watermark"] = False
                     else:
                         info.update(ai_info)
                         info["tags_list"] = info["tags"].split(",") if info.get("tags") else []
@@ -165,6 +171,8 @@ def upload(request):
                     info["access_level"] = global_access_level
                     info["is_locked"] = global_access_level > 0
                     info["subject_id"] = int(global_subject_id) if global_subject_id else ""
+                    # 不用 AI 时，用本地启发式检测水印
+                    info["has_watermark"] = detect_watermark(save_path_tmp)
 
                 items.append(info)
 
@@ -191,6 +199,7 @@ def upload(request):
             pic_path_prefixes = form_data.getlist("pic_path_prefix")
             error_msgs = form_data.getlist("error_msg")
             duplicate_ids_field = form_data.getlist("duplicate_id")
+            watermarks = form_data.getlist("has_watermark")
 
             items = []
             for i in range(len(filenames)):
@@ -207,6 +216,7 @@ def upload(request):
                     "error_msg": error_msgs[i] if error_msgs and len(error_msgs) > i else "",
                     "duplicate_id": duplicate_ids_field[i] if duplicate_ids_field and len(duplicate_ids_field) > i else "",
                     "size": form_data.getlist("size")[i] if form_data.getlist("size") else "",
+                    "has_watermark": watermarks[i] == "1" if watermarks and len(watermarks) > i else False,
                 }
 
                 # Only retry the cards that were in error state
@@ -249,6 +259,7 @@ def upload(request):
             pic_path_prefixes = form_data.getlist("pic_path_prefix")
             error_msgs = form_data.getlist("error_msg")
             duplicate_ids_field = form_data.getlist("duplicate_id")
+            watermarks = form_data.getlist("has_watermark")
 
             # 保持全局设置数据
             global_classify_id = request.POST.get("global_classify", "")
@@ -308,6 +319,7 @@ def upload(request):
                     "is_locked": int(form_data.get(f"access_level_{i}", 1)) > 0,
                     "resize": form_data.get(f"resize_{i}") == "on",
                     "use_uuid": form_data.get(f"use_uuid_{i}") == "on",
+                    "has_watermark": watermarks[i] == "1" if watermarks and len(watermarks) > i else False,
                 }
 
                 if status in ["duplicate", "llm_error"]:
@@ -374,11 +386,13 @@ def _generate_info_with_llm(img_url):
     1. 用自然柔和的语言，生成图片描述，如果识别出图片中的人物，需要包含人物的名称。30字以内。
     2. 生成3到5个中文标签，用英文逗号分隔，逗号之间不要有空格。
     3. 在以下分类中选择最合适的一个作为图片分类：{", ".join(classcfy_name)}。
+    4. 判断图片上是否带有水印（包括角落的文字/账号ID/logo、半透明的平台标识、平铺的重复标识），用布尔值 has_watermark 表示。
     请按照以下 JSON 格式返回分析结果（不要有任何样式或格式化）：
     {{
         "description": "报纸纹理的动漫角色，蓝色调，侧身姿态，文字元素点缀",
         "tags": "海贼王,路飞,动漫,二次元",
-        "classify_name": "动漫二次元"
+        "classify_name": "动漫二次元",
+        "has_watermark": false
     }}
     """
 
@@ -438,12 +452,25 @@ def _generate_info_with_llm(img_url):
         info = json.loads(content)
         info["tags"] = info.get("tags").replace(", ", ",")
         info["classify_id"] = classify_objects.get(name=info["classify_name"]).id
+        # 大模型可能返回 true/false、"是"/"否" 等，统一成布尔值
+        info["has_watermark"] = _to_bool(info.get("has_watermark", False))
 
         return info
 
     except Exception as e:
         logger.exception(f"Unexpected error: \n{e}")
         return {"error": str(e)}
+
+
+def _to_bool(value):
+    """把大模型返回的多种"是/否"写法统一成布尔值。"""
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return value != 0
+    if isinstance(value, str):
+        return value.strip().lower() in ("1", "true", "yes", "y", "是", "有", "存在")
+    return False
 
 
 def _save_wallpaper(form_data, i):
