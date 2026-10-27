@@ -1,6 +1,7 @@
 import logging
 import random
 import secrets
+from django.conf import settings
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import action
@@ -151,7 +152,7 @@ class ApiModelView(GenericViewSet):
         wall_data = serializer.data
         image_url = wall_data.get("picurl", "")
         if image_url and not image_url.startswith("http"):
-            image_url = f"https://api.wp.ego8.space/static/wallpaper/media/{image_url.lstrip('/')}"
+            image_url = f"{settings.NGINX_MEDIA_URL}/wallpaper/{image_url.lstrip('/')}"
 
         board_name = config.board.name if (config and config.board) else ""
         target = config.target if config else "lock"

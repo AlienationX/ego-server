@@ -158,50 +158,79 @@ class PromoCurator:
                     curated_items.append(item)
                     curated_ids.add(w.id)
 
-        # 1. 每日限免模式
-        if mode == "daily_free":
-            free_ids = list(featured_info.get("daily_free_ids", []))
-            ad_ids = list(featured_info.get("daily_ad_ids", []))
-            daily_candidates = Wall.objects.filter(id__in=free_ids + ad_ids, is_active=True)
-            pick_from_candidates(daily_candidates, count)
+        # 1. 纯粹真随机模式 (全库 3700+ 张壁纸完全真随机，不看任何 trends、score 与下载量，近14天自动排重，分类多元化)
+        if mode in ("daily_free", "random"):
+            all_active_ids = list(Wall.objects.filter(is_active=True).values_list("id", flat=True))
+            # 排除近 14 天已发布的壁纸
+            available_ids = [wid for wid in all_active_ids if wid not in recent_published_ids]
+            if len(available_ids) < count:
+                available_ids = all_active_ids.copy()
+
+            random.shuffle(available_ids)
+
+            selected_walls = []
+            category_counts = {}
+            # 第一轮：完全真随机打乱后采选，限制单分类最多 3 张，确保风光、萌宠、动漫、人物、建筑百花齐放
+            for wid in available_ids:
+                if len(selected_walls) >= count:
+                    break
+                w = Wall.objects.filter(id=wid).select_related("classify").first()
+                if not w or not cls.is_wall_available_locally(w):
+                    continue
+                cname = w.classify.name if w.classify else "其他"
+                if category_counts.get(cname, 0) >= 3:
+                    continue
+                selected_walls.append(w)
+                category_counts[cname] = category_counts.get(cname, 0) + 1
+
+            # 若第一轮不足 count，放开分类限制无门槛补齐
+            if len(selected_walls) < count:
+                for wid in available_ids:
+                    if len(selected_walls) >= count:
+                        break
+                    if any(sw.id == wid for sw in selected_walls):
+                        continue
+                    w = Wall.objects.filter(id=wid).select_related("classify").first()
+                    if w and cls.is_wall_available_locally(w):
+                        selected_walls.append(w)
+
+            for w in selected_walls:
+                item = make_item(w)
+                if item:
+                    curated_items.append(item)
+                    curated_ids.add(w.id)
 
         # 2. 分类模式 (支持智能模糊匹配与自动降级为标签检索)
         elif mode == "category" and category_name:
             cls_objs = Classify.objects.filter(name__icontains=category_name)
             if cls_objs.exists():
-                candidates = Wall.objects.filter(classify__in=cls_objs, is_active=True).order_by("-trends", "-score")
+                candidates = list(Wall.objects.filter(classify__in=cls_objs, is_active=True))
+                random.shuffle(candidates)
                 pick_from_candidates(candidates, count)
             else:
-                # 智能降级：用户传入的可能是标签（如输入了 'AI美女'，实际在标签里）
-                print(f"💡 [智能容错] 分类表中未直接找到【{category_name}】，已自动按壁纸标签与描述检索...")
-                tag_candidates = Wall.objects.filter(is_active=True).filter(
-                    tags__icontains=category_name
-                ).order_by("-trends", "-score")
+                tag_candidates = list(Wall.objects.filter(is_active=True, tags__icontains=category_name))
+                random.shuffle(tag_candidates)
                 pick_from_candidates(tag_candidates, count)
 
         # 3. 主题/标签搜索模式
         elif mode == "theme" and theme_keyword:
-            tag_candidates = Wall.objects.filter(is_active=True).filter(
-                tags__icontains=theme_keyword
-            ).order_by("-trends", "-score")
+            tag_candidates = list(Wall.objects.filter(is_active=True, tags__icontains=theme_keyword))
+            random.shuffle(tag_candidates)
             pick_from_candidates(tag_candidates, count)
 
             if len(curated_items) < count:
-                desc_candidates = (
+                desc_candidates = list(
                     Wall.objects.filter(is_active=True, description__icontains=theme_keyword)
                     .exclude(id__in=curated_ids)
-                    .order_by("-trends")
                 )
+                random.shuffle(desc_candidates)
                 pick_from_candidates(desc_candidates, count - len(curated_items))
 
-        # 4. 兜底与填充策略：若所选条件壁纸不足，优先挑选同类或全库高分壁纸
+        # 4. 兜底策略：全库真随机补齐
         if len(curated_items) < count:
             remaining = count - len(curated_items)
-            fallback_candidates = (
-                Wall.objects.filter(is_active=True)
-                .exclude(id__in=curated_ids)
-                .order_by("-trends", "-score")
-            )
-            pick_from_candidates(fallback_candidates, remaining)
+            fallback = list(Wall.objects.filter(is_active=True).exclude(id__in=curated_ids))
+            random.shuffle(fallback)
+            pick_from_candidates(fallback, remaining)
 
         return curated_items

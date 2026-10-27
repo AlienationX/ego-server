@@ -133,11 +133,6 @@ class PromoBuilder:
         tail_xhs.save(tail_xhs_file, quality=95)
         generated_files.append({"type": "guide_tail_xhs", "path": tail_xhs_file})
 
-        # 默认 18_guide_tail.png 采用小红书防限流版本，确保用户直接选中 18 张图发布小红书时 100% 安全
-        tail_file = os.path.join(output_dir, "18_guide_tail.png")
-        tail_xhs.save(tail_file, quality=95)
-        generated_files.append({"type": "guide_tail", "path": tail_file})
-
         # 2. 微信公众号专版尾图 (微信搜一搜小程序「本我壁纸」)
         tail_wechat = PromoMockupRenderer.render_guide_tail(total_count=18, platform="wechat")
         tail_wechat_file = os.path.join(output_dir, "18_guide_tail_wechat.png")

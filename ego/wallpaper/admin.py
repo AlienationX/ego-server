@@ -3,6 +3,7 @@ import random
 import string
 
 from django import forms
+from django.conf import settings
 from django.contrib import admin
 from django.utils import timezone
 from django.utils.html import format_html
@@ -35,7 +36,7 @@ from .models import (
 # ROOT_PIC_URL = "https://wallpaper-kpze6c.s3.eu-north-1.amazonaws.com"
 # ROOT_PIC_URL = "https://wp-1328701250.cos.ap-beijing.myqcloud.com"
 # ROOT_PIC_URL = "https://api.wp.ego8.space/static/wallpaper/media"
-ROOT_PIC_URL = "https://api.egofish.cn/media/wallpaper"
+ROOT_PIC_URL = settings.NGINX_MEDIA_URL
 
 
 class TimeStampAdminMixin:

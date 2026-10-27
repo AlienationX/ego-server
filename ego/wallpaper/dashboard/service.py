@@ -2,6 +2,7 @@ import csv
 from datetime import datetime, time, timedelta
 from decimal import Decimal
 from typing import Any, Dict, List
+from django.conf import settings
 
 from django.contrib.auth.models import User
 from django.db.models import Count, Min, Q, Sum
@@ -9,9 +10,6 @@ from django.db.models.functions import TruncDate, TruncMonth
 from django.utils import timezone
 
 from wallpaper.models import Access, Classify, Order, Profile, UserActions, Wall
-
-ROOT_PIC_URL = "https://api.wp.ego8.space/static/wallpaper/media"
-
 
 def parse_date_range(start_date_str: str = None, end_date_str: str = None, days: int = 7):
     """
@@ -511,7 +509,7 @@ def get_bi_wallpaper_rank(date_info: dict, channel: str = "all", limit: int = 20
 
         picurl = wall.picurl or ""
         if picurl and not picurl.startswith("http"):
-            picurl = f"{ROOT_PIC_URL}/{picurl.lstrip('/')}"
+            picurl = f"{settings.NGINX_MEDIA_URL}/{picurl.lstrip('/')}"
 
         result.append(
             {

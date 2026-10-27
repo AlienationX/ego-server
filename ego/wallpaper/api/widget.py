@@ -4,6 +4,7 @@ import random
 import time
 from datetime import datetime
 
+from django.conf import settings
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import action
@@ -135,7 +136,7 @@ class ApiModelView(GenericViewSet):
         wall_data = wall_serializer.data
 
         # 构建完整的图床访问绝对 URL
-        base_media_url = "https://api.wp.ego8.space/static/wallpaper/media"
+        base_media_url = settings.NGINX_MEDIA_URL
         raw_picurl = str(wall.picurl or "")
         if raw_picurl.startswith("http://") or raw_picurl.startswith("https://"):
             full_picurl = raw_picurl
