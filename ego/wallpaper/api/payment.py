@@ -86,22 +86,30 @@ class ApiModelView(ListModelMixin, CreateModelMixin, RetrieveModelMixin, Generic
                 profile = getattr(request.user, "profile", None)
                 openid = profile.wechat_openid if profile else None
                 if openid:
-                    res = WeChatXPayService.query_order(openid, order.order_no)
-                    if res and res.get("errcode") == 0:
-                        order_info = res.get("order", {})
-                        # status: 0-待支付 1-已支付 2-已退款
-                        if order_info.get("status") == 1:
-                            with transaction.atomic():
-                                order.status = "paid"
-                                order.paid_at = timezone.now()
-                                order.transaction_id = order_info.get("wx_order_id") or ""
-                                order.save(update_fields=["status", "paid_at", "transaction_id"])
-                                self._grant_vip(order.user, order.period_days)
-                            logger.info(f"通过 query_order 兜底查单成功并已发货, order_no={order.order_no}")
+                    try:
+                        res = WeChatXPayService.query_order(openid, order.order_no)
+                        if res and res.get("errcode") == 0:
+                            order_info = res.get("order", {})
+                            # status: 0-待支付 1-已支付 2-已退款
+                            if order_info.get("status") == 1:
+                                with transaction.atomic():
+                                    order.status = "paid"
+                                    order.paid_at = timezone.now()
+                                    order.transaction_id = order_info.get("wx_order_id") or ""
+                                    order.save(update_fields=["status", "paid_at", "transaction_id"])
+                                    self._grant_vip(order.user, order.period_days)
+                                logger.info(f"通过 query_order 兜底查单成功并已发货, order_no={order.order_no}")
+                        else:
+                            logger.warning("通过 query_order 兜底查单未成功, order_no=%s, res=%s", order.order_no, res)
+                    except Exception as e:
+                        logger.exception("调用 WeChatXPayService.query_order 异常, order_no=%s: %s", order.order_no, e)
 
             return Response({"order_no": order.order_no, "status": order.status})
         except Order.DoesNotExist:
             return Response({"error": "订单不存在"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            logger.exception("查询订单状态异常, order_no=%s, user_id=%s: %s", order_no, getattr(request.user, "id", None), e)
+            return Response({"error": "查询订单状态失败"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=False, methods=["post"])
     def alipay(self, request):
@@ -286,18 +294,22 @@ class ApiModelView(ListModelMixin, CreateModelMixin, RetrieveModelMixin, Generic
                     timeout=5,
                 )
                 wx_res = resp.json()
-                s_key = wx_res.get("session_key")
-                o_id = wx_res.get("openid")
-                if s_key:
-                    profile.wechat_session_key = s_key
-                if o_id and not profile.wechat_openid:
-                    profile.wechat_openid = o_id
-                profile.save(update_fields=["wechat_session_key", "wechat_openid"])
+                if wx_res.get("errcode") and wx_res.get("errcode") != 0:
+                    logger.error("通过 code 刷新微信 session_key 失败: user_id=%s, openid=%s, wx_res=%s", user.id, profile.wechat_openid, wx_res)
+                else:
+                    s_key = wx_res.get("session_key")
+                    o_id = wx_res.get("openid")
+                    if s_key:
+                        profile.wechat_session_key = s_key
+                    if o_id and not profile.wechat_openid:
+                        profile.wechat_openid = o_id
+                    profile.save(update_fields=["wechat_session_key", "wechat_openid"])
             except Exception as e:
-                logger.warning(f"通过 code 刷新 session_key 失败: {e}")
+                logger.exception("请求微信 jscode2session 异常: user_id=%s, code=%s: %s", user.id, code, e)
 
         session_key = profile.wechat_session_key
         if not session_key:
+            logger.error("微信虚拟支付下单失败：未获取到 session_key, user_id=%s, code_present=%s", user.id, bool(code))
             return Response({"error": "未获取到微信登录凭证，请在小程序端重新授权或传入 code"}, status=status.HTTP_400_BAD_REQUEST)
 
         # 防重与幂等处理：若用户 5 分钟内针对同一商品存在待支付订单，直接复用
@@ -465,57 +477,68 @@ class ApiModelView(ListModelMixin, CreateModelMixin, RetrieveModelMixin, Generic
         except Product.DoesNotExist:
             return Response({"error": "商品不存在或已下架"}, status=status.HTTP_404_NOT_FOUND)
 
-        five_minutes_ago = timezone.now() - timedelta(minutes=5)
-        existing_order = (
-            Order.objects.filter(
-                user=request.user,
-                product=product,
-                status="pending",
-                created_at__gte=five_minutes_ago,
-            )
-            .order_by("-created_at")
-            .first()
-        )
-
-        if existing_order:
-            order = existing_order
-            logger.info("复用已存在的华为待支付订单，order_no=%s", order.order_no)
-        else:
-            with transaction.atomic():
-                order = Order.objects.create(
-                    order_no=self._generate_order_no(),
+        order = None
+        try:
+            five_minutes_ago = timezone.now() - timedelta(minutes=5)
+            existing_order = (
+                Order.objects.filter(
                     user=request.user,
-                    device_id=device_id,
                     product=product,
-                    product_name=product.name,
-                    price=product.price,
-                    original_price=product.original_price,
-                    currency=product.currency,
-                    period_days=product.period_days,
-                    amount=product.price,
-                    channel=channel,
-                    platform=platform,
-                    payment_method="huawei",
                     status="pending",
+                    created_at__gte=five_minutes_ago,
                 )
+                .order_by("-created_at")
+                .first()
+            )
 
-        huawei_product_id = f"vip_product_{product.id}"
-        purchase_params = {
-            "merchantOrderId": order.order_no,
-            "productId": huawei_product_id,
-            "price": str(product.price),
-            "currency": product.currency or "CNY",
-            "productName": product.name,
-            "applicationId": settings.HUAWEI_CLIENT_ID,
-        }
-        order_string = json.dumps(purchase_params)
+            if existing_order:
+                order = existing_order
+                logger.info("复用已存在的华为待支付订单，order_no=%s", order.order_no)
+            else:
+                with transaction.atomic():
+                    order = Order.objects.create(
+                        order_no=self._generate_order_no(),
+                        user=request.user,
+                        device_id=device_id or "",
+                        product=product,
+                        product_name=product.name,
+                        price=product.price,
+                        original_price=product.original_price,
+                        currency=product.currency,
+                        period_days=product.period_days,
+                        amount=product.price,
+                        channel=channel or "",
+                        platform=platform or "",
+                        payment_method="huawei",
+                        status="pending",
+                    )
 
-        logger.info("华为支付下单成功，order_no=%s", order.order_no)
-        return Response({
-            "order_no": order.order_no,
-            "order_string": order_string,
-            "purchase_params": purchase_params,
-        })
+            huawei_product_id = f"vip_product_{product.id}"
+            purchase_params = {
+                "merchantOrderId": order.order_no,
+                "productId": huawei_product_id,
+                "price": str(product.price),
+                "currency": product.currency or "CNY",
+                "productName": product.name,
+                "applicationId": getattr(settings, "HUAWEI_CLIENT_ID", ""),
+            }
+            order_string = json.dumps(purchase_params)
+
+            logger.info("华为支付下单成功，order_no=%s", order.order_no)
+            return Response({
+                "order_no": order.order_no,
+                "order_string": order_string,
+                "purchase_params": purchase_params,
+            })
+        except Exception as e:
+            logger.exception("华为支付下单失败, order_no=%s, user_id=%s: %s", getattr(order, "order_no", None), request.user.id, e)
+            if order and order.status == "pending":
+                try:
+                    order.status = "failed"
+                    order.save(update_fields=["status"])
+                except Exception as save_err:
+                    logger.warning("更新华为失败订单状态失败, order_no=%s: %s", order.order_no, save_err)
+            return Response({"error": "华为支付下单失败，请稍后重试"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=False, methods=["post"], permission_classes=[AllowAny])
     def huawei_notify(self, request):
@@ -603,10 +626,15 @@ class ApiModelView(ListModelMixin, CreateModelMixin, RetrieveModelMixin, Generic
 
     def _grant_vip(self, user, period_days):
         """为用户充值 VIP 时间，支持叠加"""
-        profile, _ = Profile.objects.get_or_create(user=user)
-        now = timezone.now()
-        if profile.vip_expire_time and profile.vip_expire_time > now:
-            profile.vip_expire_time += timedelta(days=period_days)
-        else:
-            profile.vip_expire_time = now + timedelta(days=period_days)
-        profile.save(update_fields=["vip_expire_time"])
+        try:
+            profile, _ = Profile.objects.get_or_create(user=user)
+            now = timezone.now()
+            if profile.vip_expire_time and profile.vip_expire_time > now:
+                profile.vip_expire_time += timedelta(days=period_days)
+            else:
+                profile.vip_expire_time = now + timedelta(days=period_days)
+            profile.save(update_fields=["vip_expire_time"])
+            logger.info("【VIP发放成功】user_id=%s, 增加天数=%s, 到期时间=%s", user.id, period_days, profile.vip_expire_time)
+        except Exception as e:
+            logger.exception("【VIP发放异常】user_id=%s, period_days=%s: %s", getattr(user, "id", None), period_days, e)
+            raise

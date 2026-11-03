@@ -34,12 +34,19 @@ class RequestLoggingMiddleware:
         # 自定义渲染器CustomJSONRenderer中需要使用，计算接口耗时，所以放到request中方便传递获取
         request.start_time = time.time()
 
-        # 记录请求信息
-        # logger.info(
-        #     f"Request: {request.method} {request.path} "
-        #     f"User: {request.user if request.user.is_authenticated else 'Anonymous'} "
-        #     f"IP: {request.META.get('REMOTE_ADDR')}"
-        # )
+        # 提取请求体数据（用于在报错时输出入参排查）
+        req_body = ""
+        if request.method in ["POST", "PUT", "PATCH"]:
+            content_type = getattr(request, "content_type", "") or ""
+            if "multipart/form-data" in content_type:
+                req_body = f"<multipart/form-data: {list(request.POST.keys())}>"
+            else:
+                try:
+                    req_body = request.body.decode("utf-8", errors="replace")[:1000]
+                except Exception:
+                    req_body = "<unreadable body>"
+        elif request.method == "GET" and request.GET:
+            req_body = str(dict(request.GET))[:500]
 
         # 调用 process_view 方法
         # 处理请求，调用下一个中间件或视图，即执行处理逻辑
@@ -47,22 +54,46 @@ class RequestLoggingMiddleware:
 
         # 计算处理时间
         duration = time.time() - request.start_time
+        user_str = request.user if getattr(request, "user", None) and request.user.is_authenticated else "Anonymous"
+        client_ip = get_client_ip(request)
 
-        # 记录响应信息
-        # logger.info(
-        #     f"Response: {request.method} {request.path} "
-        #     f"Status: {response.status_code} "
-        #     f"Duration: {duration:.2f}s"
-        # )
-
-        # 合并成一条请求数据
-        logger.info(
-            f"Request and Response: {request.method} {request.path}"
-            f", User: {request.user if request.user.is_authenticated else 'Anonymous'}"
-            f", IP: {get_client_ip(request)}"
-            f", Status: {response.status_code}"
-            f", Duration: {duration:.2f}s"
-        )
+        # 对 4xx 和 5xx 状态码单独高亮告警并输出详细入参和返回内容
+        if response.status_code >= 500:
+            resp_content = getattr(response, "data", None)
+            if resp_content is None:
+                try:
+                    resp_content = response.content.decode("utf-8", errors="replace")[:1000]
+                except Exception:
+                    resp_content = "<unreadable content>"
+            logger.error(
+                f"【全局响应异常 5xx】{request.method} {request.path}\n"
+                f"Status: {response.status_code}, Duration: {duration:.2f}s\n"
+                f"User: {user_str}, IP: {client_ip}\n"
+                f"Request Data: {req_body}\n"
+                f"Response Error: {resp_content}"
+            )
+        elif response.status_code >= 400:
+            resp_content = getattr(response, "data", None)
+            if resp_content is None:
+                try:
+                    resp_content = response.content.decode("utf-8", errors="replace")[:1000]
+                except Exception:
+                    resp_content = "<unreadable content>"
+            logger.warning(
+                f"【全局业务错误 4xx】{request.method} {request.path}\n"
+                f"Status: {response.status_code}, Duration: {duration:.2f}s\n"
+                f"User: {user_str}, IP: {client_ip}\n"
+                f"Request Data: {req_body}\n"
+                f"Response Error: {resp_content}"
+            )
+        else:
+            logger.info(
+                f"Request and Response: {request.method} {request.path}"
+                f", User: {user_str}"
+                f", IP: {client_ip}"
+                f", Status: {response.status_code}"
+                f", Duration: {duration:.2f}s"
+            )
 
         return response
 

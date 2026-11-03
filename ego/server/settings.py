@@ -183,6 +183,12 @@ USE_TZ = True
 #     Path(BASE_DIR).joinpath('pokemon_library/static'),  # 指定静态文件目录
 #     Path(BASE_DIR).joinpath('pokemon_wallpaper/static'),  # 指定静态文件目录
 # ]
+
+# 收集指定目录下的静态文件
+STATICFILES_DIRS = [
+    BASE_DIR / "server" / "static",
+]
+
 STATIC_URL = "/static/"
 STATIC_ROOT = Path(BASE_DIR).joinpath("static")
 
