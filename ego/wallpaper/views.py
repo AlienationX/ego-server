@@ -12,8 +12,8 @@ from django.http import HttpResponse
 from django.shortcuts import render
 from django.template.loader import render_to_string
 from PIL import Image
-
 from utils.compare_image import get_file_md5, get_file_shape, get_image_content_hash
+
 from wallpaper.management.commands.upload_cos import upload_file_to_cos
 from wallpaper.management.commands.upload_s3 import upload_file_to_s3
 from wallpaper.management.commands.utils import generate_thumbs, resize_image
@@ -63,7 +63,11 @@ def upload(request):
             global_description = request.POST.get("global_description", "")
             global_tags = request.POST.get("global_tags", "")
             global_resize = request.POST.get("global_resize") == "on"
-            global_use_uuid = request.POST.get("global_use_uuid") == "on" if "global_use_uuid" in request.POST or "global_classify" in request.POST else True
+            global_use_uuid = (
+                request.POST.get("global_use_uuid") == "on"
+                if "global_use_uuid" in request.POST or "global_classify" in request.POST
+                else True
+            )
             raw_global_access = request.POST.get("global_access_level")
             if raw_global_access is not None:
                 global_access_level = int(raw_global_access)
@@ -116,7 +120,7 @@ def upload(request):
                         # 已经是JPEG，直接保存原始字节以保留质量
                         uploaded_file.seek(0)
                         save_path_tmp.write_bytes(uploaded_file.read())
-                except IOError as e:
+                except OSError as e:
                     error_msg = f"{new_filename} 文件保存临时目录失败，{e}"
                     data = {"items": [], "msg": error_msg, "alert_type": "alert-warning"}
                     return render(request, "wallpaper/upload_cards.html", data)
@@ -270,7 +274,11 @@ def upload(request):
             raw_global_access = request.POST.get("global_access_level")
             global_access_level = int(raw_global_access) if raw_global_access is not None else 1
             global_resize = request.POST.get("global_resize") == "on"
-            global_use_uuid = request.POST.get("global_use_uuid") == "on" if "global_use_uuid" in request.POST or "global_classify" in request.POST else True
+            global_use_uuid = (
+                request.POST.get("global_use_uuid") == "on"
+                if "global_use_uuid" in request.POST or "global_classify" in request.POST
+                else True
+            )
 
             global_data = {
                 "global_classify": global_classify_id,
@@ -295,9 +303,19 @@ def upload(request):
                 picurl_tmp = picurls[i] if picurls and len(picurls) > i else ""
                 pic_path_prefix = pic_path_prefixes[i] if pic_path_prefixes and len(pic_path_prefixes) > i else ""
 
-                classify_id_val = form_data.getlist("classify_id")[i] if form_data.getlist("classify_id") and len(form_data.getlist("classify_id")) > i else ""
-                subject_id_val = form_data.getlist("subject_id")[i] if form_data.getlist("subject_id") and len(form_data.getlist("subject_id")) > i else ""
-                tags_val = form_data.getlist("tags")[i] if form_data.getlist("tags") and len(form_data.getlist("tags")) > i else ""
+                classify_id_val = (
+                    form_data.getlist("classify_id")[i]
+                    if form_data.getlist("classify_id") and len(form_data.getlist("classify_id")) > i
+                    else ""
+                )
+                subject_id_val = (
+                    form_data.getlist("subject_id")[i]
+                    if form_data.getlist("subject_id") and len(form_data.getlist("subject_id")) > i
+                    else ""
+                )
+                tags_val = (
+                    form_data.getlist("tags")[i] if form_data.getlist("tags") and len(form_data.getlist("tags")) > i else ""
+                )
 
                 info = {
                     "filename": filenames[i],
@@ -307,12 +325,20 @@ def upload(request):
                     "status": status,
                     "error_msg": error_msgs[i] if error_msgs and len(error_msgs) > i else "",
                     "duplicate_id": duplicate_ids_field[i] if duplicate_ids_field and len(duplicate_ids_field) > i else "",
-                    "size": form_data.getlist("size")[i] if form_data.getlist("size") and len(form_data.getlist("size")) > i else "",
-                    "publisher": form_data.getlist("publisher")[i] if form_data.getlist("publisher") and len(form_data.getlist("publisher")) > i else "Admin",
-                    "score": form_data.getlist("score")[i] if form_data.getlist("score") and len(form_data.getlist("score")) > i else "",
+                    "size": form_data.getlist("size")[i]
+                    if form_data.getlist("size") and len(form_data.getlist("size")) > i
+                    else "",
+                    "publisher": form_data.getlist("publisher")[i]
+                    if form_data.getlist("publisher") and len(form_data.getlist("publisher")) > i
+                    else "Admin",
+                    "score": form_data.getlist("score")[i]
+                    if form_data.getlist("score") and len(form_data.getlist("score")) > i
+                    else "",
                     "classify_id": int(classify_id_val) if classify_id_val else "",
                     "subject_id": int(subject_id_val) if subject_id_val else "",
-                    "description": form_data.getlist("description")[i] if form_data.getlist("description") and len(form_data.getlist("description")) > i else "",
+                    "description": form_data.getlist("description")[i]
+                    if form_data.getlist("description") and len(form_data.getlist("description")) > i
+                    else "",
                     "tags": tags_val,
                     "tags_list": tags_val.split(",") if tags_val else [],
                     "access_level": int(form_data.get(f"access_level_{i}", 1)),
@@ -371,7 +397,12 @@ def upload(request):
             cards_html = render_to_string("wallpaper/upload_cards.html", data, request=request)
             global_form_html = render_to_string(
                 "wallpaper/upload_global_form.html",
-                {"classifies": classifies, "subjects": subjects, "use_ai": request.POST.get("use_ai") == "on", "global_data": global_data},
+                {
+                    "classifies": classifies,
+                    "subjects": subjects,
+                    "use_ai": request.POST.get("use_ai") == "on",
+                    "global_data": global_data,
+                },
                 request=request,
             )
             return HttpResponse(cards_html + global_form_html)
@@ -505,13 +536,20 @@ def _save_wallpaper(form_data, i):
         resize_path = file_path
         logger.debug(f"直接复制文件: {pic_path_prefix, resize_path}")
 
-    # 生成缩略图
+    # 计算缩略图目标目录，保持分类子目录层级结构一致
+    thumb_dir = Path(str(resize_path.parent).replace("/wallpaper/pics", "/wallpaper/thumbs", 1))
+    # 确保 thumbs 对应子目录存在
+    thumb_dir.mkdir(parents=True, exist_ok=True)
+
     # 生成 small 缩略图
-    output_file = resize_path.with_name(f"{resize_path.stem}_small.webp")
+    output_file = thumb_dir / f"{resize_path.stem}_small.webp"
     generate_thumbs(resize_path, max_size=(520, 520), output_file=output_file)
     # 生成 medium 缩略图
-    output_file = resize_path.with_name(f"{resize_path.stem}_medium.webp")
+    output_file = thumb_dir / f"{resize_path.stem}_medium.webp"
     generate_thumbs(resize_path, max_size=(1024, 1024), output_file=output_file)
+    # 生成 large 缩略图
+    output_file = thumb_dir / f"{resize_path.stem}_large.webp"
+    generate_thumbs(resize_path, max_size=(2560, 2560), output_file=output_file)
 
     # # 上传到 s3
     # upload_file_to_s3(resize_path, s3_prefix=f"{pic_path_prefix}/")

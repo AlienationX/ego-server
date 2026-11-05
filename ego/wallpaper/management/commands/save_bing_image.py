@@ -36,14 +36,21 @@ class Command(BaseCommand):
             width, height = get_file_shape(file_path)
             file_size = file_path.stat().st_size
 
+            # 计算缩略图目标目录，保持分类子目录层级结构一致
+            thumb_dir = Path(str(file_path.parent).replace("/wallpaper/pics", "/wallpaper/thumbs", 1))
+
             # step2：生成缩略图
             # 生成 small 缩略图
-            output_file = file_path.with_name(f"{file_path.stem}_small.webp")
+            output_file = thumb_dir / f"{file_path.stem}_small.webp"
             generate_thumbs(file_path, max_size=(520, 520), output_file=output_file)
             logger.info(f"Generating thumbnail {output_file}")
             # 生成 medium 缩略图
-            output_file = file_path.with_name(f"{file_path.stem}_medium.webp")
+            output_file = thumb_dir / f"{file_path.stem}_medium.webp"
             generate_thumbs(file_path, max_size=(1024, 1024), output_file=output_file)
+            logger.info(f"Generating thumbnail {output_file}")
+            # 生成 large 缩略图
+            output_file = thumb_dir / f"{file_path.stem}_large.webp"
+            generate_thumbs(file_path, max_size=(2560, 2560), output_file=output_file)
             logger.info(f"Generating thumbnail {output_file}")
 
             # 上传到 s3
