@@ -24,6 +24,18 @@ from .models import Classify, Subject, Wall
 logger = logging.getLogger(__name__)
 
 
+def normalize_tags(raw_tags: str) -> str:
+    """
+    支持中英文逗号与顿号输入，入库前统一转为英文逗号分隔，并去除首尾空格与多余空项。
+    例: '龙珠，孙悟饭， 卡通, 头像' -> '龙珠,孙悟饭,卡通,头像'
+    """
+    if not raw_tags:
+        return ""
+    cleaned = str(raw_tags).replace("，", ",").replace("、", ",")
+    tags = [t.strip() for t in cleaned.split(",") if t.strip()]
+    return ",".join(tags)
+
+
 def index(request):
     return render(request, "wallpaper/index.html")
 
@@ -61,7 +73,7 @@ def upload(request):
             global_classify_id = request.POST.get("global_classify", "")
             global_score = request.POST.get("global_score", "")
             global_description = request.POST.get("global_description", "")
-            global_tags = request.POST.get("global_tags", "")
+            global_tags = normalize_tags(request.POST.get("global_tags", ""))
             global_resize = request.POST.get("global_resize") == "on"
             global_use_uuid = (
                 request.POST.get("global_use_uuid") == "on"
@@ -156,7 +168,8 @@ def upload(request):
                         info["has_watermark"] = False
                     else:
                         info.update(ai_info)
-                        info["tags_list"] = info["tags"].split(",") if info.get("tags") else []
+                        info["tags"] = normalize_tags(info.get("tags", ""))
+                        info["tags_list"] = [t for t in info["tags"].split(",") if t]
                         info["score"] = round(random.uniform(4, 5), 1)
                         info["resize"] = False
                         info["use_uuid"] = True
@@ -167,7 +180,7 @@ def upload(request):
                     # 使用全局设置
                     info["description"] = global_description
                     info["tags"] = global_tags
-                    info["tags_list"] = global_tags.split(",") if global_tags else []
+                    info["tags_list"] = [t for t in global_tags.split(",") if t]
                     info["score"] = float(global_score) if global_score else round(random.uniform(4, 5), 1)
                     info["classify_id"] = int(global_classify_id) if global_classify_id else ""
                     info["resize"] = global_resize
@@ -238,7 +251,8 @@ def upload(request):
                     else:
                         info.update(ai_info)
                         info["status"] = "pending"
-                        info["tags_list"] = info["tags"].split(",") if info.get("tags") else []
+                        info["tags"] = normalize_tags(info.get("tags", ""))
+                        info["tags_list"] = [t for t in info["tags"].split(",") if t]
                         info["score"] = round(random.uniform(4, 5), 1)
                         info["resize"] = False
                         info["use_uuid"] = True
@@ -269,7 +283,7 @@ def upload(request):
             global_classify_id = request.POST.get("global_classify", "")
             global_subject_id = request.POST.get("global_subject", "")
             global_description = request.POST.get("global_description", "")
-            global_tags = request.POST.get("global_tags", "")
+            global_tags = normalize_tags(request.POST.get("global_tags", ""))
             global_score = request.POST.get("global_score", "")
             raw_global_access = request.POST.get("global_access_level")
             global_access_level = int(raw_global_access) if raw_global_access is not None else 1
@@ -313,7 +327,7 @@ def upload(request):
                     if form_data.getlist("subject_id") and len(form_data.getlist("subject_id")) > i
                     else ""
                 )
-                tags_val = (
+                tags_val = normalize_tags(
                     form_data.getlist("tags")[i] if form_data.getlist("tags") and len(form_data.getlist("tags")) > i else ""
                 )
 
@@ -340,7 +354,7 @@ def upload(request):
                     if form_data.getlist("description") and len(form_data.getlist("description")) > i
                     else "",
                     "tags": tags_val,
-                    "tags_list": tags_val.split(",") if tags_val else [],
+                    "tags_list": [t for t in tags_val.split(",") if t] if tags_val else [],
                     "access_level": int(form_data.get(f"access_level_{i}", 1)),
                     "is_locked": int(form_data.get(f"access_level_{i}", 1)) > 0,
                     "resize": form_data.get(f"resize_{i}") == "on",
@@ -481,7 +495,7 @@ def _generate_info_with_llm(img_url):
 
         content = result["choices"][0]["message"]["content"].strip()
         info = json.loads(content)
-        info["tags"] = info.get("tags").replace(", ", ",")
+        info["tags"] = normalize_tags(info.get("tags", ""))
         info["classify_id"] = classify_objects.get(name=info["classify_name"]).id
         # 大模型可能返回 true/false、"是"/"否" 等，统一成布尔值
         info["has_watermark"] = _to_bool(info.get("has_watermark", False))
@@ -564,7 +578,7 @@ def _save_wallpaper(form_data, i):
 
     record = {
         "description": form_data.getlist("description")[i],
-        "tags": form_data.getlist("tags")[i],
+        "tags": normalize_tags(form_data.getlist("tags")[i] if form_data.getlist("tags") and len(form_data.getlist("tags")) > i else ""),
         "score": form_data.getlist("score")[i],
         "publisher": form_data.getlist("publisher")[i],
         "is_active": True,

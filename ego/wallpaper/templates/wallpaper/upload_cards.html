@@ -53,8 +53,8 @@
       function updateBadges() {
         const badgeContainer = input.closest('.form-control').querySelector('[id^="tags-badges-"]');
         if (!badgeContainer) return;
-        const tagsList = input.value.split(',').filter(t => t.trim());
-        badgeContainer.innerHTML = tagsList.map(t => `<span class="badge badge-soft badge-secondary badge-sm">${t.trim()}</span>`).join('');
+        const tagsList = input.value.replace(/，/g, ',').split(',').map(t => t.trim()).filter(Boolean);
+        badgeContainer.innerHTML = tagsList.map(t => `<span class="badge badge-soft badge-secondary badge-sm">${t}</span>`).join('');
       }
       input.addEventListener('input', updateBadges);
     });

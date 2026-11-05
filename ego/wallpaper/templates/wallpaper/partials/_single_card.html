@@ -16,18 +16,18 @@
 
           <!-- 图片预览模态框 -->
           <dialog id="preview-modal-{{ index1 }}" class="modal">
-            <div class="modal-box p-0 bg-transparent shadow-none flex items-center justify-center">
-              <div class="relative inline-block">
+            <div class="modal-box p-0 bg-transparent shadow-none flex items-center justify-center max-w-none max-h-none w-auto overflow-visible">
+              <div class="relative inline-flex items-center justify-center">
                 <img src="{{ item.picurl_tmp }}" alt="{{ item.filename }}"
-                  class="max-h-[90vh] max-w-[90vw] object-contain rounded-lg" />
-                <form method="dialog" class="absolute right-0 top-0 z-20">
-                  <button class="btn btn-sm btn-circle btn-ghost bg-base-100/80 hover:bg-base-100 m-2">✕</button>
+                  class="max-h-[85vh] max-w-[85vw] object-contain rounded-xl block shadow-2xl select-none" />
+                <form method="dialog" class="absolute top-3 right-3 z-30">
+                  <button class="btn btn-sm btn-circle bg-black/75 hover:bg-black text-white border border-white/20 shadow-xl backdrop-blur-sm transition-transform hover:scale-105" title="关闭预览">✕</button>
                 </form>
               </div>
             </div>
             <!-- 点击背景关闭模态框效果 backdrop -->
             <form method="dialog" class="modal-backdrop">
-              <button class="hidden">关闭</button>
+              <button class="cursor-default">关闭</button>
             </form>
           </dialog>
 
