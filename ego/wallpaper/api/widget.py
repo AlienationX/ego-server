@@ -1,6 +1,7 @@
 import hashlib
 import logging
 import random
+import re
 import time
 from datetime import datetime
 
@@ -136,15 +137,21 @@ class ApiModelView(GenericViewSet):
         wall_data = wall_serializer.data
 
         # 构建完整的图床访问绝对 URL
-        base_media_url = settings.NGINX_MEDIA_URL
-        raw_picurl = str(wall.picurl or "")
+        base_media_url = getattr(settings, "NGINX_MEDIA_URL", "").rstrip("/")
+        if not base_media_url.endswith("/wallpaper"):
+            base_media_url = f"{base_media_url}/wallpaper"
+
+        raw_picurl = str(wall.picurl or "").lstrip("/")
         if raw_picurl.startswith("http://") or raw_picurl.startswith("https://"):
             full_picurl = raw_picurl
         else:
-            full_picurl = f"{base_media_url}/{raw_picurl.lstrip('/')}"
+            full_picurl = f"{base_media_url}/{raw_picurl}"
 
-        small_picurl = full_picurl.replace(".jpg", "_small.webp")
-        medium_picurl = full_picurl.replace(".jpg", "_medium.webp")
+        # 缩略图统一存放在 /wallpaper/thumbs/ 目录下
+        thumb_base_url = full_picurl.replace("/pics/", "/thumbs/")
+        small_picurl = re.sub(r"\.[^/.]+$", "_small.webp", thumb_base_url)
+        medium_picurl = re.sub(r"\.[^/.]+$", "_medium.webp", thumb_base_url)
+        large_picurl = re.sub(r"\.[^/.]+$", "_large.webp", thumb_base_url)
 
         if is_en:
             title = wall.description_en or wall.description or "Daily Featured Art"
@@ -166,6 +173,7 @@ class ApiModelView(GenericViewSet):
             "picurl": full_picurl,
             "small_picurl": small_picurl,
             "medium_picurl": medium_picurl,
+            "large_picurl": large_picurl,
             "score": wall_data.get("score") or 9.5,
             "classify_name": wall_data.get("classify_name") or "Featured",
             "date_info": date_info,

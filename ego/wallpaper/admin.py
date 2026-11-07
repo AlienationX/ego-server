@@ -88,7 +88,7 @@ class ClassifyAdmin(admin.ModelAdmin):
     def image_preview(self, obj):
         # return self.display_image(obj)
         if obj.picurl:
-            small_picurl = obj.picurl.replace(".jpg", "_small.webp")
+            small_picurl = obj.picurl.replace(".jpg", "_small.webp").replace("/pics/", "/thumbs/")
             return format_html(
                 '<img src="{}" style="height: 360px; width: auto; border-radius: 4px;" />', ROOT_PIC_URL + "/" + small_picurl
             )
@@ -154,7 +154,7 @@ class WallAdmin(admin.ModelAdmin, TimeStampAdminMixin):
     # 定义图片展示方法
     def display_image(self, obj):
         if obj.picurl:
-            small_picurl = obj.picurl.replace(".jpg", "_small.webp")
+            small_picurl = obj.picurl.replace(".jpg", "_small.webp").replace("/pics/", "/thumbs/")
             return format_html('<img src="{}" style="max-height: 60px; max-width: 60px;" />', ROOT_PIC_URL + "/" + small_picurl)
         return "-"
 
