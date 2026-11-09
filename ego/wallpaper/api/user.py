@@ -23,6 +23,7 @@ from ..permissions import HasAccessKey
 from ..renderers import CustomJSONRenderer
 from ..responses import BusinessResponse
 from ..serializers import ProfileSerializer, UserSerializer
+from ..utils.wechat_sec import check_image_security, check_text_security
 
 logger = logging.getLogger(__name__)
 
@@ -81,11 +82,22 @@ class ApiModelView(RetrieveModelMixin, GenericViewSet):
         # QueryDict 的值是列表，转成普通 dict 取单值，避免 setattr 写入列表
         data = {k: (v[0] if isinstance(v, list) and len(v) == 1 else v) for k, v in data.items()}
 
+        channel = request.headers.get("Channel") or data.get("channel") or ""
+        if channel == "wechat":
+            if "nickname" in data and data["nickname"]:
+                is_safe, err = check_text_security(str(data["nickname"]))
+                if not is_safe:
+                    return Response({"code": 400, "message": err or "昵称包含违规信息，请修改后重试"}, status=status.HTTP_200_OK)
+            if "description" in data and data["description"]:
+                is_safe, err = check_text_security(str(data["description"]))
+                if not is_safe:
+                    return Response({"code": 400, "message": err or "简介包含违规信息，请修改后重试"}, status=status.HTTP_200_OK)
+
         uploaded_file = request.FILES.get("avatar")
         file_save_path = None  # 初始化，避免异常捕获时 NameError
         if uploaded_file:
             try:
-                avatar_url, file_save_path = self._update_avatar(uploaded_file, user.id)
+                avatar_url, file_save_path = self._update_avatar(uploaded_file, user.id, is_wechat=(channel == "wechat"))
                 data["avatar"] = avatar_url
             except Exception as e:
                 return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
@@ -122,9 +134,17 @@ class ApiModelView(RetrieveModelMixin, GenericViewSet):
 
         return Response(ProfileSerializer(profile).data)
 
-    def _update_avatar(self, uploaded_file, user_id):
+    def _update_avatar(self, uploaded_file, user_id, is_wechat=False):
         if not uploaded_file:
             raise Exception("未提供文件")
+
+        # 微信小程序渠道头像安全检测
+        if is_wechat:
+            uploaded_file.seek(0)
+            is_safe, err = check_image_security(uploaded_file.read(), filename=uploaded_file.name)
+            uploaded_file.seek(0)
+            if not is_safe:
+                raise Exception(err or "所选头像包含违规信息，请重新选择")
 
         # 1. 自定义验证：文件大小
         max_size = 1 * 1024 * 1024  # 1MB

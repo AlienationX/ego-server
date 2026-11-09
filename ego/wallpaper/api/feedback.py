@@ -12,6 +12,7 @@ from rest_framework.viewsets import GenericViewSet, ModelViewSet
 from ..models import Feedback
 from ..renderers import CustomJSONRenderer
 from ..serializers import FeedbackSerializer
+from ..utils.wechat_sec import check_image_security, check_text_security
 
 
 class ApiModelView(CreateModelMixin, GenericViewSet):
@@ -26,7 +27,31 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
     def create(self, request, *args, **kwargs):
         # QueryDict 用 .dict() 转为普通dict，避免赋值列表时双重包裹；JSON请求本身就是dict直接copy
         data = request.data.dict() if hasattr(request.data, "dict") else request.data.copy()
+
+        # 微信小程序渠道内容安全前置校验
+        channel = request.headers.get("Channel") or data.get("channel") or ""
+        if channel == "wechat":
+            content_val = data.get("content", "")
+            if content_val:
+                is_safe, err = check_text_security(str(content_val))
+                if not is_safe:
+                    return Response(
+                        {"code": 400, "message": err or "内容包含敏感或违规信息，请修改后重试"},
+                        status=status.HTTP_200_OK,
+                    )
+
         upload_files = request.FILES.getlist("images")
+        if channel == "wechat" and upload_files:
+            for f in upload_files:
+                f.seek(0)
+                is_safe, err = check_image_security(f.read(), filename=f.name)
+                f.seek(0)
+                if not is_safe:
+                    return Response(
+                        {"code": 400, "message": err or "图片包含违规信息，请重新选择"},
+                        status=status.HTTP_200_OK,
+                    )
+
         images_list = []
         if upload_files:
             for uploaded_file in upload_files:
