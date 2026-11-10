@@ -32,33 +32,49 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
 
     def create(self, request, *args, **kwargs):
         """校验验证码"""
-        code = request.data.get("code")
-        email = request.data.get("email")
-        phone = request.data.get("phone")
+        code = str(request.data.get("code") or "").strip()
+        email = str(request.data.get("email") or "").strip().lower()
+        phone = str(request.data.get("phone") or "").strip()
 
         if not code:
-            return Response({"error": "缺少code参数"}, status=status.HTTP_400_BAD_REQUEST)
+            return BusinessResponse(
+                {"error": "缺少验证码参数"},
+                business_status=BusinessStatus.PARAM_REQUIRED,
+                message="请输入验证码",
+            )
 
         if email:
             code_cache_key = f"email_verification_code:{email}"
         elif phone:
             code_cache_key = f"phone_verification_code:{phone}"
         else:
-            return Response({"error": "缺少email或phone参数"}, status=status.HTTP_400_BAD_REQUEST)
+            return BusinessResponse(
+                {"error": "缺少email或phone参数"},
+                business_status=BusinessStatus.PARAM_REQUIRED,
+                message="缺少邮箱或手机号",
+            )
 
         cached_code = cache.get(code_cache_key)
 
         if not cached_code:
-            return BusinessResponse({"error": "验证码已过期或不存在"}, business_status=BusinessStatus.AUTH_ERROR)
+            return BusinessResponse(
+                {"error": "验证码已过期或不存在"},
+                business_status=BusinessStatus.AUTH_ERROR,
+                message="验证码已过期或不存在，请重新获取",
+            )
 
-        if cached_code != code:
-            return BusinessResponse({"error": "验证码错误"}, business_status=BusinessStatus.AUTH_ERROR)
+        if str(cached_code).strip() != code:
+            return BusinessResponse(
+                {"error": "验证码错误"},
+                business_status=BusinessStatus.AUTH_ERROR,
+                message="验证码错误，请重新核对输入",
+            )
 
         # 验证成功后，返回reset_token，用于后续的重置密码请求必须携带此令牌，确保流程连续性。
         reset_token = str(uuid.uuid4()).replace("-", "")
         token_cache_key = f"reset_token:{reset_token}"
         expire_time = 60 * 10  # 验证码过期时间，单位秒，10分钟
-        cache.set(token_cache_key, email, expire_time)
+        cache.set(token_cache_key, email if email else phone, expire_time)
 
         cache.delete(code_cache_key)
         return Response({"msg": "验证成功", "reset_token": reset_token})
@@ -85,25 +101,40 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
         token_cache_key = f"reset_token:{reset_token}"
         cached_email = cache.get(token_cache_key)
         if not cached_email:
-            return Response({"error": "reset_token 错误"}, status=status.HTTP_400_BAD_REQUEST)
+            return BusinessResponse(
+                {"error": "重置令牌已失效，请重新验证"},
+                business_status=BusinessStatus.AUTH_ERROR,
+                message="重置令牌已失效或已过期，请重新获取验证码",
+            )
         cache.delete(token_cache_key)
 
         try:
-            user = User.objects.get(email=cached_email)
+            cached_email = str(cached_email).strip().lower()
+            user = User.objects.filter(email__iexact=cached_email).first()
+            if not user:
+                return BusinessResponse(
+                    {"error": "用户不存在"},
+                    business_status=BusinessStatus.AUTH_ERROR,
+                    message="未找到该邮箱对应的账号",
+                )
             user.set_password(new_password)
             user.save(update_fields=["password"])
             logger.info(f"用户 {user.id} {user.username} 重置密码成功")
             return Response({"msg": "密码重置成功"})
         except Exception as e:
-            logger.error(f"用户 {user.id} {user.username} 重置密码失败: {e}", exc_info=True)
+            logger.error(f"重置密码失败: {e}", exc_info=True)
             return Response({"error": f"重置密码失败: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=False, methods=["post"])
     def send_email_verification_code(self, request, *args, **kwargs):
         # 发送邮件验证码
-        to_email = request.data.get("email")
+        to_email = str(request.data.get("email") or "").strip().lower()
         if not to_email:
-            return Response({"error": "缺少email参数"}, status=status.HTTP_400_BAD_REQUEST)
+            return BusinessResponse(
+                {"error": "缺少email参数"},
+                business_status=BusinessStatus.PARAM_REQUIRED,
+                message="邮箱不能为空",
+            )
 
         # 无论邮箱是否存在，都返回“发送成功”的通用提示，避免邮箱枚举攻击
         # if User.objects.filter(email=to_email).exists():
