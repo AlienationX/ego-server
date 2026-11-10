@@ -217,10 +217,57 @@ class ApiModelView(RetrieveModelMixin, GenericViewSet):
 
     @action(detail=False, methods=["post"])
     def deactivate(self, request):
+        """
+        停用/注销账号接口
+        智能自适应安全校验：
+        1. 邮箱注册用户（email 非空且为合法邮箱）：校验登录密码 password；
+        2. 第三方快捷登录用户（无合法邮箱）：校验确认词 confirm_text == "DEACTIVATE"。
+        """
         user = request.user
-        user.is_active = False
-        user.save()
-        return Response({"msg": "用户已停用"})
+        password = request.data.get("password")
+        confirm_text = (request.data.get("confirm_text") or "").strip().upper()
+        reason = (request.data.get("reason") or "").strip()
+
+        # 校验用户是否属于有合法邮箱的用户
+        email = (user.email or "").strip()
+        is_email_user = bool(email and "@" in email and "." in email.split("@")[-1])
+
+        # 1. 邮箱注册用户：必须通过密码验证
+        if is_email_user:
+            if not password:
+                return BusinessResponse(
+                    {"error": "请提供当前登录密码进行确认"},
+                    business_status=BusinessStatus.PARAM_REQUIRED,
+                    message="请提供当前登录密码进行确认",
+                )
+            if not user.check_password(password):
+                logger.warning(f"用户 {user.id} ({user.username}) 停用账号失败: 密码错误")
+                return BusinessResponse(
+                    {"error": "密码错误，请重新输入"},
+                    business_status=BusinessStatus.AUTH_ERROR,
+                    message="密码错误，请重新输入",
+                )
+        # 2. 第三方无合法邮箱用户：校验确认词 DEACTIVATE
+        else:
+            if confirm_text != "DEACTIVATE":
+                return BusinessResponse(
+                    {"error": "确认文本不匹配，请输入 DEACTIVATE"},
+                    business_status=BusinessStatus.PARAM_INVALID,
+                    message="确认文本不匹配，请输入 DEACTIVATE",
+                )
+
+        # 3. 执行停用逻辑
+        try:
+            user.is_active = False
+            user.save(update_fields=["is_active"])
+            logger.info(f"用户 {user.id} ({user.username}) 账号已成功停用，原因: {reason or '未提供'}")
+            return Response({"msg": "用户已停用", "code": 200})
+        except Exception as e:
+            logger.error(f"用户 {user.id} ({user.username}) 停用失败: {e}")
+            return Response(
+                {"error": f"停用失败: {e}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
     @action(detail=False, methods=["post"])
     def consume_energy(self, request):
