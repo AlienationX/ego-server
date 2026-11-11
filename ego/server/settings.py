@@ -259,7 +259,7 @@ REST_FRAMEWORK = {
         "rest_framework.throttling.AnonRateThrottle",
         "rest_framework.throttling.UserRateThrottle",
     ],  # 匿名用户  # 认证用户
-    "DEFAULT_THROTTLE_RATES": {"anon": "30/minute", "user": "100/minute"},  # 匿名用户每分钟30次请求  # 认证用户没分钟100次请求
+    "DEFAULT_THROTTLE_RATES": {"anon": "60/minute", "user": "120/minute"},  # 匿名用户每分钟60次请求  # 认证用户没分钟120次请求
 }
 
 # ######################## jwt 用户认证配置
