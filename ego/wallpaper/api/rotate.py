@@ -55,7 +55,17 @@ class ApiModelView(GenericViewSet):
 
         data = request.data
         if "enabled" in data:
-            config.enabled = bool(data["enabled"])
+            new_enabled = bool(data["enabled"])
+            if new_enabled:
+                is_vip = False
+                if hasattr(user, "profile") and user.profile.vip_expire_time:
+                    is_vip = user.profile.vip_expire_time > timezone.now()
+                if not is_vip:
+                    return Response(
+                        {"code": 403, "error": "自动更换壁纸为 VIP 专享特权，请先开通会员"},
+                        status=status.HTTP_403_FORBIDDEN,
+                    )
+            config.enabled = new_enabled
         if "mode" in data and data["mode"] in ["bing", "board"]:
             config.mode = data["mode"]
         if "board_id" in data:
@@ -103,6 +113,9 @@ class ApiModelView(GenericViewSet):
                     is_vip = user.profile.vip_expire_time > timezone.now()
 
                 if not is_vip:
+                    if config.enabled:
+                        config.enabled = False
+                        config.save(update_fields=["enabled"])
                     return Response({
                         "code": 403,
                         "error": "VIP会员已到期，画板自动轮播已暂停",

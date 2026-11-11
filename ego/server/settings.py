@@ -211,7 +211,7 @@ NGINX_MEDIA_URL = config("BASE_MEDIA_URL") if ENV == "prod" else "http://127.0.0
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # ######################## 缓存配置
-# 使用数据库缓存，解决 Gunicorn 多 Worker 进程间内存隔离、验证码无法共享的问题
+# 使用redis缓存，推荐
 # pip install django-redis redislite
 # CACHES = {
 #     "default": {
@@ -227,6 +227,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 #     }
 # }
 
+# 使用数据库缓存，解决 Gunicorn 多 Worker 进程间内存隔离、验证码无法共享的问题
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.db.DatabaseCache",
