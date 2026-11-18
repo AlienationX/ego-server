@@ -13,6 +13,7 @@ from ..models import Feedback
 from ..renderers import CustomJSONRenderer
 from ..serializers import FeedbackSerializer
 from ..utils.wechat_sec import check_image_security, check_text_security
+from ..utils.email_notify import send_feedback_notification_async
 
 
 class ApiModelView(CreateModelMixin, GenericViewSet):
@@ -30,6 +31,13 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
 
         # 微信小程序渠道内容安全前置校验
         channel = request.headers.get("Channel") or data.get("channel") or ""
+        device_id = (
+            request.headers.get("Device-Id")
+            or request.headers.get("DeviceId")
+            or data.get("device_id")
+            or data.get("deviceId")
+            or ""
+        )
         if channel == "wechat":
             content_val = data.get("content", "")
             if content_val:
@@ -59,7 +67,18 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
                 images_list.append(image_url)
 
         data["images"] = images_list
-        feedback = Feedback.objects.create(**data)
+        data["channel"] = channel
+        data["device_id"] = device_id
+        if "fb_type" not in data and "type" in data:
+            data["fb_type"] = data["type"]
+
+        valid_fields = {f.name for f in Feedback._meta.fields}
+        create_data = {k: v for k, v in data.items() if k in valid_fields}
+        feedback = Feedback.objects.create(**create_data)
+
+        # 提交成功后，后台异步发送邮件通知管理员
+        send_feedback_notification_async(feedback)
+
         return Response(FeedbackSerializer(feedback).data)
 
     def _upload_feedback_images(self, uploaded_file):

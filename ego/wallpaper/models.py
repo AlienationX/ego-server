@@ -491,12 +491,18 @@ class Access(models.Model):
 
 
 class Feedback(models.Model):
-    type = models.CharField(max_length=60, verbose_name="反馈类型")  # 如：bug反馈、功能建议、内容投诉、其他等
+    channel = models.CharField(max_length=100, verbose_name="渠道", blank=True, null=True)
+    device_id = models.CharField(max_length=100, verbose_name="设备id", blank=True, null=True)
+    fb_type = models.CharField(max_length=60, verbose_name="反馈类型")  # 如：bug反馈、功能建议、内容投诉、其他等
     content = models.CharField(max_length=255, verbose_name="反馈内容")
     contact = models.CharField(max_length=100, verbose_name="联系方式", blank=True, null=True)  # 联系方式，如邮箱、手机号等
     images = models.JSONField(max_length=255, verbose_name="图片地址", blank=True, null=True)  # 多张图片地址列表
     is_deal = models.BooleanField(default=False, verbose_name="处理状态")  # 处理状态, 默认未处理
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
+
+    def __str__(self):
+        channel_str = f"[{self.channel}] " if self.channel else ""
+        return f"{channel_str}{self.fb_type} - {self.content[:20]}"
 
     class Meta:
         verbose_name = "反馈信息"
@@ -508,6 +514,9 @@ class Versions(models.Model):
     platform = models.CharField(max_length=100, verbose_name="平台", help_text="如: mp-weixin, harmony, android, ios等")
     app_store_url = models.CharField(max_length=255, verbose_name="应用商店/下载地址", blank=True, null=True)
     app_version = models.CharField(max_length=100, verbose_name="app版本号")
+    ai_enabled = models.BooleanField(
+        default=True, verbose_name="是否开启AI功能", help_text="关闭后客户端隐藏AI相关功能和页面"
+    )
     ad_enabled = models.BooleanField(
         default=True, verbose_name="是否开启广告功能", help_text="关闭后客户端隐藏广告并降级引导VIP"
     )
@@ -524,7 +533,7 @@ class Versions(models.Model):
     updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
     def __str__(self):
-        return f"{self.channel} - (广告: {'开启' if self.ad_enabled else '关闭'}, 支付: {'开启' if self.pay_enabled else '关闭'})"
+        return f"{self.channel} - (AI: {'开启' if self.ai_enabled else '关闭'}, 广告: {'开启' if self.ad_enabled else '关闭'}, 支付: {'开启' if self.pay_enabled else '关闭'})"
 
     class Meta:
         verbose_name = "版本信息"

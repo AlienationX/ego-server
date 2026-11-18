@@ -333,6 +333,8 @@ EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD")
 EMAIL_USE_SSL = True if EMAIL_PORT == 465 else False
 EMAIL_USE_TLS = True if EMAIL_PORT == 587 else False
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+# 用户反馈邮件通知接收人（未配置时默认发送到发件人邮箱，多个可用英文逗号分隔）
+FEEDBACK_NOTIFY_EMAIL = config("FEEDBACK_NOTIFY_EMAIL", default=EMAIL_HOST_USER)
 
 # ######################## 日志配置
 

@@ -244,10 +244,82 @@ class AccessAdmin(admin.ModelAdmin):
 
 
 @admin.register(Feedback)
-class FeedbackAdmin(admin.ModelAdmin):
-    list_display = ("id", "type", "content", "contact", "is_deal", "created_at")
-    fields = ("type", "content", "contact", "images", "is_deal", "created_at")  # 可以控制顺序
-    readonly_fields = ("images", "created_at")
+class FeedbackAdmin(admin.ModelAdmin, TimeStampAdminMixin):
+    list_display = (
+        "id",
+        "channel",
+        "device_id",
+        "fb_type",
+        "content",
+        "contact",
+        "preview_images",
+        "is_deal",
+        "formatted_created_at",
+    )
+    fields = (
+        "channel",
+        "device_id",
+        "fb_type",
+        "content",
+        "contact",
+        "detail_images",
+        "is_deal",
+        "created_at",
+    )
+    readonly_fields = ("detail_images", "created_at")
+    list_filter = ("channel", "fb_type", "is_deal", "created_at")
+    search_fields = ("content", "contact", "channel", "device_id", "fb_type")
+    list_editable = ("is_deal",)
+
+    def preview_images(self, obj):
+        if not obj.images:
+            return "-"
+        images = obj.images if isinstance(obj.images, list) else [obj.images]
+        htmls = []
+        for img in images[:3]:
+            if not img:
+                continue
+            url = img if img.startswith(("http://", "https://")) else f"{ROOT_PIC_URL.rstrip('/')}/{img.lstrip('/')}"
+            htmls.append(
+                format_html(
+                    '<a href="{url}" target="_blank" title="点击查看大图">'
+                    '<img src="{url}" style="height: 44px; width: 44px; object-fit: cover; border-radius: 4px; margin-right: 4px; border: 1px solid #e2e8f0; vertical-align: middle;" />'
+                    '</a>',
+                    url=url,
+                )
+            )
+        if len(images) > 3:
+            htmls.append(
+                format_html(
+                    '<span style="color: #64748b; font-size: 12px; font-weight: 600; vertical-align: middle;">+{count}</span>',
+                    count=len(images) - 3,
+                )
+            )
+        return mark_safe("".join(htmls)) if htmls else "-"
+
+    preview_images.short_description = "图片预览"
+
+    def detail_images(self, obj):
+        if not obj.images:
+            return "无附件图片"
+        images = obj.images if isinstance(obj.images, list) else [obj.images]
+        htmls = ['<div style="display: flex; flex-wrap: wrap; gap: 12px; margin-top: 6px;">']
+        for img in images:
+            if not img:
+                continue
+            url = img if img.startswith(("http://", "https://")) else f"{ROOT_PIC_URL.rstrip('/')}/{img.lstrip('/')}"
+            htmls.append(
+                format_html(
+                    '<a href="{url}" target="_blank" title="点击查看原图">'
+                    '<img src="{url}" style="max-height: 240px; max-width: 280px; object-fit: contain; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; background: #f8fafc;" />'
+                    '</a>',
+                    url=url,
+                )
+            )
+        htmls.append("</div>")
+        return mark_safe("".join(htmls))
+
+    detail_images.short_description = "反馈图片"
 
 
 @admin.register(Profile)
@@ -288,6 +360,7 @@ class VersionsAdmin(admin.ModelAdmin, TimeStampAdminMixin):
         "channel",
         "platform",
         "app_version",
+        "ai_enabled",
         "ad_enabled",
         "pay_enabled",
         "set_wallpaper_enabled",
@@ -301,6 +374,7 @@ class VersionsAdmin(admin.ModelAdmin, TimeStampAdminMixin):
         "channel",
         "platform",
         "app_version",
+        "ai_enabled",
         "ad_enabled",
         "pay_enabled",
         "set_wallpaper_enabled",

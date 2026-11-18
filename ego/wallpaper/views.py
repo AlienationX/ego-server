@@ -36,6 +36,22 @@ def normalize_tags(raw_tags: str) -> str:
     return ",".join(tags)
 
 
+def format_file_size(size_bytes: int) -> str:
+    """将字节大小格式化为人类可读的字符串，如 850 KB, 2.35 MB"""
+    if not size_bytes or size_bytes <= 0:
+        return "0 B"
+    size = float(size_bytes)
+    for unit in ["B", "KB", "MB", "GB"]:
+        if size < 1024.0:
+            if unit == "B":
+                return f"{int(size)} {unit}"
+            val = f"{size:.2f}".rstrip("0").rstrip(".")
+            return f"{val} {unit}"
+        size /= 1024.0
+    val = f"{size:.2f}".rstrip("0").rstrip(".")
+    return f"{val} TB"
+
+
 def index(request):
     return render(request, "wallpaper/index.html")
 
@@ -122,12 +138,13 @@ def upload(request):
 
                 try:
                     save_path_tmp.parent.mkdir(parents=True, exist_ok=True)
+                    uploaded_file.seek(0)
                     original_image = Image.open(uploaded_file)
 
                     if original_image.format != "JPEG":
-                        # 转换为RGB格式并保存为JPG
+                        # 转换为RGB格式并保存为JPG（设置 quality=95 保证高质量）
                         rgb_im = original_image.convert("RGB")
-                        rgb_im.save(save_path_tmp, "JPEG")
+                        rgb_im.save(save_path_tmp, "JPEG", quality=95)
                     else:
                         # 已经是JPEG，直接保存原始字节以保留质量
                         uploaded_file.seek(0)
@@ -145,6 +162,8 @@ def upload(request):
 
                 original_width, original_height = original_image.size
                 info["size"] = f"{original_width} x {original_height}"
+                file_size_bytes = save_path_tmp.stat().st_size if save_path_tmp.exists() else uploaded_file.size
+                info["file_size_display"] = format_file_size(file_size_bytes)
                 info["publisher"] = "Admin"
 
                 # 预检：查重
@@ -217,12 +236,18 @@ def upload(request):
             error_msgs = form_data.getlist("error_msg")
             duplicate_ids_field = form_data.getlist("duplicate_id")
             watermarks = form_data.getlist("has_watermark")
+            sizes = form_data.getlist("size")
+            file_sizes_display = form_data.getlist("file_size_display")
 
             items = []
             for i in range(len(filenames)):
                 status = statuses[i] if statuses and len(statuses) > i else "pending"
                 save_path_tmp = save_paths[i] if save_paths and len(save_paths) > i else ""
                 picurl_tmp = picurls[i] if picurls and len(picurls) > i else ""
+
+                cur_file_size_display = file_sizes_display[i] if file_sizes_display and len(file_sizes_display) > i else ""
+                if not cur_file_size_display and save_path_tmp and Path(save_path_tmp).exists():
+                    cur_file_size_display = format_file_size(Path(save_path_tmp).stat().st_size)
 
                 info = {
                     "filename": filenames[i],
@@ -232,7 +257,8 @@ def upload(request):
                     "status": status,
                     "error_msg": error_msgs[i] if error_msgs and len(error_msgs) > i else "",
                     "duplicate_id": duplicate_ids_field[i] if duplicate_ids_field and len(duplicate_ids_field) > i else "",
-                    "size": form_data.getlist("size")[i] if form_data.getlist("size") else "",
+                    "size": sizes[i] if sizes and len(sizes) > i else "",
+                    "file_size_display": cur_file_size_display,
                     "has_watermark": watermarks[i] == "1" if watermarks and len(watermarks) > i else False,
                 }
 
@@ -278,6 +304,8 @@ def upload(request):
             error_msgs = form_data.getlist("error_msg")
             duplicate_ids_field = form_data.getlist("duplicate_id")
             watermarks = form_data.getlist("has_watermark")
+            sizes = form_data.getlist("size")
+            file_sizes_display = form_data.getlist("file_size_display")
 
             # 保持全局设置数据
             global_classify_id = request.POST.get("global_classify", "")
@@ -331,6 +359,14 @@ def upload(request):
                     form_data.getlist("tags")[i] if form_data.getlist("tags") and len(form_data.getlist("tags")) > i else ""
                 )
 
+                cur_file_size_display = (
+                    file_sizes_display[i]
+                    if file_sizes_display and len(file_sizes_display) > i
+                    else ""
+                )
+                if not cur_file_size_display and save_path_tmp and Path(save_path_tmp).exists():
+                    cur_file_size_display = format_file_size(Path(save_path_tmp).stat().st_size)
+
                 info = {
                     "filename": filenames[i],
                     "save_path_tmp": save_path_tmp,
@@ -339,9 +375,8 @@ def upload(request):
                     "status": status,
                     "error_msg": error_msgs[i] if error_msgs and len(error_msgs) > i else "",
                     "duplicate_id": duplicate_ids_field[i] if duplicate_ids_field and len(duplicate_ids_field) > i else "",
-                    "size": form_data.getlist("size")[i]
-                    if form_data.getlist("size") and len(form_data.getlist("size")) > i
-                    else "",
+                    "size": sizes[i] if sizes and len(sizes) > i else "",
+                    "file_size_display": cur_file_size_display,
                     "publisher": form_data.getlist("publisher")[i]
                     if form_data.getlist("publisher") and len(form_data.getlist("publisher")) > i
                     else "Admin",
