@@ -1,9 +1,11 @@
 import time
+import uuid
 from pathlib import Path
 
 from django.conf import settings
 from PIL import Image
 from rest_framework import status
+from rest_framework.decorators import action
 from rest_framework.generics import CreateAPIView
 from rest_framework.mixins import CreateModelMixin
 from rest_framework.response import Response
@@ -48,7 +50,11 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
                         status=status.HTTP_200_OK,
                     )
 
-        upload_files = request.FILES.getlist("images")
+        # 兼容多种上传键名（images, images_0, images_1, images[], 等），收集所有上传文件
+        upload_files = []
+        for key in request.FILES:
+            upload_files.extend(request.FILES.getlist(key))
+
         if channel == "wechat" and upload_files:
             for f in upload_files:
                 f.seek(0)
@@ -60,7 +66,18 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
                         status=status.HTTP_200_OK,
                     )
 
-        images_list = []
+        # 支持保留已有图片列表（例如通过单图预上传接口获取的 URL）
+        existing_images = data.get("images", [])
+        if isinstance(existing_images, str):
+            try:
+                import json
+                existing_images = json.loads(existing_images)
+            except Exception:
+                existing_images = [existing_images] if existing_images else []
+        if not isinstance(existing_images, list):
+            existing_images = []
+
+        images_list = list(existing_images)
         if upload_files:
             for uploaded_file in upload_files:
                 image_url, file_save_path = self._upload_feedback_images(uploaded_file)
@@ -81,6 +98,33 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
 
         return Response(FeedbackSerializer(feedback).data)
 
+    @action(detail=False, methods=["post"])
+    def upload_image(self, request):
+        upload_files = []
+        for key in request.FILES:
+            upload_files.extend(request.FILES.getlist(key))
+        if not upload_files:
+            return Response({"code": 400, "message": "未提供文件"}, status=status.HTTP_200_OK)
+
+        channel = request.headers.get("Channel") or request.data.get("channel") or ""
+        if channel == "wechat":
+            for f in upload_files:
+                f.seek(0)
+                is_safe, err = check_image_security(f.read(), filename=f.name)
+                f.seek(0)
+                if not is_safe:
+                    return Response(
+                        {"code": 400, "message": err or "图片包含违规信息，请重新选择"},
+                        status=status.HTTP_200_OK,
+                    )
+
+        images_list = []
+        for uploaded_file in upload_files:
+            image_url, _ = self._upload_feedback_images(uploaded_file)
+            images_list.append(image_url)
+
+        return Response({"code": 200, "data": {"images": images_list}})
+
     def _upload_feedback_images(self, uploaded_file):
         if not uploaded_file:
             raise Exception("未提供文件")
@@ -92,7 +136,7 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
 
         # 2. 自定义验证：文件扩展名
         allowed_extensions = [".jpg", ".jpeg", ".png", ".webp"]
-        ext = Path(uploaded_file.name).suffix
+        ext = Path(uploaded_file.name).suffix.lower()
         if ext not in allowed_extensions:
             raise Exception("不支持的文件格式。请上传JPG, JPEG, PNG或WebP图片。")
 
@@ -106,8 +150,12 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
             raise Exception("无效的图片文件")
 
         dt = int(time.time() * 1000 * 1000)  # 当前16位时间戳
-        image_url = f"wallpaper/feedback/{dt}{ext}"
+        random_suffix = uuid.uuid4().hex[:6]
+        image_url = f"wallpaper/feedback/{dt}_{random_suffix}{ext}"
         file_save_path = Path(settings.MEDIA_ROOT) / Path(image_url)
+
+        # 确保目录存在，避免 FileNotFoundError
+        file_save_path.parent.mkdir(parents=True, exist_ok=True)
 
         # 保存文件到服务器
         try:
