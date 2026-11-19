@@ -276,7 +276,7 @@ class FeedbackAdmin(admin.ModelAdmin, TimeStampAdminMixin):
             return "-"
         images = obj.images if isinstance(obj.images, list) else [obj.images]
         htmls = []
-        for img in images[:3]:
+        for img in images[:1]:
             if not img:
                 continue
             url = img if img.startswith(("http://", "https://")) else f"{ROOT_PIC_URL.rstrip('/')}/{img.lstrip('/')}"
