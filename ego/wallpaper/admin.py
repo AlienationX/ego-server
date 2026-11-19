@@ -283,16 +283,16 @@ class FeedbackAdmin(admin.ModelAdmin, TimeStampAdminMixin):
             htmls.append(
                 format_html(
                     '<a href="{url}" target="_blank" title="点击查看大图">'
-                    '<img src="{url}" style="height: 44px; width: 44px; object-fit: cover; border-radius: 4px; margin-right: 4px; border: 1px solid #e2e8f0; vertical-align: middle;" />'
+                    '<img src="{url}" style="height: 44px; width: 44px; object-fit: cover; border-radius: 4px; margin-right: 4px; vertical-align: middle;" />'
                     '</a>',
                     url=url,
                 )
             )
-        if len(images) > 3:
+        if len(images) > 1:
             htmls.append(
                 format_html(
                     '<span style="color: #64748b; font-size: 12px; font-weight: 600; vertical-align: middle;">+{count}</span>',
-                    count=len(images) - 3,
+                    count=len(images) - 1,
                 )
             )
         return mark_safe("".join(htmls)) if htmls else "-"
@@ -311,7 +311,7 @@ class FeedbackAdmin(admin.ModelAdmin, TimeStampAdminMixin):
             htmls.append(
                 format_html(
                     '<a href="{url}" target="_blank" title="点击查看原图">'
-                    '<img src="{url}" style="max-height: 240px; max-width: 280px; object-fit: contain; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; background: #f8fafc;" />'
+                    '<img src="{url}" style="max-height: 240px; max-width: 280px; object-fit: contain; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); background: #f8fafc;" />'
                     '</a>',
                     url=url,
                 )

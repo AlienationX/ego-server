@@ -96,7 +96,7 @@ def _send_feedback_email_task(feedback_data):
             for u in image_urls:
                 img_cards.append(
                     f'<a href="{u}" target="_blank" style="display:inline-block;margin:6px 6px 0 0;text-decoration:none;">'
-                    f'<img src="{u}" alt="反馈图片" style="max-height:160px;max-width:220px;border-radius:6px;border:1px solid #e2e8f0;object-fit:cover;vertical-align:top;" />'
+                    f'<img src="{u}" alt="反馈图片" style="max-height:160px;max-width:220px;border-radius:6px;object-fit:cover;vertical-align:top;" />'
                     f'</a>'
                 )
             images_html = f"""
