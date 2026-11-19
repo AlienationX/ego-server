@@ -106,7 +106,7 @@ class ApiModelView(CreateModelMixin, GenericViewSet):
             raise Exception("无效的图片文件")
 
         dt = int(time.time() * 1000 * 1000)  # 当前16位时间戳
-        image_url = f"feedback/{dt}{ext}"
+        image_url = f"wallpaper/feedback/{dt}{ext}"
         file_save_path = Path(settings.MEDIA_ROOT) / Path(image_url)
 
         # 保存文件到服务器
