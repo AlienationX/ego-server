@@ -126,6 +126,7 @@ class ApiModelView(GenericViewSet):
         token = request.query_params.get("token")
         mode = request.query_params.get("mode", "bing")
         theme = request.query_params.get("theme")  # "light" 或 "dark"
+        config = None
         wall = None
         custom_wall_data = None
 
@@ -228,9 +229,13 @@ class ApiModelView(GenericViewSet):
         board_name = config.board.name if (config and config.board) else ""
         target = config.target if config else "lock"
 
+        wall_title = getattr(wall, "title", "") or getattr(wall, "name", "")
+        if not wall_title and hasattr(wall, "description") and wall.description:
+            wall_title = wall.description.split("(")[0].strip()
+
         return Response({
             "id": wall.id,
-            "title": getattr(wall, "title", "") or getattr(wall, "name", ""),
+            "title": wall_title or "超清壁纸",
             "image_url": image_url,
             "mode": mode,
             "board_name": board_name,
