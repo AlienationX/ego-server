@@ -17,10 +17,22 @@ from ..serializers import UserAutoRotateConfigSerializer, WallSerializer
 logger = logging.getLogger(__name__)
 
 
-def is_pay_enabled():
+def is_pay_enabled(request=None):
     """检查系统后台是否开启了支付与VIP验证，若关闭则全员放行"""
     try:
-        ver = Versions.objects.filter(is_active=True).first()
+        channel = None
+        if request:
+            channel = (
+                request.headers.get("Channel")
+                or request.META.get("HTTP_CHANNEL")
+                or (hasattr(request, "query_params") and request.query_params.get("channel"))
+            )
+        ver = None
+        if channel:
+            ver = Versions.objects.filter(channel=channel).first()
+        if not ver:
+            ver = Versions.objects.filter(channel="default").first() or Versions.objects.first()
+
         if ver is not None and ver.pay_enabled is False:
             return False
     except Exception as e:
@@ -67,7 +79,7 @@ class ApiModelView(GenericViewSet):
         data = request.data
         if "enabled" in data:
             new_enabled = bool(data["enabled"])
-            if new_enabled and is_pay_enabled():
+            if new_enabled and is_pay_enabled(request):
                 is_vip = False
                 if hasattr(user, "profile") and user.profile.vip_expire_time:
                     is_vip = user.profile.vip_expire_time > timezone.now()
@@ -125,7 +137,7 @@ class ApiModelView(GenericViewSet):
             )
             if config:
                 user = config.user
-                if is_pay_enabled():
+                if is_pay_enabled(request):
                     is_vip = False
                     if user and hasattr(user, "profile") and user.profile.vip_expire_time:
                         is_vip = user.profile.vip_expire_time > timezone.now()
