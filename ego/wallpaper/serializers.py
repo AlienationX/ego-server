@@ -289,6 +289,8 @@ class UserAutoRotateConfigSerializer(ModelSerializer):
             "mode",
             "board",
             "board_name",
+            "light_wallpaper",
+            "dark_wallpaper",
             "target",
             "frequency",
             "strategy",

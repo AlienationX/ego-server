@@ -725,6 +725,7 @@ class UserAutoRotateConfig(models.Model):
     """
     MODE_CHOICES = (
         ("bing", "每日必应"),
+        ("theme", "深浅双色"),
         ("board", "画板轮播"),
     )
     TARGET_CHOICES = (
@@ -748,6 +749,8 @@ class UserAutoRotateConfig(models.Model):
     enabled = models.BooleanField(default=False, verbose_name="开启自动切换")
     mode = models.CharField(max_length=20, choices=MODE_CHOICES, default="bing", verbose_name="切换模式")
     board = models.ForeignKey(Board, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="指定轮播画板")
+    light_wallpaper = models.JSONField(null=True, blank=True, verbose_name="浅色外观壁纸配置")
+    dark_wallpaper = models.JSONField(null=True, blank=True, verbose_name="深色外观壁纸配置")
     target = models.CharField(max_length=20, choices=TARGET_CHOICES, default="both", verbose_name="应用目标")
     frequency = models.CharField(max_length=20, choices=FREQUENCY_CHOICES, default="daily", verbose_name="切换频率")
     strategy = models.CharField(max_length=20, choices=STRATEGY_CHOICES, default="random", verbose_name="轮播策略")
