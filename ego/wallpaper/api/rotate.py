@@ -9,7 +9,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
-from ..models import Board, BoardWall, UserAutoRotateConfig, Wall, Versions
+from ..models import Board, BoardWall, Classify, UserAutoRotateConfig, Wall, Versions
 from ..permissions import HasAccessKey
 from ..renderers import CustomJSONRenderer
 from ..serializers import UserAutoRotateConfigSerializer, WallSerializer
@@ -120,15 +120,16 @@ class ApiModelView(GenericViewSet):
     @action(detail=False, methods=["get"], permission_classes=[AllowAny])
     def feed(self, request):
         """
-        专供 iOS 快捷指令 / Android 原生后台 Worker 自动拉取下一张壁纸数据
-        URL: GET /api/wallpaper/rotate/feed/?token=xxx&theme=light/dark
+        专供 iOS 快捷指令 / Android 原生后台 Worker / 页面测试 自动拉取壁纸数据
+        URL: GET /api/wallpaper/rotate/feed/?token=xxx&mode=bing/theme/board&theme=light/dark&board_id=xxx
         """
         token = request.query_params.get("token")
-        mode = request.query_params.get("mode", "bing")
-        theme = request.query_params.get("theme")  # "light" 或 "dark"
+        requested_mode = request.query_params.get("mode")  # 客户端显式指定的模式
+        req_theme = request.query_params.get("theme")      # "light" 或 "dark"
+        req_board_id = request.query_params.get("board_id")
+
         config = None
-        wall = None
-        custom_wall_data = None
+        user = None
 
         if token:
             config = (
@@ -153,72 +154,124 @@ class ApiModelView(GenericViewSet):
                             "vip_expired": True,
                         }, status=status.HTTP_403_FORBIDDEN)
 
-                mode = config.mode
-                if config.mode == "theme":
-                    # 深浅双色自适应模式
-                    target_theme = theme if theme in ["light", "dark"] else "light"
-                    wall_dict = config.dark_wallpaper if target_theme == "dark" else config.light_wallpaper
-                    if wall_dict and isinstance(wall_dict, dict):
-                        custom_wall_data = wall_dict
-                        wall_id = wall_dict.get("id")
-                        if wall_id and isinstance(wall_id, int):
-                            wall = Wall.objects.filter(id=wall_id, is_active=True).first()
-                elif config.mode == "board" and config.board:
-                    # 从指定画板中选取壁纸
-                    board_wall_items = list(
-                        BoardWall.objects.filter(board=config.board).order_by("id").select_related("wall")
-                    )
-                    if board_wall_items:
-                        if config.strategy == "random":
-                            selected_bw = random.choice(board_wall_items)
-                        else:
-                            # 顺序循环轮播逻辑：查找上次位置，推进到下一张
-                            last_wall_id = config.last_wall_id
-                            next_idx = 0
-                            if last_wall_id:
-                                wall_ids = [bw.wall_id for bw in board_wall_items]
-                                if last_wall_id in wall_ids:
-                                    curr_idx = wall_ids.index(last_wall_id)
-                                    next_idx = (curr_idx + 1) % len(board_wall_items)
-                            selected_bw = board_wall_items[next_idx]
-                        wall = selected_bw.wall
-                        config.last_wall = wall
+        # 决定生效模式：优先使用客户端请求显式传入的 mode，未传入时使用 config.mode，最终兜底 "bing"
+        effective_mode = requested_mode or (config.mode if config else "bing")
+        if effective_mode not in ["bing", "theme", "board"]:
+            effective_mode = "bing"
 
-                # 更新最近切换时间与上次壁纸
+        wall = None
+        custom_wall_data = None
+        board_name = ""
+        target = config.target if config else "lock"
+
+        # ════════════════════════════════════════════════════════════════
+        # 1. 深浅双色自适应模式 (theme)
+        # ════════════════════════════════════════════════════════════════
+        if effective_mode == "theme":
+            target_theme = req_theme if req_theme in ["light", "dark"] else "light"
+            wall_dict = None
+            if config:
+                wall_dict = config.dark_wallpaper if target_theme == "dark" else config.light_wallpaper
+
+            if wall_dict and isinstance(wall_dict, dict):
+                custom_wall_data = wall_dict
+                wall_id = wall_dict.get("id")
+                if wall_id and isinstance(wall_id, int):
+                    wall = Wall.objects.filter(id=wall_id, is_active=True).first()
+
+            if custom_wall_data:
+                img_url = custom_wall_data.get("url") or custom_wall_data.get("thumb") or ""
+                if img_url and not img_url.startswith("http") and not img_url.startswith("file://"):
+                    img_url = f"{settings.NGINX_MEDIA_URL}/wallpaper/{img_url.lstrip('/')}"
+
+                if config:
+                    config.last_rotated_at = timezone.now()
+                    config.save(update_fields=["last_rotated_at"])
+
+                return Response({
+                    "id": custom_wall_data.get("id") or (wall.id if wall else 0),
+                    "title": custom_wall_data.get("title") or ("深色模式壁纸" if target_theme == "dark" else "浅色模式壁纸"),
+                    "image_url": img_url,
+                    "mode": "theme",
+                    "theme": target_theme,
+                    "board_name": "",
+                    "target": target,
+                    "wall": custom_wall_data,
+                    "rotated_at": timezone.now().strftime("%Y-%m-%d %H:%M:%S"),
+                })
+            else:
+                return Response({
+                    "error": f"未设置{'深色' if target_theme == 'dark' else '浅色'}自适应壁纸，请先在 App 中选定",
+                    "mode": "theme",
+                    "theme": target_theme,
+                }, status=status.HTTP_404_NOT_FOUND)
+
+        # ════════════════════════════════════════════════════════════════
+        # 2. 画板自定义轮播模式 (board)
+        # ════════════════════════════════════════════════════════════════
+        elif effective_mode == "board":
+            target_board = None
+            if req_board_id:
+                target_board = Board.objects.filter(id=req_board_id).first()
+            if not target_board and config and config.board:
+                target_board = config.board
+
+            if not target_board:
+                return Response({"error": "请先选择要轮播的画板", "mode": "board"}, status=status.HTTP_404_NOT_FOUND)
+
+            board_name = target_board.name
+            board_wall_items = list(
+                BoardWall.objects.filter(board=target_board).order_by("id").select_related("wall")
+            )
+            if not board_wall_items:
+                return Response({
+                    "error": f"画板「{board_name}」内暂无壁纸，请先添加壁纸到该画板",
+                    "mode": "board",
+                    "board_name": board_name,
+                }, status=status.HTTP_404_NOT_FOUND)
+
+            strategy = config.strategy if config else "random"
+            if strategy == "random":
+                selected_bw = random.choice(board_wall_items)
+            else:
+                # 顺序循环
+                last_wall_id = config.last_wall_id if config else None
+                next_idx = 0
+                if last_wall_id:
+                    wall_ids = [bw.wall_id for bw in board_wall_items]
+                    if last_wall_id in wall_ids:
+                        curr_idx = wall_ids.index(last_wall_id)
+                        next_idx = (curr_idx + 1) % len(board_wall_items)
+                selected_bw = board_wall_items[next_idx]
+
+            wall = selected_bw.wall
+            if config:
+                config.last_wall = wall
                 config.last_rotated_at = timezone.now()
                 config.save(update_fields=["last_rotated_at", "last_wall"])
 
-        # 若为深浅双色模式且指定了自定义壁纸数据
-        if custom_wall_data:
-            img_url = custom_wall_data.get("url") or custom_wall_data.get("thumb") or ""
-            if img_url and not img_url.startswith("http") and not img_url.startswith("file://"):
-                img_url = f"{settings.NGINX_MEDIA_URL}/wallpaper/{img_url.lstrip('/')}"
-
-            target = config.target if config else "lock"
-            return Response({
-                "id": custom_wall_data.get("id") or (wall.id if wall else 0),
-                "title": custom_wall_data.get("title") or ("深色模式壁纸" if theme == "dark" else "浅色模式壁纸"),
-                "image_url": img_url,
-                "mode": mode,
-                "theme": theme or "light",
-                "board_name": "",
-                "target": target,
-                "wall": custom_wall_data,
-                "rotated_at": timezone.now().strftime("%Y-%m-%d %H:%M:%S"),
-            })
-
-        # 若未选定壁纸，默认降级拉取最新必应壁纸
-        if not wall:
+        # ════════════════════════════════════════════════════════════════
+        # 3. 每日必应最新壁纸模式 (bing)
+        # ════════════════════════════════════════════════════════════════
+        else:
+            # 动态检索必应分类，杜绝写死 classify_id 带来的环境错位
+            bing_classify = Classify.objects.filter(name__icontains="必应").first()
+            classify_id = bing_classify.id if bing_classify else 30
             wall = (
-                Wall.objects.filter(classify_id=30, is_active=True)
+                Wall.objects.filter(classify_id=classify_id, is_active=True)
                 .order_by("-id")
                 .first()
             )
-        if not wall:
-            wall = Wall.objects.filter(is_active=True).order_by("-id").first()
+            if not wall:
+                wall = Wall.objects.filter(is_active=True).order_by("-id").first()
+
+            if config:
+                config.last_wall = wall
+                config.last_rotated_at = timezone.now()
+                config.save(update_fields=["last_rotated_at", "last_wall"])
 
         if not wall:
-            return Response({"error": "暂无可用壁纸"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "暂无可用的精美壁纸"}, status=status.HTTP_404_NOT_FOUND)
 
         serializer = WallSerializer(wall)
         wall_data = serializer.data
@@ -226,18 +279,15 @@ class ApiModelView(GenericViewSet):
         if image_url and not image_url.startswith("http"):
             image_url = f"{settings.NGINX_MEDIA_URL}/wallpaper/{image_url.lstrip('/')}"
 
-        board_name = config.board.name if (config and config.board) else ""
-        target = config.target if config else "lock"
-
         wall_title = getattr(wall, "title", "") or getattr(wall, "name", "")
         if not wall_title and hasattr(wall, "description") and wall.description:
             wall_title = wall.description.split("(")[0].strip()
 
         return Response({
             "id": wall.id,
-            "title": wall_title or "超清壁纸",
+            "title": wall_title or ("每日最新必应壁纸" if effective_mode == "bing" else "超清壁纸"),
             "image_url": image_url,
-            "mode": mode,
+            "mode": effective_mode,
             "board_name": board_name,
             "target": target,
             "wall": wall_data,
